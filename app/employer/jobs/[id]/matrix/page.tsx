@@ -3,6 +3,7 @@ import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { MatrixForm } from "@/components/forms/matrix-form";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { FRAMEWORK, FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveJobMatrixAnswers } from "@/lib/employer/actions";
 
 export default async function JobMatrixPage({
@@ -70,14 +71,14 @@ export default async function JobMatrixPage({
     <DashboardShell
       role="employer"
       userName={user.name}
-      title="Job 7×7 Form"
-      description={`Matching language for ${job.title}`}
+      title={`Job ${FRAMEWORK} Form`}
+      description={`${FRAMEWORK_MATCHING_LANGUAGE} for ${job.title}`}
     >
       <MatrixForm
         categories={filtered}
         existingAnswers={answerMap}
         onSave={onSave}
-        targetLabel="Job 7×7 Matching Language"
+        targetLabel={`Job ${FRAMEWORK_MATCHING_LANGUAGE}`}
       />
     </DashboardShell>
   );

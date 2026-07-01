@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { markCandidateReady } from "@/lib/candidate/actions";
 import { statusLabel } from "@/lib/utils/profile";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 
 export default async function CandidateStatusPage() {
   const user = await requireRole("candidate");
@@ -30,7 +31,7 @@ export default async function CandidateStatusPage() {
   const checks = [
     { label: "Profile details", done: (profile?.completion_percentage ?? 0) >= 60 },
     { label: "CV uploaded", done: (cvCount ?? 0) > 0 },
-    { label: "7×7 form completed", done: (matrixCount ?? 0) > 0 },
+    { label: `${FRAMEWORK_MATCHING_LANGUAGE} completed`, done: (matrixCount ?? 0) > 0 },
   ];
 
   return (

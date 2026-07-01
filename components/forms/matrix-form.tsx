@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import type { MatrixCategory, MatrixQuestion, MatrixOption } from "@/types/database";
 
 interface MatrixFormProps {
@@ -33,7 +34,7 @@ export function MatrixForm({
   categories,
   existingAnswers,
   onSave,
-  targetLabel = "7×7 Matching Language",
+  targetLabel = FRAMEWORK_MATCHING_LANGUAGE,
 }: MatrixFormProps) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState(existingAnswers);

@@ -7,7 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { requireRole, ensureCandidateProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, statusLabel } from "@/lib/utils/profile";
-import { Upload, User, Grid3X3, CheckCircle } from "lucide-react";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { CheckCircle, Grid3X3, Upload, User } from "lucide-react";
 
 export default async function CandidateDashboard() {
   const user = await requireRole("candidate");
@@ -34,107 +35,117 @@ export default async function CandidateDashboard() {
   const hasMatrix = (matrixCount ?? 0) > 0;
   const isReady = profile?.status === "ready_for_matching";
 
-  return (
-    <DashboardShell
-      role="candidate"
-      userName={user.name}
-      title="Candidate Dashboard"
-      description="Track your profile completion and matching readiness"
-    >
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Profile Completion
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{profile?.completion_percentage ?? 0}%</p>
-            <Progress value={profile?.completion_percentage ?? 0} className="mt-2 h-2" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={isReady ? "default" : "secondary"} className="text-sm">
-              {statusLabel(profile?.status ?? "draft")}
-            </Badge>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Matching Readiness
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isReady ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <CheckCircle className="h-5 w-5" />
-                <span className="font-medium">Ready</span>
-              </div>
-            ) : (
-              <span className="text-muted-foreground">Not ready</span>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Last Updated
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg font-medium">{formatDate(profile?.updated_at)}</p>
-          </CardContent>
-        </Card>
-      </div>
+  const steps = [
+    {
+      label: "Complete your profile",
+      done: (profile?.completion_percentage ?? 0) >= 60,
+      href: "/candidate/profile",
+      icon: User,
+    },
+    {
+      label: "Upload your CV",
+      done: hasCv,
+      href: "/candidate/cv",
+      icon: Upload,
+    },
+    {
+      label: `Complete ${FRAMEWORK_MATCHING_LANGUAGE}`,
+      done: hasMatrix,
+      href: "/candidate/matrix",
+      icon: Grid3X3,
+    },
+  ];
 
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        <Card>
+  return (
+    <DashboardShell role="candidate" userName={user.name} title="Candidate Dashboard">
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-900">Good Day</h2>
+          <p className="mt-1 text-slate-500">
+            Complete your profile to get matched with the right opportunities.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-500">
+                Profile Completion
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-slate-900">
+                {profile?.completion_percentage ?? 0}%
+              </p>
+              <Progress
+                value={profile?.completion_percentage ?? 0}
+                className="mt-3 h-2"
+              />
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-500">
+                Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Badge
+                className={isReady ? "bg-green-600" : "bg-slate-500"}
+              >
+                {statusLabel(profile?.status ?? "draft")}
+              </Badge>
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-500">
+                Last Updated
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-lg font-semibold text-slate-900">
+                {formatDate(profile?.updated_at)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="border-slate-200 shadow-sm">
           <CardHeader>
-            <User className="h-5 w-5 text-[#1e40af]" />
-            <CardTitle className="text-base">Profile</CardTitle>
+            <CardTitle>Your Next Steps</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Complete personal and professional details
-            </p>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/candidate/profile">Edit Profile</Link>
-            </Button>
+          <CardContent className="space-y-3">
+            {steps.map((step) => (
+              <div
+                key={step.label}
+                className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <step.icon className="h-5 w-5 text-blue-600" />
+                  <span className="text-sm font-medium text-slate-800">
+                    {step.label}
+                  </span>
+                  {step.done && (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  )}
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={step.href}>{step.done ? "View" : "Start"}</Link>
+                </Button>
+              </div>
+            ))}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <Upload className="h-5 w-5 text-[#1e40af]" />
-            <CardTitle className="text-base">CV Upload</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={hasCv ? "default" : "secondary"} className="mb-4">
-              {hasCv ? "Uploaded" : "Not uploaded"}
-            </Badge>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/candidate/cv">Manage CV</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <Grid3X3 className="h-5 w-5 text-[#1e40af]" />
-            <CardTitle className="text-base">7×7 Form</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={hasMatrix ? "default" : "secondary"} className="mb-4">
-              {hasMatrix ? "In progress" : "Not started"}
-            </Badge>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/candidate/matrix">Complete Form</Link>
-            </Button>
-          </CardContent>
-        </Card>
+
+        {isReady && (
+          <Card className="border-green-200 bg-green-50 shadow-sm">
+            <CardContent className="py-4 text-sm text-green-800">
+              Your profile is ready for matching. Employers who unlock your
+              profile will contact you outside the platform.
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardShell>
   );

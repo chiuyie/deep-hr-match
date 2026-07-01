@@ -1,8 +1,8 @@
 # Deep HR Match
 
-AI-ready candidate-job matching SaaS built around the proprietary **7×7 Matching Language** framework.
+AI-ready candidate-job matching SaaS built around the proprietary **7^7 Matching Language** framework.
 
-Phase 1 MVP — platform flows, dynamic 7×7 forms, file uploads, placeholder matching engine, and Stripe-powered candidate profile unlocks.
+Phase 1 MVP — platform flows, dynamic 7^7 forms, file uploads, placeholder matching engine, and Stripe-powered candidate profile unlocks.
 
 ## Tech Stack
 
@@ -16,20 +16,20 @@ Phase 1 MVP — platform flows, dynamic 7×7 forms, file uploads, placeholder ma
 
 ### Candidates
 - Sign up, build profile, upload CV
-- Complete dynamic 7×7 Matching Language form
+- Complete dynamic 7^7 Matching Language form
 - Track profile completion and matching readiness
 - Wait for employer contact outside the platform
 
 ### Employers
 - Company profile and unlimited free job postings
-- JD upload and job-specific 7×7 form
+- JD upload and job-specific 7^7 form
 - Free placeholder matching result generation
 - View anonymous ranked candidates
 - Pay to unlock selected candidate profiles (contact info + CV)
 
 ### Admin
 - Dashboard metrics
-- Manage 7×7 categories, questions, and options
+- Manage 7^7 categories, questions, and options
 - View candidates, employers, jobs, matches, payments, unlocks, and files
 - Admin role assigned manually in database
 
@@ -105,7 +105,7 @@ lib/
 types/                  # TypeScript types
 supabase/
   migrations/           # Schema, RLS, storage
-  seed.sql              # Placeholder 7×7 content
+  seed.sql              # Placeholder 7^7 content
 ```
 
 ## Matching Engine (Phase 1)

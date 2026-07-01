@@ -1,7 +1,7 @@
 # Deep HR Match — Phase 1 MVP Seed Data
 # Run after migrations. Demo/placeholder data clearly labeled.
 
--- 7×7 Matrix Categories (placeholder)
+-- 7^7 Matrix Categories (placeholder)
 INSERT INTO matrix_categories (id, name, description, sort_order, is_active) VALUES
   ('a1000000-0000-4000-8000-000000000001', 'Work Style', '[PLACEHOLDER] How you prefer to work', 1, true),
   ('a1000000-0000-4000-8000-000000000002', 'Values Alignment', '[PLACEHOLDER] Core values and culture fit', 2, true),

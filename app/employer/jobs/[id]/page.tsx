@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { FRAMEWORK } from "@/lib/constants/branding";
 import { saveJob } from "@/lib/employer/actions";
 
 export default async function EditJobPage({
@@ -51,7 +52,7 @@ export default async function EditJobPage({
             <Link href={`/employer/jobs/${id}/jd`}>JD Upload</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href={`/employer/jobs/${id}/matrix`}>7×7 Form</Link>
+            <Link href={`/employer/jobs/${id}/matrix`}>{FRAMEWORK} Form</Link>
           </Button>
           <Button className="bg-[#1e40af] hover:bg-[#1e3a8a]" asChild>
             <Link href={`/employer/jobs/${id}/matching`}>Matching Results</Link>

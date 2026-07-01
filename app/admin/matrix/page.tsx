@@ -11,6 +11,7 @@ import {
   saveMatrixQuestion,
   saveMatrixOption,
 } from "@/lib/admin/actions";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 
 export default async function AdminMatrixPage() {
   await requireRole("admin");
@@ -24,7 +25,7 @@ export default async function AdminMatrixPage() {
   return (
     <DashboardShell
       role="admin"
-      title="7×7 Form Management"
+      title={`${FRAMEWORK_MATCHING_LANGUAGE} Management`}
       description="Manage categories, questions, and options"
     >
       <div className="grid gap-6 lg:grid-cols-2">

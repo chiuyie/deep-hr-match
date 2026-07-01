@@ -8,6 +8,7 @@ import {
   calculateProfileCompletion,
   parseCommaList,
 } from "@/lib/utils/profile";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 
 async function getCandidateId(userId: string) {
   const supabase = await createClient();
@@ -156,7 +157,7 @@ export async function markCandidateReady(): Promise<void> {
     .eq("candidate_id", profile.id);
 
   if (!cv?.length) throw new Error("Please upload your CV first");
-  if (!answers?.length) throw new Error("Please complete the 7×7 form first");
+  if (!answers?.length) throw new Error(`Please complete the ${FRAMEWORK_MATCHING_LANGUAGE} form first`);
 
   await supabase
     .from("candidate_profiles")

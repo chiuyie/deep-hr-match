@@ -2,6 +2,7 @@ import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { MatrixForm } from "@/components/forms/matrix-form";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveCandidateMatrixAnswers } from "@/lib/candidate/actions";
 
 export default async function CandidateMatrixPage() {
@@ -46,7 +47,7 @@ export default async function CandidateMatrixPage() {
     <DashboardShell
       role="candidate"
       userName={user.name}
-      title="7×7 Matching Language"
+      title={FRAMEWORK_MATCHING_LANGUAGE}
       description="Complete the matching language assessment"
     >
       <MatrixForm
