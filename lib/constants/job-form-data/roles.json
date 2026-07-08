@@ -1,0 +1,65 @@
+{
+  "Initiator": [
+    "Opportunist - Proactive, Exploits, Advantage-Taker, Opportunity-Grabber, Way-Finder, Unscrupulous-Searcher, Circumventing, Disruptive",
+    "Creative - Idea-Generator, Novel-Solver, Always-Innovating, Possibilities-Explorer, Self-Motivator, Pushing-Boundaries",
+    "Intuitive - Gut-Feelings-Driven, Something-From-Nothing, Beginnings, Willing-To-Act, Start-From-Intuition, Father-Instints, Knack-for-Opportunities",
+    "Pioneer - Pathfinder, Trailblazer, Discoverer, Explorer, First-to-Try, Spontaneous, Energetic, Persuasive, Founder",
+    "Adaptive - Extrapolative, Forecaster, Data-Driven-Decisions, Influence-Outcomes, Emerging-Situations, Scenarios, Future-Frameworks",
+    "Inventor - Unique-Conceptualiser, Starts-Anew, Originator, Forward-Thinker, Out-Of-The-Box, First-Of-Extraordinary, New-Value-Chain, New-Approaches",
+    "Visionary - Long-Term-Solutions-Distinct-Workable-Objectives, Executable-Better-Future, Bridges-Imagination-Action, Clear-Foresight"
+  ],
+  "Leader": [
+    "Focused - Reliable, Resilient, Dependable, Well-Positioned, Focused, Determined, Trustworthy, Structured, Systematic, Ownership",
+    "Talented - Integrity, Vision, Empathy, Authentic, Accountable, Unique-Abilities, Integrative",
+    "Wise - Balanced, Reasonable, Serving, Humble, Understanding, Guiding, Supportive",
+    "General-Manager - Executive, Responsible, Performance-Driven, Business Skills, Financial-Acumen",
+    "Decisive - Sharp, Perceptive, Incisive, Astute, Situational-Awareness, Calm, Composed, Very-Competitive",
+    "Charismatic - Articulate, Charming, High-EQ, Compelling, Appealing, Inspiring, Motivating, Extraordinary, Builds-Trust, Persuasive, Connecting, Confident, Extroverted",
+    "Resilient - Structured-Systematic, Plans-Consults-Executes, Guides-Effectively, Data-Reason-Solutions, Focus-Facts-Logic, Committed-Consistent, Objective-Calmness, Drives-Results-Overcomes-Complexity"
+  ],
+  "Planner": [
+    "Resourceful - Connect-Effectively, Improvisational, Solution-Extractor, Activates-Latent-Value",
+    "Collaborative - Creative-Alignment-Synergistic-Sharing-Interdependent-Outcome-Sharing",
+    "Logical - Disciplined-Progressive-Thinking-Consistent-Incremental-Advancement",
+    "Strategic - Advantage-Position-Taking, Effective-Selective-Prioritization, Competitive-Tradeoff, Mastery-Competitive, Architectural-Selection",
+    "Scrupulous - Principle-Compliance, Ethical-Accountable-Conduct, Respectful-Obligation-Sensitive",
+    "Pragmatic - Function-Driven, Justified-Action, Utility-Focused, Outcome-Feasible-Usability",
+    "Facilitative - InfrastructureEnablingOperations-EnvironmentSustainingReadiness-EnablingWorkspaceProvision-FunctionalPlatforms"
+  ],
+  "Teacher": [
+    "Traditional Disciplinarian - Rule-Centered-Authority, Enforcing-Regulatory-Conduct, Preserving-Boundaries",
+    "Coach-Mentor-Supervisor - Nurturing-Skill-Development, Shaping-Growth-Capabilities, Uplifting-Learning-Performance",
+    "Communicative - Presence-Driven, Attention-Magnetizing, Energy-Projecting, Aura-Carrying, Emotional-Resonance, Crowd-Engaging, Impact-Amplifying, Personal-Gravity",
+    "Intellectual-Scholarly - Theory-Immersed, Knowledge-Deepening, Concept-Dense, Thought-Exploratory, Inquiry-Led, Abstraction-Oriented, Idea-Refining, Academic-Rigor",
+    "Knowledgable-Differentiative - Domain-Specific, Mastery-Hardened, Precision-Applied, Specialization-Focused, Depth-Accumulated, Craft-Concentrated, High-Fidelity-Execution",
+    "Friendly Innovative-Skillful - Approachable-Experimentation, Warm-Curiosity, Low-Barrier-Trying, Playful-Iteration, Open-Exchange, Ease-Creating, Novelty-with-Comfort",
+    "Interactive - Intensity-Fueled, Emotion-Charged, Deeply-Invested, Inner-Drive, Fire-Sustained, Commitment-Heavy, Personal-Stakes"
+  ],
+  "Risk Taker": [
+    "Adventurer - Unknown-Seeking, Terrain-Crossing, Experience-Hungry, Boundary-Leaping, Exposure-Welcoming, Risk-Encountering, Novelty-Chasing, Movement-Oriented",
+    "Courageous - Fear-Confronting, Pressure-Withstanding, Stakes-Accepting, Danger-Facing, Resolve-Held, Volatility-Tolerant, Standing-Firm-Under-Threat",
+    "Entrepreneurial - Venture-Assembling, Market-Creating, Ownership-Assuming, Value-Capturing, Exchange-Oriented, Build-to-Sustain, Initiative-Carrying, Enterprise-Forming",
+    "Passionate - Zeal-Driven, Emotionally-Absorbed, Heart-Led, Feeling-Intense, Personal-Attachment, Inner-Fervor, Care-Deeply",
+    "Responsible - Duty-Accepting, Obligation-Honoring, Burden-Carrying, Role-Aware, Consequence-Bearing, Reliability-of-Action, Answerability-Held",
+    "Investor-Predictive - Time-Horizon-Extended, Endurance-Oriented, Continuity-Minded, Duration-Aware, Patience-Embedded, Legacy-Attentive, Sustained-Relevance",
+    "Shrewd - Option-Weighing, Risk-Quantifying, Cost-Sensitive, Tradeoff-Resolving, Choice-Closing, Commitment-Making, Finality-Oriented"
+  ],
+  "Negotiator": [
+    "Mediator - Tension-Absorbing, Middle-Ground-Seeking, Perspective-Soothing, Friction-Reducing, Neutral-Stake-Holding, Dispute-Calming, Balance-Restoring",
+    "Arbitrator - Judgment-Delivering, Resolution-Imposing, Final-Call-Issuing, Authority-Exercising, Verdict-Providing, Disagreement-Terminating, Closure-Enforcing",
+    "Broker - Exchange-Facilitating, Access-Opening, Value-Linking, Party-Introducing, Opportunity-Bridging, Network-Activating, Transaction-Enabling",
+    "Bargainer - Concession-Trading, Term-Haggling, Give-and-Take-Navigating, Position-Adjusting, Demand-Pressing, Leverage-Testing",
+    "Deal Closer - Commitment-Securing, Agreement-Locking, Signature-Gaining, Momentum-Finalizing, Last-Step-Pushing, Completion-Triggering",
+    "Interactive - Whole-System-Merging, Element-Unifying, Fragment-Combining, Coherence-Creating, Parts-Harmonizing, Fit-Designing",
+    "ProblemSolver - Resource-Orchestrating, Activity-Aligning, Flow-Regulating, Capacity-Balancing, Task-Overseeing, Continuity-Maintaining"
+  ],
+  "Executor": [
+    "Administrator - Record-Keeping, Procedure-Maintaining, Documentation-Handling, Rule-Processing, Instruction-Applying, Formality-Sustaining, Compliance-Executing",
+    "Deliverer - Completion-Focused, Output-Bringing, Promise-Fulfilling, End-State-Reaching, Task-Finishing, Result-Handing-Over",
+    "Effective-Doer-Artist-Executive - Impact-Crafting, Judgment-in-Action, Taste-Guided-Execution, Outcome-Shaping, High-Stakes-Making, Visible-Effect-Creation",
+    "Performer - Display-Oriented, Stage-Responsive, Audience-Aware, Moment-Activated, Expression-Focused, Presence-in-Action",
+    "Professional - Role-Defined, Conduct-Regulated, Standard-Adhering, Expectation-Aligned, Practice-Bound, Credential-Framed",
+    "Vocational-Operator - Hands-On-Functioning, Tool-Directed, Routine-Engaged, Task-Repetitive, Practical-Application, Skill-by-Use",
+    "Staff-Technician-Worker - Execution-Supporting, Instruction-Following, Output-Contributing, System-Embedded, Role-Specific-Labor, Operational-Participation"
+  ]
+}

@@ -1,0 +1,449 @@
+{
+  "COMMUNICATION-INFRASTRUCTURE-TRANSPORTATION": {
+    "Air-Infrastructure": [
+      "Airports",
+      "Air Trafic Control",
+      "Aircraft-Airline-Management",
+      "Safe-Security-Regulatory",
+      "Cargo-Logistics",
+      "Fuel-Energy-Utilities",
+      "Digital-Information"
+    ],
+    "Land-Infrastructure": [
+      "Bridges",
+      "Highways",
+      "Roads",
+      "Railways",
+      "Trains",
+      "Cars-Buses-Trucks",
+      "Ground Communications"
+    ],
+    "Sea-Infrastructure": [
+      "Seaports",
+      "Harbours-Jetties",
+      "Ships-Ferries",
+      "Submarines",
+      "Yachts-Boats",
+      "Naval Vessels",
+      "Marine Communications"
+    ],
+    "Space-Infrastructure": [
+      "Launch",
+      "Satellite-Stations",
+      "Ground-Segment",
+      "Communication-Data",
+      "Posiioning-Navigating-Timing (PNT)",
+      "Safety-Surveillance-Regulatory",
+      "Research-Manufacturing-Innovation"
+    ],
+    "Cyber Space-Infrastructure": [
+      "Connections",
+      "Wireless",
+      "Fibre-Cables",
+      "Inter-Planet Communications",
+      "Internet Infrastructure",
+      "Social & Messaging Platforms",
+      "Data Exchange Systems"
+    ],
+    "Communications-Infrastructure": [
+      "Fixed-Line-Physical-Network",
+      "Wireless-Radio-Access",
+      "Core Network-Switching",
+      "Data Centres-Cloud",
+      "Network-Security-Control",
+      "Regulatory-Numbering-Spectrum",
+      "Internet Exchange-Interconnection"
+    ],
+    "Physical-Travel-Logistics": [
+      "Vehicles-Transport",
+      "Transportation Equipment",
+      "Facilities and Systems",
+      "Travel",
+      "Communication Logistics",
+      "Time Zones",
+      "Mobility Coordination"
+    ]
+  },
+  "BELIEFS-COMMUNITIES-CULTURE": {
+    "Religious Communities": [
+      "Congregation",
+      "Religions and Beliefs",
+      "Churches",
+      "Temples",
+      "Seminaries",
+      "Religious Schools",
+      "Spiritual Leadership"
+    ],
+    "Business Communities": [
+      "Corporations",
+      "Companies",
+      "Partnerships",
+      "Industry Associations",
+      "Trade Organizations",
+      "Entrepreneurship Networks",
+      "Brokers"
+    ],
+    "Financial Communities": [
+      "Banks-Finance Companies",
+      "Insurance Companies",
+      "Investment Dealers",
+      "Investment Companies",
+      "Securities Firms",
+      "Cooperatives-Mortgage Companies-Credit Unions-Pension Funds-Mutual Funds",
+      "Central Bank-Governance"
+    ],
+    "Healthcare Communities": [
+      "Hospitals-Mental Health",
+      "Clinics",
+      "Health-Rehabilitation Centers",
+      "Pharmacies",
+      "Laboratories and Diagnostic Centers",
+      "Wellness & Spa Centers",
+      "Nursing Homes / Elderly Care Homes"
+    ],
+    "Professional-Vocational Communities": [
+      "Safety-Legal Institutes",
+      "Consultants-Professional Bodies",
+      "Accounting and Auditing Organisations",
+      "Vocational Standards",
+      "Information Technology (IT)",
+      "Human Resource and Recruitment",
+      "Students Associations"
+    ],
+    "Educational Communities": [
+      "Schools",
+      "Universities-Higher Learning",
+      "Learning Institutions",
+      "Educational",
+      "Training-Tuition Centres",
+      "Colleges-Academies",
+      "Research Institutions"
+    ],
+    "Travel-Transport Communities": [
+      "Air Transport",
+      "Rail Transport",
+      "Land Transport",
+      "Maritime / Sea Transport",
+      "Travel and Tourism",
+      "Hospitality and Accommodation Providers",
+      "Transport Authorities and Regulators"
+    ]
+  },
+  "GOVERNMENTS-KINGDOMS-POLITICS": {
+    "Public-Services": [
+      "Law Enforcement Agencies",
+      "Civil Service-Bureaucracy",
+      "Political Parties",
+      "Regulatory Commissions",
+      "Government Ministries",
+      "Government Departments",
+      "National Agencies"
+    ],
+    "Judiciary-Law-Order": [
+      "Constitution",
+      "Legislative Bodies",
+      "Parliament",
+      "Courts",
+      "Judiciary",
+      "Prisons / Jails",
+      "Sharia Courts"
+    ],
+    "Executive-Administration": [
+      "Executive",
+      "Immigration",
+      "Authority",
+      "Defence",
+      "Home Affairs and Regulatory Ministries-Federal States",
+      "Advisors",
+      "Monarchy-Dictatorship"
+    ],
+    "Trade-Industry-Education": [
+      "Ambassadors",
+      "Economic Development Board",
+      "Trade Authorities",
+      "Industry Promotion",
+      "Export Agencies",
+      "Commercial Regulation",
+      "International Cooperation"
+    ],
+    "Defence-Security": [
+      "Army",
+      "Airforce",
+      "Navy",
+      "Marine",
+      "Intelligence Services",
+      "Cyber Defense",
+      "Strategic Command"
+    ],
+    "Home-Affairs-Regulatory": [
+      "Police-Anti-Drug and Crime Prevention Agencies",
+      "Immigration-Migration, Citizenship Services and Border Control",
+      "Fire and Rescue Services",
+      "Civil Defense and Emergency Management",
+      "National Registration and Identification",
+      "Immigration",
+      "Internal Security and Intelligence"
+    ],
+    "Finance-Monetary-Treasury": [
+      "Financial Regulation",
+      "Ministries-Bodies-Institutions",
+      "Taxation",
+      "Trade",
+      "Public Budgeting",
+      "Treasury Operations",
+      "Sovereign Funds"
+    ]
+  },
+  "Earth-Environment-Property": {
+    "Geological & Biosphere": [
+      "Global Warming",
+      "Climate Change",
+      "Landform Processes",
+      "Mineral Resources",
+      "Soil Systems",
+      "Ecosphere Dynamics",
+      "Natural Cycles"
+    ],
+    "Air-Space-Global Phenomenon": [
+      "Atmosphere",
+      "Air Quality",
+      "Weather",
+      "Ozone Layer",
+      "Pollution",
+      "Space Weather",
+      "Climate Modeling"
+    ],
+    "Land-Inhabited Geography": [
+      "Continents",
+      "Cities",
+      "Landscape",
+      "Hills, Mountains, Valleys",
+      "Minerals",
+      "Population Distribution",
+      "Infrastructure Geography"
+    ],
+    "Seas, Oceans & Submarine": [
+      "Sea",
+      "Water",
+      "Water Reservoirs",
+      "Ocean",
+      "Seabed",
+      "Marine",
+      "Coastal"
+    ],
+    "Land-Uninhabited Geography": [
+      "Forest Fires",
+      "Flora",
+      "Fauna",
+      "Countryside",
+      "Deforestation",
+      "Desert Regions",
+      "Polar Landscapes"
+    ],
+    "Parks & Property": [
+      "Houses",
+      "Buildings",
+      "Apartment",
+      "Gardens",
+      "Hotels",
+      "Hostels",
+      "Parks"
+    ],
+    "Ecosystems & Nature": [
+      "Ecology",
+      "Waste",
+      "Energy",
+      "Sewer - Waste",
+      "Floods",
+      "Nature",
+      "Wind"
+    ]
+  },
+  "LIFE-LIVING": {
+    "Social-Life": [
+      "Social",
+      "Relationships",
+      "Family",
+      "Friends",
+      "Home",
+      "Marriage",
+      "Real Estate and Property"
+    ],
+    "Faith-Religion-Spiritual": [
+      "Religion",
+      "Beliefs",
+      "Spiritual",
+      "Monks",
+      "Nuns",
+      "Priests",
+      "LGBT"
+    ],
+    "Education": [
+      "Learning",
+      "Training",
+      "Students",
+      "Teachers",
+      "Tuition",
+      "Knowledge Assessment",
+      "Curriculum Design"
+    ],
+    "Jobs-Occupations": [
+      "Vocations",
+      "Professions",
+      "Jobs",
+      "Businessmen",
+      "Lawyers",
+      "Services",
+      "Manpower"
+    ],
+    "Lifestyle-Culture-Arts": [
+      "Music",
+      "Crafts",
+      "Photography",
+      "Food & Beverage",
+      "Fashion Systems",
+      "Cultural Heritage",
+      "Entertainment Media"
+    ],
+    "Sports-Recreation": [
+      "Games & Recreational Activities-Golf Tennis",
+      "Arts & Culture Recreation, Hobbies",
+      "Holiday-Leisure",
+      "Travel",
+      "Fitness & Exercise",
+      "Competitive & Team Sports",
+      "Water & Outdoor Activities"
+    ],
+    "Healthcare": [
+      "Personal",
+      "Medical",
+      "Childhood",
+      "College",
+      "Parenthood",
+      "Senior / Retirement",
+      "Fitness & Wellness"
+    ]
+  },
+  "FINANCIAL-MONETARY": {
+    "Monetary": [
+      "Money-Currencies",
+      "Digital & Cryptocurrency Systems",
+      "Commodities",
+      "International Monetary System-Central Bank-Reserves",
+      "Monetary Policy-Inflation & Deflation Dynamics",
+      "Monetary Instruments"
+    ],
+    "Financial": [
+      "Corporate Finance",
+      "Asset Management",
+      "Investments",
+      "Funds",
+      "Financial Instruments",
+      "Structures"
+    ],
+    "Banking": [
+      "Banking Structures Systems",
+      "Branch Operations-Institutional",
+      "Treasury Services",
+      "Deposits-Loans",
+      "Cash-Management",
+      "Risk-Management"
+    ],
+    "Audit": [
+      "Accountants",
+      "Controller",
+      "Actuary",
+      "Risk Assurance",
+      "Performance Review",
+      "Governance Audits-Reporting Standards"
+    ],
+    "Accounting": [
+      "Compensation",
+      "Consolidation",
+      "Schedules",
+      "Standards",
+      "Repository",
+      "Information Technology"
+    ],
+    "Insurance": [
+      "Principles-Concepts",
+      "Key-Terminologes",
+      "Business Model-Actuary",
+      "Product-Types",
+      "Core-Processes",
+      "Regulatory-Compliance"
+    ],
+    "Equities-Capital": [
+      "Stocks",
+      "Shares",
+      "Bonds",
+      "Exchanges",
+      "Board of Directors",
+      "Shareholders"
+    ]
+  },
+  "STEM (SCIENCE-TECHNOLOGY-ENGINEERING-MATHEMATICS)": {
+    "Technology": [
+      "Software-Services- Computer-Cloud Services, Digital Platforms",
+      "Information-Technology-IT-Hardware -Infrastructure-Software-Applications-Networking",
+      "Internet-Infrastructure-Connectivity-Network-Applications-Service-Security",
+      "Telecommunications-GPS",
+      "Wireless-Hardware-Systems Devices-Semiconductors-Circuits-Components",
+      "Software-Systems"
+    ],
+    "Life-Science": [
+      "Biology-Biotechnology-Zoology-Botany",
+      "Pharma-Clinical-Medicine",
+      "Public health",
+      "Healthcare Systems",
+      "Biomedical-Genetics",
+      "Social-Behavioural--Psychology-Sociology-Sciences",
+      "Anthropology"
+    ],
+    "Engineering": [
+      "Mechanical-Material Science",
+      "Electrical",
+      "Civil",
+      "Chemical",
+      "Industrial-Robotics-Mechatronics",
+      "Aerospace",
+      "Product"
+    ],
+    "Applied Sciences": [
+      "Computer Science",
+      "Software Engineering",
+      "Materials Science",
+      "Cybersecurity",
+      "Cloud Computing",
+      "Data Analytics",
+      "Abstract-Concepts"
+    ],
+    "Tools-Machines-Equipment-Industry": [
+      "Automation",
+      "Machines",
+      "Solar Power",
+      "Power Stations",
+      "Tools",
+      "Manufacturing",
+      "Sanitary"
+    ],
+    "Physical Sciences": [
+      "Physics",
+      "Chemistry",
+      "Earth sciences",
+      "Astronomy",
+      "Energy",
+      "Earth-Geology-Oceanography-Meteorology",
+      "Environmental"
+    ],
+    "Quantitative Sciences": [
+      "Pure-Applied-Mathematics",
+      "Statistics",
+      "Data Science",
+      "Machine Learning",
+      "Artificial Intelligence",
+      "Operations Research",
+      "Logic"
+    ]
+  }
+}

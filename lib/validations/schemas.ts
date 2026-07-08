@@ -44,17 +44,8 @@ export const employerProfileSchema = z.object({
 });
 
 export const jobSchema = z.object({
-  title: z.string().min(1, "Job title is required"),
-  department: z.string().optional(),
-  location: z.string().optional(),
-  employment_type: z.string().optional(),
-  salary_range: z.string().optional(),
-  years_experience_required: z.coerce.number().min(0).optional(),
-  education_required: z.string().optional(),
-  required_skills: z.string().optional(),
-  preferred_skills: z.string().optional(),
-  description: z.string().optional(),
-  status: z.enum(["draft", "active", "closed"]).optional(),
+  job_title: z.string().min(1, "Job title is required"),
+  job_description: z.string().optional(),
 });
 
 export const matrixCategorySchema = z.object({

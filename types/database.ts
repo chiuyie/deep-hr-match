@@ -77,6 +77,7 @@ export interface Job {
   preferred_skills: string[] | null;
   description: string | null;
   status: JobStatus;
+  form_data: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }

@@ -1,0 +1,65 @@
+{
+  "Selling": [
+    "Sales - Selling-Persuasion-Convincing-Customers, Promotions-Brochures-SalesKits, Opportunistic",
+    "Marketing - Business-Development-Strategy, Target-Markets, CRM-Relationships",
+    "Retail - Showrooms-Locations-Coverage-Outlets, Footprint, Territories, GeographicReach, SiteSelection, Merchandising, Franchising, Flagship",
+    "Distribution - Brand, Channels, Labels, Advertising, TradeMarketing, Wholesale, RetailPartners, Licensing, CoBranding, MediaBuying, BrandEquity",
+    "RentingTo-LeasingTo-Reselling - RentalStructuring, Remarketing, ResidualValueCapture, SecondaryMarkets, Recirculation, ContractExtension, SubscriptionModel, CircularCommerce",
+    "Online - Digital-Marketing, Influencers, Followers, SocialMedia, ContentCreation, SEO, Conversion, ViralGrowth",
+    "Positioning - MarketShare, CompetitorStrategy, Ranking, MergersAcquisitions, CompetitiveAdvantage, Synergies"
+  ],
+  "Buying": [
+    "Purchasing - Procurement, Sourcing, Selection, Product-Quantity-Pricing-Ordering, Specifications, Scope, Scheduling, Analysis, Engineering",
+    "ServiceManagement - Quality-Delivery-Support-Control-Capacity-Scheduling-Reliability, Responsiveness, ServiceLevels-Optimisation",
+    "RentingFrom-LeasingFrom-BuyBack - ReverseLeasing, Repurchase, TradeIn, OfftakeAgreements, LeaseReturn, BuybackGuarantee, ResidualRisk, CostRecovery, Repossession",
+    "ProductManagement - MarketResearch, ProductDevelopment-Leadership-Quality-Pricing-Delivery, CompetitiveAdvantage, Support, DemandForecasting, Promotion, Commercialization, Differentiators, SupplyChain, ComponentSuppliers, Subassemblies, RawMaterials, LeadTimes, Traceability, Assembly",
+    "Storage - Keeping-Inventory, Warehousing-Control, StockLevel, ASRS-AutomatedStorage-RetrievalSystem, JIT, Custody, Stocktaking",
+    "SupplierRelationship - CreditTerms-PaymentTerms, VolumeDiscount, Rebates, TradeCredit, EarlySettlement, Invoicing, Collections, DeferredPayment, Installments, CreditLines",
+    "Manufacturing - Process, Scalability, Production, Assembly, Automation, Capacity, Yield, LineBalancing, MassProduction, Modularization, CycleTime"
+  ],
+  "Functionals Skills / Tasks": [
+    "Execution - Implementation, Analyse-Deployment, Realization, Validation, Integration, Optimization, Troubleshooting",
+    "Workflow - Safety, Structure, Process, SecureFoundation, Staffing-Framework, Continuity, Standardization",
+    "Fulfilment - Performance-Criteria, RewardTracking, Metrics, Indicators, KPIs, Scorecards, Measurement, Satisfaction",
+    "ProjectManagement - ProjectSales, Tendering, Bidding, Proposals, Estimation, DealStructuring, Backlog, ScopeDefinition, Pipelines, Contracts, SubContracts, Downpayments, Milestones, Deliverables, Timelines, Budgeting, Disbursement, Dependencies, Escalation, Closure",
+    "StorageFacilities - Equipment, Infrastructure, Warehouse, Depots, Packing, Containers, Machinery, Tooling, Apparatus, Installations, Utilities, Premises, ColdRooms, HandlingSystems, MaterialHandling, Cupboard",
+    "Logistics - Coordination, Dispatch-Routing-Freight-Transportation-Shipment, Consolidation, Mobilization, Synchronization, FOB, CIF",
+    "Operations - Cleaning, Maintenance, Improving, Vocational, Upkeep, Servicing, Sanitation, Repair, Preservation, Enhancement, Rehabilitation"
+  ],
+  "Managing": [
+    "Compensate - Remunerate, Salary, Bonus, Shares, Options, Benefits, Payroll, Performance, Benchmark, Administration",
+    "Supervise-Motivate - Encouragement, Improvement, Upgrading, Continuous-Analysis, Guide, Communication, Suggestion, Recommendation, Initiating",
+    "Participate - Involvement, Contribution, Recruitment, On-Boarding, GoalSetting, Empowerment",
+    "Compete - Talent-Quality-Challenge, Character, Acquisition, Capability, Excellence, Meritocracy, Aptitude, Benchmark, Strengths",
+    "Responsibility - Support, Demonstrate, Empathise, RoleModel, Stewardship, Mentorship, Integrity, Trustworthiness, Authenticity, Credibility",
+    "Discipline - Rules, Obligations, Regulatory, Legal, Compliance, Adherence, Enforcement, Sanctions, Statutory, CodeOfConduct, Ethics",
+    "Educate-Teaching-Learning - Explaining, Coaching, Training, Management, Succession, Instruction, KnowledgeTransfer, CapabilityBuilding, Curriculum, Apprenticeship, Enablement"
+  ],
+  "Organising": [
+    "Finance - Planning, Credit, Borrowings, Controls, Risk-Allocation, Liquidity, CapitalStructure, Leverage, Treasury, Hedging, Exposure",
+    "Accounting-Reporting - Asset-Management, Investments, Bookkeeping, Depreciation, RevenueArchitecture, Impairment, Accruals, Divestment, ProjectAccounting",
+    "Payables-Receivables - AccountsPayable, AccountsReceivable, Lending, Loans, Credits, Funding, Banking, Finance, Disbursements, Drawdowns, Refinancing, Factoring, Collateral, Origination",
+    "Pricing-Costing-Profit - CostAnalysis, Tracking, Trends, Margin, Elasticity, Variance, BreakEven, CostDrivers, Monetization",
+    "SOP-Standard-Operating-Procedures - Checking, Delivery, Receiving, Confirmation, Audit, Compliance, Process, Documentation, Policies, Checklists, Codification, Certification, Accreditation",
+    "Organisation - Reporting-Structure, Roles, Development, Hierarchy, Delegation, SpanOfControl, Centralization, Decentralization, Resourcing",
+    "Information-IT - Productivity, DataAnalytics, Cybersecurity, AI, SoftwareSystems, Development, Implementation"
+  ],
+  "Problem-Solving": [
+    "Growth-Sustainability - M&A, Targets, ValueCreation, StrategyFit, Accretion, DealPipeline, Longevity, Integration, Planning",
+    "BusinessModel - Corporate-Development, RevenueArchitecture, Operations, Valuation, Reconciliation, PlatformDesign, EconomicModel",
+    "Competition-Ambition - Research, Analysis, Surveying, DataCollection, Market-Sizing, Sampling, Statistical",
+    "InvestmentFunding - Committees, Directors, BoardExec, CostDrivers, DealSourcing, Advisory, CapitalAllocation, CapitalSaving, CapitalInvestments, Dividends",
+    "Planning-Strategy - Business-Communication, MgmtSuccession, VisionSetting, StrategicIntent, ScenarioModels, CorporateMessaging, Executive-Continuity",
+    "RiskManagement - RiskMitigation, RiskTaking, RiskAppetite, RiskSpan, RiskRegister, Contingency, Resilience, BusinessContinuity",
+    "Performance-Returns-Reviews - DisciplinaryAction, CorrectiveMeasures, Consequences, Reprimand, Suspension, Termination, IncentiveAdjustment"
+  ],
+  "Connecting": [
+    "Internal-Relations - Employee, Executive, Staff, Family-Members, ValueAdd-Activities",
+    "Authority - Approval, Governance, Responsibility, Systems, Tax-Legal-Jurisdiction, Statutes, FiduciaryDuty, Ratification, Delegated-Powers, Governance-Charter",
+    "Ownership - Parenthood-Structure, InvestorInvestment, AssetManagement, Shareholding, Trusteeship, CapitalProviders, Proprietorship, ControllingInterest, Wealth-Preservation, ControlRights",
+    "Intermediaries - Brokers, Relatives, Friends, Negotiation, Agents, Facilitators, Representatives, Advisors, Referrals, Diplomacy, Arbitration",
+    "Capital - FundingNeeds, CapitalRaising, Equity, Debt, WorkingCapital, CashFlow, CapitalRequirements, Fundraising, CapitalReserves",
+    "External-Relationship - Public, Professionals, Workmen, ServiceProviders, Maids, Gardeners, Craftsmen, CorporateManagement",
+    "Governance - Decorum, Authority, BoardOfDirectors, Committees, ShareholderRelations"
+  ]
+}

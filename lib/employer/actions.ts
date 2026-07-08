@@ -6,12 +6,15 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { employerProfileSchema, jobSchema } from "@/lib/validations/schemas";
 import {
+  formStateToJobPayload,
+  parseJobFormState,
+} from "@/lib/utils/job-form";
+import {
   generatePlaceholderMatches,
   UNLOCK_CURRENCY,
   UNLOCK_PRICE_CENTS,
 } from "@/lib/matching/engine";
 import { getStripe, getAppUrl } from "@/lib/stripe/client";
-import { parseCommaList } from "@/lib/utils/profile";
 
 async function getEmployerId(userId: string) {
   const supabase = await createClient();
@@ -45,21 +48,24 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
   const employerId = await getEmployerId(user.id);
   if (!employerId) throw new Error("Company profile not found");
 
-  const parsed = jobSchema.safeParse(Object.fromEntries(formData));
+  const formState = parseJobFormState(formData);
+  const parsed = jobSchema.safeParse(formState);
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message);
   }
 
+  const jobPayload = formStateToJobPayload(formState);
   const payload = {
-    ...parsed.data,
-    required_skills: parseCommaList(parsed.data.required_skills),
-    preferred_skills: parseCommaList(parsed.data.preferred_skills),
+    title: jobPayload.title,
+    description: jobPayload.description,
+    form_data: jobPayload.form_data,
     employer_id: employerId,
   };
 
   if (jobId) {
     const { error } = await supabase.from("jobs").update(payload).eq("id", jobId);
     if (error) throw new Error(error.message);
+    revalidatePath(`/employer/jobs/${jobId}`);
   } else {
     const { data, error } = await supabase.from("jobs").insert(payload).select("id").single();
     if (error) throw new Error(error.message);

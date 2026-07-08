@@ -1,0 +1,69 @@
+{
+  "Structuring Skills": {
+    "Organization-Governance-Ownership-Control": [
+      "Administration-Governance",
+      "Organization-Governance-Compliance-Authority-Chain-Formalization-Oversight-Layer-Separation",
+      "Asset-Resource-Allocation-Provisioning-Risk-Management",
+      "Asset-Record-Management-Ownership-Traceability-Asset-Provenance-Documentation",
+      "Contractual-Infrastructure-Legal-Transformation-Restructuring-Blueprinting",
+      "Financial-Governance-Compliance-Capital-Adequacy-Financial-Control",
+      "Shareholder-Relations-Oversight-Assurance-Storage-Voting-Rights-Dividend-Policy-Minority-Protection-Custodian"
+    ],
+    "Management-Finance-Capital": [
+      "Finance-Capital",
+      "Leadership-Management-Direction-Decision",
+      "Financial-Monetary-Accounting-Budgeting-Forecasting-Performance-Tracking-Reporting",
+      "Management-Corporate-Finance-Revenue-Recognition-Project-Profitability",
+      "Investment-Capital-Treasury-Cash-Expense-Fixed-Asset-Allocation-Taxation-Regulatory",
+      "Profitability-Cost-Returns-Performance-Measurement-Benchmarking",
+      "Risk-Management-Economic-Political-Considerations-Geopolitical-Risk-Scenario-Modeling"
+    ],
+    "Physical-Operations-Processing": [
+      "Operations-Processing",
+      "Process-Design-Transaction-Workflow-Automation-Batch-Real-Time-Processing",
+      "Operations-Logistics-Storage-Process-SOPs-Growth-Sustainability",
+      "Operations-Execution-Data-Checkpoint-Processing-Throughput-Validation",
+      "Supply-Chain-Fulfillment-Logistics-Network-Node-Topology-Design-Inventory",
+      "Operational-Risk-Resilience-Redundancy-Design-Philosophy-Shock-Tolerance-Structuring",
+      "Industry-Robotics-Drones-Specific-Execution-Orchestration-Automation-Integration"
+    ],
+    "Reporting-Safety-Enterprise": [
+      "Reporting-Safety-Enterprise",
+      "Reporting-Disclosure-Report-Generation-Documentation-Automation-Compliance",
+      "Decision-Frameworks-Fundamentals-Controls-Troubleshooting-Reporting-Governance-Exception-Processing-Containerization-Hypervisor",
+      "Feedback-Analysis-Escalation-Threshold-Definition-Responsiveness-Design-Logic",
+      "Risk-Mitigation-Economic-Political-Controls-Hedging-Policy-Shock-Buffering-Mechanism",
+      "Regulatory-Policy-Compliance-Legislative-Interpretation-Regulatory-Change-Awareness",
+      "KPI-System-Monitoring-Review-Continuously-Improvement-Trend-Variance-Analysis"
+    ],
+    "Functional Technology-Information-Infrastructure-Networking": [
+      "Technology-Infrastructure",
+      "Information-Systems-Architecture-Dashboard-Development-Desktop-Infrastructure",
+      "Data-Collocation-Metadata-Database-User-Access-Integration-Cloud-Computing-Environment-Operation",
+      "Digital-Virtual-Platforms-Computer-Softwares-Snapshot-Backup-Data-Transfer-Management-Disaster-Recovery",
+      "Automation-Machine-Management-System-Integration-ERP-Automation-User-Requirement-Gathering-SQL-AI-Business-Intelligence",
+      "Technology-Support-Governance-Security-Compliance-Audit-Cybersecurity-API-Application-Programming-Interface-Network-Configuration",
+      "Quality-Knowledge-Management-Systems-Error-Detection-Resolution-QC"
+    ],
+    "Intelligence-Information": [
+      "Intelligence-Information",
+      "Information-Communication-Data-Extraction",
+      "Data-Information-Retention-Assignment-Lineage-Lifecycle-Standardization-Governance",
+      "Data-Analytics-Modeling-System-Integration-ERP-Architecture-Automation-User-Requirement-Gathering-SQL",
+      "Data-Visualization-Data-Cleaning-Transformation-Data-Validation-Accuracy-Checking",
+      "Risk-Identification-Audit-Trail-Measurement-Signals-Detection-Framework-Vulnerability-Scanning",
+      "Capacity-Resource-Planning-Optimization-Report-Scheduling"
+    ],
+    "Sciences-Natural": [
+      "Sciences-Natural",
+      "Pure-Applied-Logic-Mathematics-Statistics",
+      "Physical-Science-Physics-Chemistry-Methodology-Research",
+      "Education-Life-Living-Schools-Universities-Vocational-Institutions",
+      "Cross-Domain-Interdisciplinary-Big-Picture-Systems-Synthesis-Integration",
+      "Natural-Chemical-Life-Living-Pharma-Biological-Ecosystem-Ecological-Sciences",
+      "Physical-Medicine-Life-Living-Public-Health-Healthcare-Biomedical-Medical-Human-Systems",
+      "Earth-Environmental-Atmospheric-Geological-Hydrological-Planetary-Space-Sciences-Astronomy",
+      "Life-Living-Sports-Recreation-Holiday-Leisure-Travel-Fitness-Exercise-Musics-Crafts-Photography-F&B-Fashion-Cultural-Heritage-Entertainment"
+    ]
+  }
+}
