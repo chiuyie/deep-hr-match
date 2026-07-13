@@ -37,6 +37,13 @@ export function LoginMenu() {
             >
               Login as Candidate
             </Link>
+            <Link
+              href="/auth/admin/sign-in"
+              className="block border-t border-slate-200 px-4 py-3 text-sm text-muted-foreground hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+              onClick={() => setOpen(false)}
+            >
+              Admin Portal
+            </Link>
           </div>
         </>
       )}

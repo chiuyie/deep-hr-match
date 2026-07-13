@@ -78,7 +78,7 @@ export default async function JobMatchingPage({
       description={`Ranked candidates for ${job.title}`}
       actions={
         <form action={generate}>
-          <Button type="submit" className="bg-[#1e40af] hover:bg-[#1e3a8a]">
+          <Button type="submit">
             Generate Matching Results
           </Button>
         </form>

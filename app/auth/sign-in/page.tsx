@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { PublicNav } from "@/components/layout/public-nav";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { SupabaseSetupNotice } from "@/components/auth/supabase-setup-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn } from "@/lib/auth/actions";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export default async function SignInPage({
   searchParams,
@@ -15,7 +17,7 @@ export default async function SignInPage({
   const params = await searchParams;
   const roleLabel =
     params.role === "employer" ? "Employer" : params.role === "candidate" ? "Candidate" : "";
-
+  const supabaseReady = isSupabaseConfigured();
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-slate-950">
       <PublicNav />
@@ -30,9 +32,11 @@ export default async function SignInPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {!supabaseReady && <SupabaseSetupNotice />}
             <form action={signIn} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">
+              <fieldset disabled={!supabaseReady} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">
                   Email
                 </Label>
                 <Input
@@ -55,18 +59,28 @@ export default async function SignInPage({
               </div>
               <Button
                 type="submit"
-                className="w-full rounded-lg bg-blue-600 hover:bg-blue-700"
+                className="w-full rounded-lg"
               >
                 Log In
               </Button>
+              </fieldset>
             </form>
             <p className="mt-4 text-center text-sm text-muted-foreground">
               No account?{" "}
               <Link
                 href={`/auth/sign-up${params.role ? `?role=${params.role}` : ""}`}
-                className="text-blue-600 hover:underline dark:text-blue-400"
+                className="text-primary hover:underline dark:text-primary/80"
               >
                 Get Started
+              </Link>
+            </p>
+            <p className="mt-2 text-center text-sm text-muted-foreground">
+              Platform admin?{" "}
+              <Link
+                href="/auth/admin/sign-in"
+                className="text-primary hover:underline dark:text-primary/80"
+              >
+                Admin sign in
               </Link>
             </p>
           </CardContent>

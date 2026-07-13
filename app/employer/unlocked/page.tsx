@@ -67,7 +67,7 @@ export default async function EmployerUnlockedPage() {
               <CardContent>
                 <Link
                   href={`/employer/jobs/${item.jobId}/unlocked`}
-                  className="text-sm text-[#1e40af] hover:underline"
+                  className="text-sm text-primary hover:underline"
                 >
                   View details
                 </Link>

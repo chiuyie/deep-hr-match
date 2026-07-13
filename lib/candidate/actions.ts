@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { candidateProfileSchema } from "@/lib/validations/schemas";
@@ -8,7 +9,7 @@ import {
   calculateProfileCompletion,
   parseCommaList,
 } from "@/lib/utils/profile";
-import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { fetchCandidateOnboardingState } from "@/lib/candidate/onboarding";
 
 async function getCandidateId(userId: string) {
   const supabase = await createClient();
@@ -23,9 +24,9 @@ async function getCandidateId(userId: string) {
 function buildProfilePayload(data: Record<string, unknown>, submit: boolean) {
   const completion = calculateProfileCompletion(data as never);
   const status = submit
-    ? completion >= 80
-      ? "ready_for_matching"
-      : "incomplete"
+    ? completion >= 60
+      ? "incomplete"
+      : "draft"
     : "draft";
 
   return {
@@ -58,6 +59,15 @@ export async function saveCandidateProfile(formData: FormData, submit = false): 
   if (error) throw new Error(error.message);
 
   revalidatePath("/candidate");
+  revalidatePath("/candidate/profile");
+  revalidatePath("/candidate/status");
+
+  if (submit) {
+    if (payload.completion_percentage < 60) {
+      redirect("/candidate/profile?error=profile-incomplete");
+    }
+    redirect("/candidate/cv?step=profile-complete");
+  }
 }
 
 export async function uploadCandidateCV(formData: FormData): Promise<void> {
@@ -91,16 +101,24 @@ export async function uploadCandidateCV(formData: FormData): Promise<void> {
   });
 
   revalidatePath("/candidate/cv");
+  revalidatePath("/candidate");
+  revalidatePath("/candidate/status");
+
+  redirect("/candidate/matrix?step=cv-complete");
 }
 
 export async function saveCandidateMatrixAnswers(
   answers: { question_id: string; option_id?: string; answer_text?: string }[],
   submit = false
-) {
+): Promise<{ error?: string; success?: boolean }> {
   const user = await requireRole("candidate");
   const supabase = await createClient();
   const candidateId = await getCandidateId(user.id);
   if (!candidateId) return { error: "Profile not found" };
+
+  if (submit && answers.length === 0) {
+    return { error: "Please answer at least one question before submitting." };
+  }
 
   for (const answer of answers) {
     await supabase.from("candidate_matrix_answers").upsert(
@@ -114,50 +132,42 @@ export async function saveCandidateMatrixAnswers(
     );
   }
 
-  if (submit) {
-    const { data: profile } = await supabase
-      .from("candidate_profiles")
-      .select("*")
-      .eq("id", candidateId)
-      .single();
-
-    if (profile && profile.completion_percentage >= 60) {
-      await supabase
-        .from("candidate_profiles")
-        .update({ status: "ready_for_matching" })
-        .eq("id", candidateId);
-    }
-  }
-
   revalidatePath("/candidate/matrix");
   revalidatePath("/candidate");
+  revalidatePath("/candidate/status");
+
+  if (submit) {
+    redirect("/candidate/status?prompt=ready");
+  }
+
+  return { success: true };
 }
 
 export async function markCandidateReady(): Promise<void> {
   const user = await requireRole("candidate");
   const supabase = await createClient();
 
+  const onboarding = await fetchCandidateOnboardingState(supabase, user.id);
+
+  if (onboarding.completionPercentage < 60) {
+    redirect("/candidate/status?error=profile");
+  }
+  if (!onboarding.hasCv) {
+    redirect("/candidate/status?error=cv");
+  }
+  if (!onboarding.hasMatrix) {
+    redirect(`/candidate/status?error=matrix`);
+  }
+
   const { data: profile } = await supabase
     .from("candidate_profiles")
-    .select("*")
+    .select("id")
     .eq("user_id", user.id)
     .single();
 
-  if (!profile) throw new Error("Profile not found");
-
-  const { data: cv } = await supabase
-    .from("candidate_cv_files")
-    .select("id")
-    .eq("candidate_id", profile.id)
-    .limit(1);
-
-  const { data: answers } = await supabase
-    .from("candidate_matrix_answers")
-    .select("id")
-    .eq("candidate_id", profile.id);
-
-  if (!cv?.length) throw new Error("Please upload your CV first");
-  if (!answers?.length) throw new Error(`Please complete the ${FRAMEWORK_MATCHING_LANGUAGE} form first`);
+  if (!profile) {
+    redirect("/candidate/status?error=profile");
+  }
 
   await supabase
     .from("candidate_profiles")
@@ -165,4 +175,7 @@ export async function markCandidateReady(): Promise<void> {
     .eq("id", profile.id);
 
   revalidatePath("/candidate");
+  revalidatePath("/candidate/status");
+
+  redirect("/candidate/status?success=ready");
 }

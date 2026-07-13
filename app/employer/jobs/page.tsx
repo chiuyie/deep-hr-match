@@ -37,7 +37,7 @@ export default async function EmployerJobsPage() {
       title="Jobs"
       description="Create and manage job postings (unlimited, free)"
       actions={
-        <Button className="bg-[#1e40af] hover:bg-[#1e3a8a]" asChild>
+        <Button asChild>
           <Link href="/employer/jobs/new">New Job</Link>
         </Button>
       }

@@ -19,7 +19,7 @@ const actionCards = [
   {
     label: "Purchased Candidates Profiles",
     href: "/employer/unlocked",
-    className: "bg-blue-600 hover:bg-blue-700",
+    className: "bg-primary hover:bg-primary/90",
     icon: Users,
   },
   {

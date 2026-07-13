@@ -156,12 +156,11 @@ export function MatrixForm({
           Previous
         </Button>
         {step < activeCategories.length - 1 ? (
-          <Button className="bg-[#1e40af] hover:bg-[#1e3a8a]" onClick={() => setStep((s) => s + 1)}>
+          <Button onClick={() => setStep((s) => s + 1)}>
             Next
           </Button>
         ) : (
           <Button
-            className="bg-[#1e40af] hover:bg-[#1e3a8a]"
             disabled={saving}
             onClick={() => handleSave(true)}
           >

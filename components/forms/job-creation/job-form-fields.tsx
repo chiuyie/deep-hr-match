@@ -69,7 +69,7 @@ export function JobTextField({
       </label>
       <div className="relative">
         {icon && (
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 transition-colors group-focus-within:text-blue-500">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 transition-colors group-focus-within:text-primary">
             {icon}
           </div>
         )}
@@ -82,7 +82,7 @@ export function JobTextField({
           required={required}
           onChange={onChange}
           className={cn(
-            "mt-1 block w-full rounded-xl border border-slate-200 bg-white py-2.5 shadow-sm placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm",
+            "mt-1 block w-full rounded-xl border border-slate-200 bg-white py-2.5 shadow-sm placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm",
             icon ? "pl-10 pr-3" : "px-4"
           )}
         />
@@ -122,7 +122,7 @@ export function JobTextareaField({
         required={required}
         rows={4}
         onChange={onChange}
-        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
+        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm"
       />
     </div>
   );
@@ -159,7 +159,7 @@ export function JobSelectField({
         value={value ?? ""}
         required={required}
         onChange={onChange}
-        className="mt-1 block w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
+        className="mt-1 block w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm"
       >
         <option value="" disabled>
           {placeholder}
@@ -199,7 +199,7 @@ export function JobYesNoField({ label, name, value, icon, onChange }: JobYesNoFi
                 value={option}
                 checked={value === (option === "true")}
                 onChange={onChange}
-                className="h-4 w-4 cursor-pointer rounded-full border-slate-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 cursor-pointer rounded-full border-slate-300 text-primary focus:ring-primary"
               />
               <span className="text-sm text-slate-600 transition-colors group-hover:text-slate-800">
                 {option === "true" ? "Yes" : "No"}
@@ -247,7 +247,7 @@ export function JobSearchSelectField({
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
-          className="mt-1 block min-h-[42px] w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-left shadow-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
+          className="mt-1 block min-h-[42px] w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-left shadow-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm"
         >
           <span className={cn("block break-words whitespace-normal", value ? "text-slate-900" : "text-slate-400")}>
             {value || "Search and select..."}
@@ -279,7 +279,7 @@ export function JobSearchSelectField({
                     setOpen(false);
                   }
                 }}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div className="max-h-80 overflow-y-auto py-2">
@@ -291,8 +291,8 @@ export function JobSearchSelectField({
                     onClick={() => selectOption(option)}
                     onMouseEnter={() => setHighlightIndex(index)}
                     className={cn(
-                      "block w-full px-4 py-2.5 text-left text-sm text-slate-700 transition-colors hover:bg-blue-50",
-                      (highlightIndex === index || value === option) && "bg-blue-50"
+                      "block w-full px-4 py-2.5 text-left text-sm text-slate-700 transition-colors hover:bg-primary/10",
+                      (highlightIndex === index || value === option) && "bg-primary/10"
                     )}
                   >
                     {option}

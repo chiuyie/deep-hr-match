@@ -101,7 +101,7 @@ export function JobCreationSectionNav() {
             return (
               <div key={id} className="relative">
                 {active && !collapsed && (
-                  <div className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-blue-500 to-indigo-600" />
+                  <div className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-primary to-primary/80" />
                 )}
                 <button
                   type="button"
@@ -110,7 +110,7 @@ export function JobCreationSectionNav() {
                   onMouseLeave={() => setHoveredSection(null)}
                   className={cn(
                     "flex w-full items-center gap-3 px-4 py-3 text-left transition-all duration-200",
-                    active && "bg-blue-50",
+                    active && "bg-primary/10",
                     hovered && !active && "bg-slate-50"
                   )}
                   title={title}
@@ -127,7 +127,7 @@ export function JobCreationSectionNav() {
                     <span
                       className={cn(
                         "text-sm capitalize text-slate-600",
-                        active && "font-semibold text-blue-700"
+                        active && "font-semibold text-primary"
                       )}
                     >
                       {title}

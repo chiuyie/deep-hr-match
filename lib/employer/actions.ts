@@ -59,6 +59,15 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
     title: jobPayload.title,
     description: jobPayload.description,
     form_data: jobPayload.form_data,
+    department: jobPayload.department,
+    location: jobPayload.location,
+    employment_type: jobPayload.employment_type,
+    salary_range: jobPayload.salary_range,
+    years_experience_required: jobPayload.years_experience_required,
+    education_required: jobPayload.education_required,
+    required_skills: jobPayload.required_skills,
+    preferred_skills: jobPayload.preferred_skills,
+    status: jobPayload.status,
     employer_id: employerId,
   };
 

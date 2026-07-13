@@ -12,10 +12,7 @@ export function PublicNav() {
         <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
           <LoginMenu />
-          <Button
-            className="rounded-lg bg-blue-600 px-4 hover:bg-blue-700"
-            asChild
-          >
+          <Button asChild>
             <Link href="/auth/sign-up">Get Started</Link>
           </Button>
         </div>

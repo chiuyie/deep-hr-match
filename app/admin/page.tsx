@@ -65,7 +65,7 @@ export default async function AdminDashboard() {
             <Link key={task.title} href={task.href}>
               <Card className="h-full border-slate-200 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
                 <CardHeader>
-                  <task.icon className="mb-2 h-8 w-8 text-blue-600" />
+                  <task.icon className="mb-2 h-8 w-8 text-primary" />
                   <CardTitle className="text-lg">{task.title}</CardTitle>
                 </CardHeader>
                 <CardContent>

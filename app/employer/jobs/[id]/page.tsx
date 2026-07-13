@@ -46,16 +46,12 @@ export default async function EditJobPage({
         <Button variant="outline" size="sm" asChild>
           <Link href={`/employer/jobs/${id}/matrix`}>{FRAMEWORK} Form</Link>
         </Button>
-        <Button className="bg-[#1e40af] hover:bg-[#1e3a8a]" size="sm" asChild>
+        <Button size="sm" asChild>
           <Link href={`/employer/jobs/${id}/matching`}>Matching Results</Link>
         </Button>
       </div>
       <JobCreationForm
-        initialValues={jobRecordToFormState({
-          title: job.title,
-          description: job.description,
-          form_data: (job.form_data as Record<string, unknown> | null) ?? null,
-        })}
+        initialValues={jobRecordToFormState(job)}
         submitLabel="Save Job"
         action={updateJob}
       />

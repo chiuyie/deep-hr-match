@@ -1,12 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { assertSupabaseConfigured, getSupabaseEnv } from "@/lib/supabase/env";
 
 export async function createClient() {
+  assertSupabaseConfigured();
+
+  const { url, anonKey } = getSupabaseEnv();
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url!,
+    anonKey!,
     {
       cookies: {
         getAll() {
@@ -27,9 +31,17 @@ export async function createClient() {
 }
 
 export async function createServiceClient() {
+  assertSupabaseConfigured();
+
+  const { url } = getSupabaseEnv();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+
+  if (!serviceRoleKey || serviceRoleKey === "your-service-role-key") {
+    throw new Error(
+      "Supabase service role key is not configured. Add SUPABASE_SERVICE_ROLE_KEY to .env.local."
+    );
+  }
+
   const { createClient } = await import("@supabase/supabase-js");
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return createClient(url!, serviceRoleKey);
 }

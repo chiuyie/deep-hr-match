@@ -26,13 +26,13 @@ export function JobCreationStepNav({ currentStep }: { currentStep: "profile" | "
   const progress = Math.min(100, Math.max(0, (currentIndex / (steps.length - 1)) * 100));
 
   return (
-    <div className="border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white">
+    <div className="sticky top-0 z-40 border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white backdrop-blur-sm supports-[backdrop-filter]:bg-white/90">
       <div className="mx-auto max-w-5xl px-4 py-2 sm:px-6">
         <div className="relative">
           <div className="absolute left-0 right-0 top-[14.5px] px-[75px]" style={{ zIndex: 0 }}>
             <div className="relative h-[3px] w-full rounded-full bg-slate-200">
               <div
-                className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-700 ease-in-out"
+                className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-700 ease-in-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -53,13 +53,13 @@ export function JobCreationStepNav({ currentStep }: { currentStep: "profile" | "
                 >
                   <div className="relative">
                     {active && (
-                      <div className="absolute inset-0 animate-pulse rounded-full bg-blue-400 opacity-40 blur-md" />
+                      <div className="absolute inset-0 animate-pulse rounded-full bg-primary/40 opacity-40 blur-md" />
                     )}
                     <div
                       className={cn(
                         "relative z-20 flex h-8 w-8 items-center justify-center rounded-full border-[3px] transition-all duration-300",
                         completed && "border-green-400 bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-200",
-                        active && "scale-110 border-blue-400 bg-gradient-to-br from-blue-500 to-blue-600 shadow-xl shadow-blue-200",
+                        active && "scale-110 border-primary/60 bg-gradient-to-br from-primary to-primary/80 shadow-xl shadow-primary/20",
                         upcoming && "border-slate-300 bg-white shadow-sm"
                       )}
                     >

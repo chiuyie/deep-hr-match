@@ -412,7 +412,7 @@ export function JobCreationForm({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-3 font-bold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                  className="rounded-xl bg-gradient-to-r from-primary to-primary/80 px-8 py-3 font-bold text-primary-foreground shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
                   {pending ? (
                     <span className="flex items-center gap-2">

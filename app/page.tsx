@@ -4,13 +4,13 @@ import { PublicFooter } from "@/components/layout/public-footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FRAMEWORK, FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
-import { BrainCircuit, Sparkles, Users } from "lucide-react";
+import { Brain, Sparkles, Users } from "lucide-react";
 
 const features = [
   {
-    icon: BrainCircuit,
-    iconBg: "bg-blue-600/10",
-    iconColor: "text-blue-500",
+    icon: Brain,
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
     title: `The ${FRAMEWORK} Matching Language`,
     description: `Our unique ${FRAMEWORK} framework provides a holistic understanding of every candidate. This goes beyond the surface level, ensuring a match that lasts.`,
   },
@@ -18,8 +18,8 @@ const features = [
     icon: Sparkles,
     iconBg: "bg-green-600/10",
     iconColor: "text-green-500",
-    title: "AI-Powered Matching",
-    description: `Our advanced AI algorithm processes the complex data from the ${FRAMEWORK} framework to identify the best candidates for each role, saving you time and resources.`,
+    title: "Framework-Driven Matching",
+    description: `Our matching process uses the structured data from the ${FRAMEWORK} framework to identify the best candidates for each role, saving you time and resources.`,
   },
   {
     icon: Users,
@@ -43,12 +43,12 @@ export default function LandingPage() {
             Find Your Perfect Fit.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-400 md:text-xl">
-            Harnessing the power of AI and our {FRAMEWORK_MATCHING_LANGUAGE} to
-            connect exceptional talent with forward-thinking companies.
+            Our {FRAMEWORK_MATCHING_LANGUAGE} connects exceptional talent with
+            forward-thinking companies.
           </p>
           <Button
             size="lg"
-            className="mt-10 rounded-full bg-blue-600 px-8 py-6 text-base font-semibold hover:bg-blue-700"
+            className="mt-10 rounded-full px-8 py-6 text-base font-semibold"
             asChild
           >
             <Link href="/auth/sign-up">Explore Opportunities</Link>
@@ -64,7 +64,7 @@ export default function LandingPage() {
           </h2>
           <p className="mx-auto mt-4 max-w-3xl text-slate-600 dark:text-slate-400">
             Our platform is built on a foundation of deep character analysis and
-            intelligent matching to ensure the best fit for everyone.
+            framework-driven matching to ensure the best fit for everyone.
           </p>
         </div>
       </section>
@@ -104,7 +104,7 @@ export default function LandingPage() {
           </p>
           <Button
             size="lg"
-            className="mt-8 rounded-full bg-blue-600 px-8 hover:bg-blue-700"
+            className="mt-8 rounded-full px-8"
             asChild
           >
             <Link href="/auth/sign-up">Get Started Now</Link>

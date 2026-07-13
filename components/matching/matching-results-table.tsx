@@ -61,7 +61,7 @@ export function MatchingResultsTable({ jobId, results }: MatchingResultsTablePro
           <CardTitle>Ranked Candidates</CardTitle>
           {selected.length > 0 && (
             <Button
-              className="bg-[#1e40af] hover:bg-[#1e3a8a]"
+              className="bg-primary hover:bg-primary/90"
               disabled={loading}
               onClick={handleUnlock}
             >

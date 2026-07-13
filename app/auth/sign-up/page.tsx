@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { PublicNav } from "@/components/layout/public-nav";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { SupabaseSetupNotice } from "@/components/auth/supabase-setup-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUp } from "@/lib/auth/actions";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export default async function SignUpPage({
   searchParams,
@@ -14,7 +16,7 @@ export default async function SignUpPage({
 }) {
   const params = await searchParams;
   const defaultRole = params.role === "employer" ? "employer" : "candidate";
-
+  const supabaseReady = isSupabaseConfigured();
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-slate-950">
       <PublicNav />
@@ -27,9 +29,11 @@ export default async function SignUpPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {!supabaseReady && <SupabaseSetupNotice />}
             <form action={signUp} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">
+              <fieldset disabled={!supabaseReady} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">
                   Full Name
                 </Label>
                 <Input
@@ -77,14 +81,15 @@ export default async function SignUpPage({
               </div>
               <Button
                 type="submit"
-                className="w-full rounded-lg bg-blue-600 hover:bg-blue-700"
+                className="w-full rounded-lg"
               >
                 Get Started
               </Button>
+              </fieldset>
             </form>
             <p className="mt-4 text-center text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link href="/auth/sign-in" className="text-blue-600 hover:underline dark:text-blue-400">
+              <Link href="/auth/sign-in" className="text-primary hover:underline dark:text-primary/80">
                 Log In
               </Link>
             </p>

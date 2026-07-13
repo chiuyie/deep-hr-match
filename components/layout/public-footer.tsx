@@ -33,8 +33,8 @@ export function PublicFooter() {
           <div className="md:col-span-1">
             <BrandLogo />
             <p className="mt-4 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-              AI-powered recruitment platform connecting the right talent with the
-              right opportunities.
+              A recruitment platform connecting the right talent with the right
+              opportunities through structured matching.
             </p>
             <div className="mt-4 flex gap-3">
               {[Share2, Globe, Users].map((Icon, i) => (

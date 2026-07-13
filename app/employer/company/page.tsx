@@ -69,7 +69,7 @@ export default async function EmployerCompanyPage() {
               <Input id="contact_person_phone" name="contact_person_phone" defaultValue={p.contact_person_phone ?? ""} />
             </div>
             <div className="md:col-span-2">
-              <Button type="submit" className="bg-[#1e40af] hover:bg-[#1e3a8a]">Save Profile</Button>
+              <Button type="submit">Save Profile</Button>
             </div>
           </form>
         </CardContent>

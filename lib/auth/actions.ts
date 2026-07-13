@@ -60,6 +60,10 @@ export async function signUp(formData: FormData): Promise<void> {
     }
   }
 
+  if (role === "candidate") {
+    redirect("/candidate/profile?welcome=1");
+  }
+
   redirect(getDashboardPath(role));
 }
 
@@ -88,6 +92,41 @@ export async function signIn(formData: FormData): Promise<void> {
     .single();
 
   redirect(getDashboardPath(user?.role ?? "candidate"));
+}
+
+export async function signInAsAdmin(formData: FormData): Promise<void> {
+  const parsed = signInSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  if (!parsed.success) {
+    redirect("/auth/admin/sign-in?error=invalid");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+
+  if (error) {
+    redirect("/auth/admin/sign-in?error=invalid");
+  }
+
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+
+  const { data: dbUser } = await supabase
+    .from("users")
+    .select("role")
+    .eq("auth_user_id", authUser?.id ?? "")
+    .single();
+
+  if (dbUser?.role !== "admin") {
+    await supabase.auth.signOut();
+    redirect("/auth/admin/sign-in?error=not-admin");
+  }
+
+  redirect("/admin");
 }
 
 export async function signOut() {

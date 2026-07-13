@@ -56,7 +56,7 @@ export default async function JobJDPage({
         <CardContent>
           <form action={upload} className="space-y-4">
             <input type="file" name="file" accept=".pdf,.doc,.docx" required className="block w-full text-sm" />
-            <Button type="submit" className="bg-[#1e40af] hover:bg-[#1e3a8a]">Upload JD</Button>
+            <Button type="submit">Upload JD</Button>
           </form>
         </CardContent>
       </Card>
