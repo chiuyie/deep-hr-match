@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { DashboardNavList } from "@/components/layout/dashboard-nav-list";
 import { DashboardUserMenu } from "@/components/layout/dashboard-user-menu";
+import { useDashboardLayout } from "@/components/layout/dashboard-layout-context";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,10 +18,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { getDashboardNav } from "@/lib/constants/dashboard-nav";
+import { getDashboardSidebarWidthClass } from "@/lib/constants/dashboard-layout";
 import { signOut } from "@/lib/auth/actions";
+import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
 
-interface DashboardTopbarProps {
+interface DashboardHeaderProps {
   role: UserRole;
   userName?: string | null;
   title: string;
@@ -28,19 +31,48 @@ interface DashboardTopbarProps {
   actions?: React.ReactNode;
 }
 
-export function DashboardTopbar({
+export function DashboardHeader({
   role,
   userName,
   title,
   description,
   actions,
-}: DashboardTopbarProps) {
+}: DashboardHeaderProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { collapsed, toggleCollapsed } = useDashboardLayout();
   const nav = getDashboardNav(role);
+  const sidebarWidthClass = getDashboardSidebarWidthClass(collapsed);
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
-      <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+    <header className="z-30 flex h-14 shrink-0 items-stretch border-b border-border bg-background">
+      <div
+        className={cn(
+          "hidden shrink-0 items-center border-r border-border transition-[width] duration-200 ease-in-out lg:flex",
+          sidebarWidthClass,
+          collapsed ? "justify-center px-2" : "gap-2 px-3"
+        )}
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
+          aria-controls="dashboard-sidebar"
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </Button>
+        {!collapsed && (
+          <BrandLogo href={nav.homeHref} className="min-w-0 flex-1 overflow-hidden" />
+        )}
+      </div>
+
+      <div className="flex min-w-0 flex-1 items-center gap-3 px-4 sm:px-6">
         <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
           <SheetTrigger
             render={
@@ -88,9 +120,7 @@ export function DashboardTopbar({
           </SheetContent>
         </Sheet>
 
-        <BrandLogo href={nav.homeHref} className="shrink-0" />
-
-        <Separator orientation="vertical" className="hidden h-6 sm:block" />
+        <BrandLogo href={nav.homeHref} className="shrink-0 lg:hidden" />
 
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">
@@ -107,7 +137,6 @@ export function DashboardTopbar({
           <DashboardUserMenu role={role} userName={userName} />
         </div>
       </div>
-      <Separator />
     </header>
   );
 }
