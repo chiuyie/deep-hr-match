@@ -1,13 +1,11 @@
 "use client";
 
-import { LogOut } from "lucide-react";
-import { BrandLogo } from "@/components/layout/brand-logo";
+import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { DashboardNavList, DashboardUserBadge } from "@/components/layout/dashboard-nav-list";
 import { useDashboardLayout } from "@/components/layout/dashboard-layout-context";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { getDashboardNav } from "@/lib/constants/dashboard-nav";
 import { signOut } from "@/lib/auth/actions";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
@@ -18,8 +16,7 @@ interface DashboardSidebarProps {
 }
 
 export function DashboardSidebar({ role, userName }: DashboardSidebarProps) {
-  const { collapsed } = useDashboardLayout();
-  const nav = getDashboardNav(role);
+  const { collapsed, toggleCollapsed } = useDashboardLayout();
 
   return (
     <aside
@@ -33,14 +30,26 @@ export function DashboardSidebar({ role, userName }: DashboardSidebarProps) {
     >
       <div
         className={cn(
-          "flex h-16 shrink-0 items-center",
-          collapsed ? "justify-center px-2" : "px-5"
+          "flex shrink-0 items-center border-b border-border",
+          collapsed ? "justify-center px-2 py-3" : "justify-end px-3 py-3"
         )}
       >
-        <BrandLogo href={nav.homeHref} compact={collapsed} />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
+          aria-controls="dashboard-sidebar"
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </Button>
       </div>
-
-      <Separator />
 
       <ScrollArea className="min-h-0 flex-1">
         <div className={cn("py-5", collapsed ? "px-2" : "px-3")}>

@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { LogOut, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { DashboardNavList } from "@/components/layout/dashboard-nav-list";
-import { useDashboardLayout } from "@/components/layout/dashboard-layout-context";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { DashboardUserMenu } from "@/components/layout/dashboard-user-menu";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -37,7 +36,6 @@ export function DashboardTopbar({
   actions,
 }: DashboardTopbarProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { collapsed, toggleCollapsed } = useDashboardLayout();
   const nav = getDashboardNav(role);
 
   return (
@@ -90,17 +88,9 @@ export function DashboardTopbar({
           </SheetContent>
         </Sheet>
 
-        <Button
-          variant="outline"
-          size="icon"
-          className="hidden shrink-0 lg:inline-flex"
-          onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-expanded={!collapsed}
-          aria-controls="dashboard-sidebar"
-        >
-          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-        </Button>
+        <BrandLogo href={nav.homeHref} className="shrink-0" />
+
+        <Separator orientation="vertical" className="hidden h-6 sm:block" />
 
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">

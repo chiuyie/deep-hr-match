@@ -6,18 +6,44 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { signIn } from "@/lib/auth/actions";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+
+const errorMessages: Record<string, { title: string; description: string }> = {
+  invalid: {
+    title: "Sign in failed",
+    description: "Check your email and password and try again.",
+  },
+  "wrong-role": {
+    title: "Wrong login portal",
+    description:
+      "This account is registered for a different user type. Use the correct login option from the menu (employer or candidate).",
+  },
+  "use-admin-portal": {
+    title: "Admin account",
+    description: "Platform admin accounts must sign in through the admin portal.",
+  },
+  "confirm-email": {
+    title: "Confirm your email",
+    description:
+      "Your account was created. Check your inbox for a confirmation link, then sign in here.",
+  },
+};
 
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; error?: string }>;
 }) {
   const params = await searchParams;
+  const portalRole =
+    params.role === "employer" || params.role === "candidate" ? params.role : null;
   const roleLabel =
-    params.role === "employer" ? "Employer" : params.role === "candidate" ? "Candidate" : "";
+    portalRole === "employer" ? "Employer" : portalRole === "candidate" ? "Candidate" : "";
   const supabaseReady = isSupabaseConfigured();
+  const error = params.error ? errorMessages[params.error] : null;
+
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-slate-950">
       <PublicNav />
@@ -33,8 +59,30 @@ export default async function SignInPage({
           </CardHeader>
           <CardContent>
             {!supabaseReady && <SupabaseSetupNotice />}
+
+            {error && (
+              <Alert
+                variant={params.error === "confirm-email" ? "default" : "destructive"}
+                className="mb-4"
+              >
+                <AlertTitle>{error.title}</AlertTitle>
+                <AlertDescription>
+                  {error.description}
+                  {params.error === "use-admin-portal" && (
+                    <>
+                      {" "}
+                      <Link href="/auth/admin/sign-in" className="font-medium underline">
+                        Go to admin sign in
+                      </Link>
+                    </>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <form action={signIn} className="space-y-4">
               <fieldset disabled={!supabaseReady} className="space-y-4">
+                {portalRole && <input type="hidden" name="role" value={portalRole} />}
                 <div className="space-y-2">
                   <Label htmlFor="email">
                   Email

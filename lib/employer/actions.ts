@@ -110,12 +110,10 @@ export async function uploadJobJD(formData: FormData, jobId: string): Promise<vo
 
   if (uploadError) throw new Error(uploadError.message);
 
-  const { data: urlData } = supabase.storage.from("job-jds").getPublicUrl(path);
-
   await supabase.from("job_jd_files").insert({
     job_id: jobId,
     file_name: file.name,
-    file_url: urlData.publicUrl,
+    file_url: path,
     file_path: path,
     file_type: file.type,
     file_size: file.size,

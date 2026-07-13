@@ -40,9 +40,6 @@ export function MatchingResultsTable({ jobId, results }: MatchingResultsTablePro
 
   async function handleUnlock() {
     setLoading(true);
-    const formData = new FormData();
-    formData.set("jobId", jobId);
-    selected.forEach((id) => formData.append("candidateIds", id));
     await createUnlockCheckout(jobId, selected);
     setLoading(false);
   }
