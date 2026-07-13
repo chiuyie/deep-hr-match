@@ -15,9 +15,32 @@ const errorMessages: Record<string, { title: string; description: string }> = {
     title: "Sign up failed",
     description: "Check your details and try again.",
   },
+  "email-exists": {
+    title: "Email already registered",
+    description:
+      "This email already has an account. Sign in with that account, or use a different email. Each email can only be linked to one account type (employer or candidate).",
+  },
+  "weak-password": {
+    title: "Password too weak",
+    description: "Use at least 8 characters with a mix of letters and numbers.",
+  },
+  "signup-disabled": {
+    title: "Sign up unavailable",
+    description: "New registrations are temporarily disabled. Try again later or contact support.",
+  },
+  "database-setup": {
+    title: "Sign up is not configured yet",
+    description:
+      "Supabase rejected the new account with a database setup error. Apply supabase/migrations/006_fix_signup_trigger.sql in the Supabase SQL Editor, then try signing up again.",
+  },
+  "setup-failed": {
+    title: "Account setup incomplete",
+    description:
+      "Your account was created but setup did not finish. Try signing in. If that does not work, contact support.",
+  },
   "signup-failed": {
     title: "Could not create account",
-    description: "That email may already be registered, or the password did not meet requirements.",
+    description: "Something went wrong while creating your account. Please try again.",
   },
 };
 
@@ -54,7 +77,35 @@ export default async function SignUpPage({
             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertTitle>{error.title}</AlertTitle>
-                <AlertDescription>{error.description}</AlertDescription>
+                <AlertDescription>
+                  {error.description}
+                  {params.error === "email-exists" && (
+                    <>
+                      {" "}
+                      <Link
+                        href={
+                          portalRole ? `/auth/sign-in?role=${portalRole}` : "/auth/sign-in"
+                        }
+                        className="font-medium underline underline-offset-2"
+                      >
+                        Sign in instead
+                      </Link>
+                      {portalRole === "employer" && (
+                        <>
+                          {" "}
+                          or{" "}
+                          <Link
+                            href="/auth/sign-in?role=candidate"
+                            className="font-medium underline underline-offset-2"
+                          >
+                            sign in as Candidate
+                          </Link>
+                        </>
+                      )}
+                      .
+                    </>
+                  )}
+                </AlertDescription>
               </Alert>
             )}
 

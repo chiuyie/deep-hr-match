@@ -22,7 +22,7 @@ export function DashboardSidebar({ role, userName }: DashboardSidebarProps) {
     <aside
       id="dashboard-sidebar"
       className={cn(
-        "sticky top-0 hidden h-svh shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 ease-in-out lg:flex",
+        "hidden h-full shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 ease-in-out lg:flex",
         collapsed ? "w-[4.5rem]" : "w-64"
       )}
       aria-label="Primary navigation"

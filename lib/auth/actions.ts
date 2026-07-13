@@ -13,16 +13,73 @@ function parsePortalRole(value: FormDataEntryValue | null): PortalRole | null {
   return value === "candidate" || value === "employer" ? value : null;
 }
 
-function signUpRedirectPath(portalRole: PortalRole | null, error: string) {
-  const base = portalRole ? `/auth/sign-up?role=${portalRole}` : "/auth/sign-up";
-  const separator = base.includes("?") ? "&" : "?";
-  redirect(`${base}${separator}error=${error}`);
+function signUpRedirectPath(
+  portalRole: PortalRole | null,
+  error: string,
+  extra?: Record<string, string>
+) {
+  const params = new URLSearchParams();
+  if (portalRole) params.set("role", portalRole);
+  params.set("error", error);
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) {
+      params.set(key, value);
+    }
+  }
+  redirect(`/auth/sign-up?${params.toString()}`);
 }
 
-function signInRedirectPath(portalRole: PortalRole | null, error: string) {
-  const base = portalRole ? `/auth/sign-in?role=${portalRole}` : "/auth/sign-in";
-  const separator = base.includes("?") ? "&" : "?";
-  redirect(`${base}${separator}error=${error}`);
+function classifySignUpError(message: string, code?: string, status?: number): string {
+  const normalized = message.toLowerCase();
+  const normalizedCode = (code ?? "").toLowerCase();
+
+  if (
+    normalized.includes("already registered") ||
+    normalized.includes("already exists") ||
+    normalized.includes("user already") ||
+    normalizedCode === "user_already_exists"
+  ) {
+    return "email-exists";
+  }
+
+  if (
+    normalized.includes("password") ||
+    normalized.includes("weak") ||
+    normalizedCode === "weak_password"
+  ) {
+    return "weak-password";
+  }
+
+  if (normalized.includes("signup") && normalized.includes("disabled")) {
+    return "signup-disabled";
+  }
+
+  if (
+    status === 500 ||
+    normalized.includes("database error") ||
+    normalized.includes("unexpected_failure") ||
+    normalizedCode === "unexpected_failure"
+  ) {
+    return "database-setup";
+  }
+
+  return "signup-failed";
+}
+
+function signInRedirectPath(
+  portalRole: PortalRole | null,
+  error: string,
+  extra?: Record<string, string>
+) {
+  const params = new URLSearchParams();
+  if (portalRole) params.set("role", portalRole);
+  params.set("error", error);
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) {
+      params.set(key, value);
+    }
+  }
+  redirect(`/auth/sign-in?${params.toString()}`);
 }
 
 async function provisionNewUser(
@@ -81,11 +138,38 @@ async function provisionNewUser(
     const supabase = await createClient();
     const { error: userError } = await supabase
       .from("users")
-      .update({ role, name })
+      .update({ name })
       .eq("auth_user_id", authUserId);
 
     if (userError) {
       throw new Error("Account created but setup failed. Try signing in or contact support.");
+    }
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("id, role")
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (!dbUser || dbUser.role !== role) {
+      throw new Error("Account created but setup failed. Try signing in or contact support.");
+    }
+
+    if (role === "employer") {
+      const { data: existing } = await supabase
+        .from("employer_profiles")
+        .select("id")
+        .eq("user_id", dbUser.id)
+        .maybeSingle();
+
+      if (!existing) {
+        const { error } = await supabase.from("employer_profiles").insert({
+          user_id: dbUser.id,
+        });
+        if (error) {
+          throw new Error("Account created but setup failed. Try signing in or contact support.");
+        }
+      }
     }
   }
 }
@@ -120,14 +204,21 @@ export async function signUp(formData: FormData): Promise<void> {
   });
 
   if (error) {
-    signUpRedirectPath(portalRole ?? role, "signup-failed");
+    signUpRedirectPath(
+      portalRole ?? role,
+      classifySignUpError(error.message, error.code, error.status)
+    );
   }
 
-  if (!data.user) {
-    signUpRedirectPath(portalRole ?? role, "signup-failed");
+  if (!data.user || data.user.identities?.length === 0) {
+    signUpRedirectPath(portalRole ?? role, "email-exists");
   }
 
-  await provisionNewUser(data.user.id, email, name, role);
+  try {
+    await provisionNewUser(data.user.id, email, name, role);
+  } catch {
+    signUpRedirectPath(portalRole ?? role, "setup-failed");
+  }
 
   if (!data.session) {
     signInRedirectPath(role, "confirm-email");
@@ -156,6 +247,10 @@ export async function signIn(formData: FormData): Promise<void> {
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
+    const message = error.message.toLowerCase();
+    if (message.includes("email not confirmed")) {
+      signInRedirectPath(expectedRole, "confirm-email");
+    }
     signInRedirectPath(expectedRole, "invalid");
   }
 
@@ -177,8 +272,13 @@ export async function signIn(formData: FormData): Promise<void> {
   }
 
   if (expectedRole && actualRole !== expectedRole) {
-    await supabase.auth.signOut();
-    signInRedirectPath(expectedRole, "wrong-role");
+    const accountRole =
+      actualRole === "candidate" || actualRole === "employer" ? actualRole : null;
+    signInRedirectPath(
+      expectedRole,
+      "wrong-role",
+      accountRole ? { account: accountRole } : undefined
+    );
   }
 
   redirect(getDashboardPath(actualRole ?? "candidate"));
@@ -224,4 +324,12 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+export async function signOutToPortalSignIn(formData: FormData): Promise<void> {
+  const portalRole = parsePortalRole(formData.get("role"));
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  redirect(portalRole ? `/auth/sign-in?role=${portalRole}` : "/auth/sign-in");
 }

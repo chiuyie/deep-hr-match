@@ -100,8 +100,8 @@ export default async function EmployerDashboard() {
     <DashboardShell role="employer" userName={user.name} title="Employer Dashboard">
       <div className="space-y-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900">Good Day</h2>
-          <p className="mt-1 text-slate-500">What would you like to do today?</p>
+          <h2 className="text-3xl font-bold text-foreground">Good Day</h2>
+          <p className="mt-1 text-muted-foreground">What would you like to do today?</p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -120,7 +120,7 @@ export default async function EmployerDashboard() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="border-slate-200 shadow-sm lg:col-span-2">
+          <Card className="border-border shadow-sm lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Employer Details</CardTitle>
               <Button variant="outline" size="sm" asChild>
@@ -133,11 +133,11 @@ export default async function EmployerDashboard() {
             <CardContent>
               <dl className="grid gap-4 sm:grid-cols-2">
                 {detailFields.map((field) => (
-                  <div key={field.label} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <div key={field.label} className="rounded-lg border border-border bg-muted/50 p-3">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       {field.label}
                     </dt>
-                    <dd className="mt-1 text-sm font-medium text-slate-900">
+                    <dd className="mt-1 text-sm font-medium text-foreground">
                       {field.value || "—"}
                     </dd>
                   </div>
@@ -146,7 +146,7 @@ export default async function EmployerDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardHeader>
               <CardTitle>Dashboard Metrics</CardTitle>
             </CardHeader>
@@ -158,10 +158,10 @@ export default async function EmployerDashboard() {
               ].map((metric) => (
                 <div
                   key={metric.label}
-                  className="rounded-lg border border-slate-100 bg-slate-50 p-4"
+                  className="rounded-lg border border-border bg-muted/50 p-4"
                 >
-                  <p className="text-sm text-slate-500">{metric.label}</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
+                  <p className="text-sm text-muted-foreground">{metric.label}</p>
+                  <p className="mt-1 text-2xl font-bold text-foreground">
                     {metric.value}
                   </p>
                 </div>
@@ -170,7 +170,7 @@ export default async function EmployerDashboard() {
           </Card>
         </div>
 
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader>
             <CardTitle>Support</CardTitle>
           </CardHeader>
