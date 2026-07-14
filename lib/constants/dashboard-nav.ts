@@ -61,7 +61,7 @@ const candidateNav: DashboardNavItem[] = [
   },
 ];
 
-const employerNav: DashboardNavItem[] = [
+export const employerNav: DashboardNavItem[] = [
   {
     href: "/employer",
     label: "Overview",
@@ -70,7 +70,7 @@ const employerNav: DashboardNavItem[] = [
   },
   {
     href: "/employer/company",
-    label: "Company Profile",
+    label: "Employer Profile",
     description: "Business and contact details",
     icon: Building2,
   },

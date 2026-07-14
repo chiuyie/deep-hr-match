@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import {
-  ArrowLeft,
   Briefcase,
   Car,
   ClipboardList,
@@ -116,29 +114,18 @@ export function JobCreationForm({
   const selectedBenefits = Array.isArray(values.benefits_package) ? values.benefits_package : [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <>
       <JobCreationStepNav currentStep="job" />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6 flex justify-start">
-          <Link
-            href="/employer/company"
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-medium text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Employer profile
-          </Link>
-        </div>
+      <div className="flex flex-col lg:flex-row lg:gap-x-8">
+        <aside className="mb-8 lg:mb-0 lg:w-80 lg:shrink-0">
+          <div className="sticky top-0 z-10">
+            <JobCreationSectionNav />
+          </div>
+        </aside>
 
-        <div className="flex flex-col lg:flex-row lg:gap-x-8">
-          <aside className="mb-8 lg:mb-0 lg:w-80 lg:shrink-0">
-            <div className="sticky top-24">
-              <JobCreationSectionNav />
-            </div>
-          </aside>
-
-          <main className="flex-1 lg:pl-4">
-            <form onSubmit={handleSubmit} className="space-y-0">
+        <main className="min-w-0 flex-1 lg:pl-4">
+          <form onSubmit={handleSubmit} className="space-y-0">
               <JobFormSection
                 id="job-identification"
                 title="Job Identification"
@@ -372,7 +359,7 @@ export function JobCreationForm({
                 description="Historical experience and current background information that will be used to score candidates, 3 points for each match with employer's preference."
                 gradient="from-amber-500 to-amber-600"
                 icon={<Sparkles className="h-6 w-6 text-white" />}
-                className="mb-0"
+                className="mb-8"
               >
                 <div className="space-y-8">
                   {preferredGroups.map(([category, fields]) => (
@@ -408,26 +395,27 @@ export function JobCreationForm({
                 </div>
               </JobFormSection>
 
-              <div className="relative bottom-8 mt-8 flex justify-end pb-4">
-                <button
-                  type="submit"
-                  disabled={pending}
-                  className="rounded-xl bg-gradient-to-r from-primary to-primary/80 px-8 py-3 font-bold text-primary-foreground shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  {pending ? (
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Saving...
-                    </span>
-                  ) : (
-                    submitLabel
-                  )}
-                </button>
+              <div className="sticky bottom-0 z-10 -mx-2 mt-2 border-t border-slate-200 bg-gradient-to-b from-slate-50/90 to-white/95 px-2 py-4 backdrop-blur-sm sm:-mx-0 sm:px-0">
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={pending}
+                    className="rounded-xl bg-gradient-to-r from-primary to-primary/80 px-8 py-3 font-bold text-primary-foreground shadow-lg transition-all duration-200 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {pending ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Saving...
+                      </span>
+                    ) : (
+                      submitLabel
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
-          </main>
-        </div>
+        </main>
       </div>
-    </div>
+    </>
   );
 }

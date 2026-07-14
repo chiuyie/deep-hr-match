@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -43,12 +42,7 @@ export default async function EmployerUnlockedPage() {
   }
 
   return (
-    <DashboardShell
-      role="employer"
-      userName={user.name}
-      title="Unlocked Candidates"
-      description="All candidate profiles you have unlocked"
-    >
+    <>
       {!items.length ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -76,6 +70,6 @@ export default async function EmployerUnlockedPage() {
           ))}
         </div>
       )}
-    </DashboardShell>
+    </>
   );
 }

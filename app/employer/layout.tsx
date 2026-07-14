@@ -1,4 +1,5 @@
 import { requireRole, ensureEmployerProfile } from "@/lib/auth/session";
+import { EmployerLayoutShell } from "@/components/layout/employer-layout-shell";
 
 export default async function EmployerLayout({
   children,
@@ -7,5 +8,6 @@ export default async function EmployerLayout({
 }) {
   const user = await requireRole("employer");
   await ensureEmployerProfile(user.id);
-  return children;
+
+  return <EmployerLayoutShell userName={user.name}>{children}</EmployerLayoutShell>;
 }

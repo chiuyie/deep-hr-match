@@ -38,8 +38,8 @@ export default async function EditJobPage({
   }
 
   return (
-    <div>
-      <div className="fixed right-4 top-4 z-50 flex flex-wrap gap-2">
+    <>
+      <div className="mb-6 flex flex-wrap gap-2">
         <Button variant="outline" size="sm" asChild>
           <Link href={`/employer/jobs/${id}/jd`}>JD Upload</Link>
         </Button>
@@ -55,6 +55,6 @@ export default async function EditJobPage({
         submitLabel="Save Job"
         action={updateJob}
       />
-    </div>
+    </>
   );
 }

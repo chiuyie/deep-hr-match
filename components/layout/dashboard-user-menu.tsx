@@ -63,7 +63,7 @@ export function DashboardUserMenu({ role, userName }: DashboardUserMenuProps) {
           {role === "candidate"
             ? "My profile"
             : role === "employer"
-              ? "Company profile"
+              ? "Employer profile"
               : "Admin home"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />

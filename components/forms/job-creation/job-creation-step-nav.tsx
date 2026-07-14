@@ -8,7 +8,7 @@ const steps = [
   {
     id: "profile",
     label: "Employer Profile",
-    description: "Personalize your company profile",
+    description: "Personalize your employer profile",
     icon: User,
     href: "/employer/company",
   },

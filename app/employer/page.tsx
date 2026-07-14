@@ -8,10 +8,9 @@ import {
   Receipt,
   Users,
 } from "lucide-react";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { requireRole, ensureEmployerProfile } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/profile";
 
@@ -56,7 +55,6 @@ const actionCards = [
 
 export default async function EmployerDashboard() {
   const user = await requireRole("employer");
-  await ensureEmployerProfile(user.id);
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -97,8 +95,7 @@ export default async function EmployerDashboard() {
   ];
 
   return (
-    <DashboardShell role="employer" userName={user.name} title="Employer Dashboard">
-      <div className="space-y-8">
+    <div className="space-y-8">
         <div>
           <h2 className="text-3xl font-bold text-foreground">Good Day</h2>
           <p className="mt-1 text-muted-foreground">What would you like to do today?</p>
@@ -186,7 +183,6 @@ export default async function EmployerDashboard() {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    </DashboardShell>
+    </div>
   );
 }

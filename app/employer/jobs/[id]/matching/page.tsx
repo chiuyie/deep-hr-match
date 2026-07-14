@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { MatchingResultsTable } from "@/components/matching/matching-results-table";
 import { requireRole, anonymizeCandidateId } from "@/lib/auth/session";
@@ -71,20 +70,11 @@ export default async function JobMatchingPage({
   }
 
   return (
-    <DashboardShell
-      role="employer"
-      userName={user.name}
-      title="Matching Results"
-      description={`Ranked candidates for ${job.title}`}
-      actions={
-        <form action={generate}>
-          <Button type="submit">
-            Generate Matching Results
-          </Button>
-        </form>
-      }
-    >
+    <>
+      <form action={generate} className="mb-6 flex justify-end">
+        <Button type="submit">Generate Matching Results</Button>
+      </form>
       <MatchingResultsTable jobId={id} results={results} />
-    </DashboardShell>
+    </>
   );
 }

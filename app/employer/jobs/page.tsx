@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -31,21 +30,13 @@ export default async function EmployerJobsPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <DashboardShell
-      role="employer"
-      userName={user.name}
-      title="Jobs"
-      description="Create and manage job postings (unlimited, free)"
-      actions={
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-4">
+        <CardTitle>Your Jobs</CardTitle>
         <Button asChild>
           <Link href="/employer/jobs/new">New Job</Link>
         </Button>
-      }
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Jobs</CardTitle>
-        </CardHeader>
+      </CardHeader>
         <CardContent>
           {!jobs?.length ? (
             <p className="py-8 text-center text-muted-foreground">No jobs yet. Create your first job.</p>
@@ -85,7 +76,6 @@ export default async function EmployerJobsPage() {
             </Table>
           )}
         </CardContent>
-      </Card>
-    </DashboardShell>
+    </Card>
   );
 }

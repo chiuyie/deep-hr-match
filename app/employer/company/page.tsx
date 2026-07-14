@@ -1,4 +1,4 @@
-import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { JobCreationStepNav } from "@/components/forms/job-creation/job-creation-step-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,15 +20,11 @@ export default async function EmployerCompanyPage() {
   const p = profile ?? {};
 
   return (
-    <DashboardShell
-      role="employer"
-      userName={user.name}
-      title="Company Profile"
-      description="Your organization details"
-    >
+    <>
+      <JobCreationStepNav currentStep="profile" />
       <Card>
         <CardHeader>
-          <CardTitle>Company Information</CardTitle>
+          <CardTitle>Employer Information</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={saveEmployerProfile} className="grid gap-4 md:grid-cols-2">
@@ -74,6 +70,6 @@ export default async function EmployerCompanyPage() {
           </form>
         </CardContent>
       </Card>
-    </DashboardShell>
+    </>
   );
 }

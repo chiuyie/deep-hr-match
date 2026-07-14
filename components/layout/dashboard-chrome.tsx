@@ -11,6 +11,7 @@ interface DashboardChromeProps {
   description?: string;
   children: React.ReactNode;
   actions?: React.ReactNode;
+  contentClassName?: string;
 }
 
 export function DashboardChrome({
@@ -20,6 +21,7 @@ export function DashboardChrome({
   description,
   children,
   actions,
+  contentClassName = "mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8",
 }: DashboardChromeProps) {
   return (
     <DashboardLayoutProvider>
@@ -40,7 +42,7 @@ export function DashboardChrome({
             className="min-w-0 flex-1 overflow-y-auto overscroll-contain"
             tabIndex={-1}
           >
-            <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">{children}</div>
+            <div className={contentClassName}>{children}</div>
           </main>
         </div>
       </div>

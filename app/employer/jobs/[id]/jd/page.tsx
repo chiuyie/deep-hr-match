@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
@@ -43,12 +42,7 @@ export default async function JobJDPage({
   }
 
   return (
-    <DashboardShell
-      role="employer"
-      userName={user.name}
-      title="JD Upload"
-      description={`Job description file for ${job.title}`}
-    >
+    <>
       <Card>
         <CardHeader>
           <CardTitle>Upload Job Description</CardTitle>
@@ -75,6 +69,6 @@ export default async function JobJDPage({
           </CardContent>
         </Card>
       )}
-    </DashboardShell>
+    </>
   );
 }

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,12 +54,7 @@ export default async function JobUnlockedPage({
   }
 
   return (
-    <DashboardShell
-      role="employer"
-      userName={user.name}
-      title="Unlocked Candidates"
-      description={job ? `Unlocked profiles for ${job.title}` : "All unlocked candidates"}
-    >
+    <>
       {session_id && (
         <Card className="mb-6 border-green-200 bg-green-50">
           <CardContent className="py-3 text-sm text-green-800">
@@ -116,6 +110,6 @@ export default async function JobUnlockedPage({
       <Button variant="outline" className="mt-4" asChild>
         <Link href={`/employer/jobs/${jobId}/matching`}>Back to Matching Results</Link>
       </Button>
-    </DashboardShell>
+    </>
   );
 }
