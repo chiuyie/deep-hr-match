@@ -4,6 +4,8 @@ Candidate–job matching SaaS built around the proprietary **7^7 Matching Langua
 
 **Phase 1 MVP** — multi-portal auth, dynamic 7^7 forms, multi-section job creation, file uploads, placeholder matching engine, and Stripe-powered candidate profile unlocks.
 
+📚 **Technical documentation:** [docs/](./docs/README.md) — architecture, database, auth, security, server actions, deployment, testing, and more.
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -187,6 +189,8 @@ Use `npm run dev:turbo` for Turbopack (default `dev` uses webpack for stability)
 ---
 
 ## Testing
+
+See **[docs/testing.md](./docs/testing.md)** for the full testing guide. Quick reference:
 
 ### Automated tests (Vitest)
 
@@ -386,6 +390,8 @@ vitest.config.ts              # Vitest config (@ path alias)
 ---
 
 ## Architecture Notes
+
+See **[docs/architecture.md](./docs/architecture.md)** for the full system overview. Summary:
 
 ### Dashboard layout
 

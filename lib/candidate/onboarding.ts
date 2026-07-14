@@ -47,12 +47,21 @@ export function getAllowedOnboardingPaths(step: CandidateOnboardingStep): string
   }
 }
 
+export function normalizeDashboardPath(path: string): string {
+  const withoutQuery = path.split("?")[0]?.split("#")[0] ?? "";
+  if (withoutQuery.length > 1 && withoutQuery.endsWith("/")) {
+    return withoutQuery.slice(0, -1);
+  }
+  return withoutQuery;
+}
+
 export function isOnboardingPathAllowed(
   pathname: string,
   step: CandidateOnboardingStep
 ): boolean {
   if (step === "done") return true;
-  return getAllowedOnboardingPaths(step).includes(pathname);
+  const normalizedPath = normalizeDashboardPath(pathname);
+  return getAllowedOnboardingPaths(step).includes(normalizedPath);
 }
 
 export function isOnboardingChecklistComplete(state: CandidateOnboardingState): boolean {

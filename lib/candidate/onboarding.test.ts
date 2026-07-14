@@ -5,8 +5,16 @@ import {
   getOnboardingStep,
   isOnboardingChecklistComplete,
   isOnboardingPathAllowed,
+  normalizeDashboardPath,
   type CandidateOnboardingState,
 } from "@/lib/candidate/onboarding";
+
+describe("normalizeDashboardPath", () => {
+  it("strips trailing slashes and query strings", () => {
+    expect(normalizeDashboardPath("/candidate/profile/")).toBe("/candidate/profile");
+    expect(normalizeDashboardPath("/candidate/profile?welcome=1")).toBe("/candidate/profile");
+  });
+});
 
 describe("getOnboardingStep", () => {
   it("requires profile when completion is below 60%", () => {
@@ -49,6 +57,7 @@ describe("getOnboardingPath", () => {
 describe("isOnboardingPathAllowed", () => {
   it("restricts profile step to profile page only", () => {
     expect(isOnboardingPathAllowed("/candidate/profile", "profile")).toBe(true);
+    expect(isOnboardingPathAllowed("/candidate/profile/", "profile")).toBe(true);
     expect(isOnboardingPathAllowed("/candidate/cv", "profile")).toBe(false);
   });
 
