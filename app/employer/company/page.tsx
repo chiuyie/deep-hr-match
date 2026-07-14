@@ -1,9 +1,12 @@
+import { Building2 } from "lucide-react";
 import { JobCreationStepNav } from "@/components/forms/job-creation/job-creation-step-nav";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  EmployerPageSection,
+  employerInputClassName,
+  employerLabelClassName,
+} from "@/components/employer/employer-ui";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { saveEmployerProfile } from "@/lib/employer/actions";
@@ -20,56 +23,123 @@ export default async function EmployerCompanyPage() {
   const p = profile ?? {};
 
   return (
-    <>
+    <div className="space-y-6">
       <JobCreationStepNav currentStep="profile" />
-      <Card>
-        <CardHeader>
-          <CardTitle>Employer Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={saveEmployerProfile} className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="company_name">Company Name *</Label>
-              <Input id="company_name" name="company_name" defaultValue={p.company_name ?? ""} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="registration_number">UEN / Registration Number</Label>
-              <Input id="registration_number" name="registration_number" defaultValue={p.registration_number ?? ""} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="industry">Industry</Label>
-              <Input id="industry" name="industry" defaultValue={p.industry ?? ""} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company_size">Company Size</Label>
-              <Input id="company_size" name="company_size" defaultValue={p.company_size ?? ""} />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="website">Website</Label>
-              <Input id="website" name="website" defaultValue={p.website ?? ""} />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="company_description">Description</Label>
-              <Textarea id="company_description" name="company_description" defaultValue={p.company_description ?? ""} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_person_name">Contact Person</Label>
-              <Input id="contact_person_name" name="contact_person_name" defaultValue={p.contact_person_name ?? ""} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_person_email">Contact Email</Label>
-              <Input id="contact_person_email" name="contact_person_email" type="email" defaultValue={p.contact_person_email ?? ""} />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="contact_person_phone">Contact Phone</Label>
-              <Input id="contact_person_phone" name="contact_person_phone" defaultValue={p.contact_person_phone ?? ""} />
-            </div>
-            <div className="md:col-span-2">
-              <Button type="submit">Save Profile</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </>
+      <EmployerPageSection
+        title="Employer Information"
+        description="Company details used across your job postings and candidate interactions"
+        icon={<Building2 className="h-6 w-6" />}
+        gradient="from-cyan-500 to-cyan-600"
+      >
+        <form action={saveEmployerProfile} className="grid gap-5 md:grid-cols-2">
+          <div>
+            <label htmlFor="company_name" className={employerLabelClassName}>
+              Company Name *
+            </label>
+            <input
+              id="company_name"
+              name="company_name"
+              defaultValue={p.company_name ?? ""}
+              required
+              className={employerInputClassName}
+            />
+          </div>
+          <div>
+            <label htmlFor="registration_number" className={employerLabelClassName}>
+              UEN / Registration Number
+            </label>
+            <input
+              id="registration_number"
+              name="registration_number"
+              defaultValue={p.registration_number ?? ""}
+              className={employerInputClassName}
+            />
+          </div>
+          <div>
+            <label htmlFor="industry" className={employerLabelClassName}>
+              Industry
+            </label>
+            <input
+              id="industry"
+              name="industry"
+              defaultValue={p.industry ?? ""}
+              className={employerInputClassName}
+            />
+          </div>
+          <div>
+            <label htmlFor="company_size" className={employerLabelClassName}>
+              Company Size
+            </label>
+            <input
+              id="company_size"
+              name="company_size"
+              defaultValue={p.company_size ?? ""}
+              className={employerInputClassName}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label htmlFor="website" className={employerLabelClassName}>
+              Website
+            </label>
+            <input
+              id="website"
+              name="website"
+              defaultValue={p.website ?? ""}
+              className={employerInputClassName}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label htmlFor="company_description" className={employerLabelClassName}>
+              Description
+            </label>
+            <Textarea
+              id="company_description"
+              name="company_description"
+              defaultValue={p.company_description ?? ""}
+              className="min-h-28 rounded-xl border-slate-200 shadow-sm focus-visible:ring-primary/20"
+            />
+          </div>
+          <div>
+            <label htmlFor="contact_person_name" className={employerLabelClassName}>
+              Contact Person
+            </label>
+            <input
+              id="contact_person_name"
+              name="contact_person_name"
+              defaultValue={p.contact_person_name ?? ""}
+              className={employerInputClassName}
+            />
+          </div>
+          <div>
+            <label htmlFor="contact_person_email" className={employerLabelClassName}>
+              Contact Email
+            </label>
+            <input
+              id="contact_person_email"
+              name="contact_person_email"
+              type="email"
+              defaultValue={p.contact_person_email ?? ""}
+              className={employerInputClassName}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label htmlFor="contact_person_phone" className={employerLabelClassName}>
+              Contact Phone
+            </label>
+            <input
+              id="contact_person_phone"
+              name="contact_person_phone"
+              defaultValue={p.contact_person_phone ?? ""}
+              className={employerInputClassName}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Button type="submit" className="rounded-xl px-6">
+              Save Profile
+            </Button>
+          </div>
+        </form>
+      </EmployerPageSection>
+    </div>
   );
 }

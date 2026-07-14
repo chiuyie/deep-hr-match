@@ -10,6 +10,10 @@ import {
   parseCommaList,
 } from "@/lib/utils/profile";
 import { fetchCandidateOnboardingState } from "@/lib/candidate/onboarding";
+import {
+  filterSharedMatrixCategories,
+  validateMatrixSubmission,
+} from "@/lib/matching/matrix-form";
 
 async function getCandidateId(userId: string) {
   const supabase = await createClient();
@@ -114,8 +118,25 @@ export async function saveCandidateMatrixAnswers(
   const candidateId = await getCandidateId(user.id);
   if (!candidateId) return { error: "Profile not found" };
 
-  if (submit && answers.length === 0) {
-    return { error: "Please answer at least one question before submitting." };
+  if (submit) {
+    const { data: categories } = await supabase
+      .from("matrix_categories")
+      .select("*, matrix_questions(*, matrix_options(*))")
+      .eq("is_active", true)
+      .order("sort_order");
+
+    const answerMap = Object.fromEntries(
+      answers.map((a) => [
+        a.question_id,
+        { option_id: a.option_id, answer_text: a.answer_text },
+      ])
+    );
+
+    const validationError = validateMatrixSubmission(
+      filterSharedMatrixCategories(categories ?? []),
+      answerMap
+    );
+    if (validationError) return { error: validationError };
   }
 
   for (const answer of answers) {

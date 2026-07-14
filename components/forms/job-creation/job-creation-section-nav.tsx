@@ -81,8 +81,8 @@ export function JobCreationSectionNav() {
     <div className="relative">
       <nav
         className={cn(
-          "overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-lg transition-all duration-300",
-          collapsed ? "w-12" : "w-72"
+          "rounded-2xl border border-slate-100 bg-white shadow-lg transition-all duration-300",
+          collapsed ? "w-16 overflow-visible" : "w-72 overflow-hidden"
         )}
       >
         {!collapsed && (
@@ -92,7 +92,7 @@ export function JobCreationSectionNav() {
             </h3>
           </div>
         )}
-        <div className="py-3">
+        <div className={cn("py-3", collapsed && "px-1.5")}>
           {sections.map((id) => {
             const active = activeSection === id;
             const hovered = hoveredSection === id;
@@ -109,16 +109,20 @@ export function JobCreationSectionNav() {
                   onMouseEnter={() => setHoveredSection(id)}
                   onMouseLeave={() => setHoveredSection(null)}
                   className={cn(
-                    "flex w-full items-center gap-3 px-4 py-3 text-left transition-all duration-200",
-                    active && "bg-primary/10",
-                    hovered && !active && "bg-slate-50"
+                    "flex w-full items-center text-left transition-all duration-200",
+                    collapsed ? "justify-center px-0 py-2" : "gap-3 px-4 py-3",
+                    !collapsed && active && "bg-primary/10",
+                    !collapsed && hovered && !active && "bg-slate-50",
+                    collapsed && active && "rounded-xl bg-primary/10",
+                    collapsed && hovered && !active && "rounded-xl bg-slate-50"
                   )}
                   title={title}
                 >
                   <div
                     className={cn(
                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm",
-                      sectionGradients[id]
+                      sectionGradients[id],
+                      collapsed && active && "ring-2 ring-primary/30 ring-offset-1"
                     )}
                   >
                     {sectionIcons[id] ?? <Award className="h-4 w-4" />}

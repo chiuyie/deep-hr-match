@@ -2,20 +2,20 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
+import { FRAMEWORK, FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import {
+  MATRIX_FACTOR_COUNT,
+  MATRIX_WORDS_PER_LEVEL,
+} from "@/lib/matching/matrix-constants";
+import { validateMatrixSubmission } from "@/lib/matching/matrix-form";
+import { cn } from "@/lib/utils";
+import { Grid3X3 } from "lucide-react";
 import type { MatrixCategory, MatrixQuestion, MatrixOption } from "@/types/database";
 
 interface MatrixFormProps {
@@ -28,6 +28,42 @@ interface MatrixFormProps {
     submit: boolean
   ) => Promise<{ error?: string; success?: boolean }>;
   targetLabel?: string;
+  headerIcon?: React.ReactNode;
+}
+
+function WordChoiceGrid({
+  options,
+  value,
+  onChange,
+}: {
+  options: MatrixOption[];
+  value?: string;
+  onChange: (optionId: string) => void;
+}) {
+  const active = options.filter((o) => o.is_active);
+
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+      {active.map((option) => {
+        const selected = value === option.id;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            className={cn(
+              "rounded-xl border px-3 py-3 text-left text-sm font-medium transition-colors",
+              selected
+                ? "border-primary bg-primary/10 text-primary shadow-sm"
+                : "border-slate-200 bg-white text-slate-700 hover:border-primary/40 hover:bg-slate-50"
+            )}
+          >
+            {option.option_text}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function MatrixForm({
@@ -35,6 +71,7 @@ export function MatrixForm({
   existingAnswers,
   onSave,
   targetLabel = FRAMEWORK_MATCHING_LANGUAGE,
+  headerIcon = <Grid3X3 className="h-6 w-6" />,
 }: MatrixFormProps) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState(existingAnswers);
@@ -54,6 +91,14 @@ export function MatrixForm({
   }
 
   async function handleSave(submit: boolean) {
+    if (submit) {
+      const validationError = validateMatrixSubmission(activeCategories, answers);
+      if (validationError) {
+        toast.error(validationError);
+        return;
+      }
+    }
+
     setSaving(true);
     const payload = Object.entries(answers).map(([question_id, val]) => ({
       question_id,
@@ -67,108 +112,126 @@ export function MatrixForm({
 
   if (!activeCategories.length) {
     return (
-      <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          No active form categories configured. Contact admin.
-        </CardContent>
-      </Card>
+      <EmployerPageSection
+        title={targetLabel}
+        description="Matching questionnaire for this role"
+        icon={headerIcon}
+        gradient="from-purple-500 to-purple-600"
+      >
+        <EmployerEmptyState
+          icon={Grid3X3}
+          title="No form categories configured"
+          description="Run npm run seed-matrix-77 or apply supabase/seed.sql to load the 7^7 placeholder form."
+          gradient="from-purple-500 to-purple-600"
+        />
+      </EmployerPageSection>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{targetLabel}</h2>
-          <span className="text-sm text-muted-foreground">
-            Step {step + 1} of {activeCategories.length}
+      <EmployerPageSection
+        title={`How ${FRAMEWORK} works`}
+        description={`${MATRIX_FACTOR_COUNT} matching factors · ${MATRIX_WORDS_PER_LEVEL} words per sub-level · same form for employers and candidates`}
+        icon={headerIcon}
+        gradient="from-indigo-500 to-indigo-600"
+        className="!p-5"
+      >
+        <p className="text-sm text-slate-600">
+          Each factor has sub-levels. At every sub-level, pick exactly one of{" "}
+          {MATRIX_WORDS_PER_LEVEL} words. When employer and candidate choose the{" "}
+          <span className="font-medium text-slate-800">same word at the same sub-level</span>, that
+          cell scores as a perfect match. All factors are required before submit.
+        </p>
+      </EmployerPageSection>
+
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <h2 className="text-lg font-semibold text-slate-800">{targetLabel}</h2>
+          <span className="text-sm text-slate-500">
+            Factor {step + 1} of {activeCategories.length}
           </span>
         </div>
         <Progress value={progress} className="h-2" />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{current.name}</CardTitle>
-          {current.description && (
-            <p className="text-sm text-muted-foreground">{current.description}</p>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <EmployerPageSection
+        title={current.name}
+        description={current.description ?? undefined}
+        icon={headerIcon}
+        gradient="from-purple-500 to-purple-600"
+      >
+        <div className="space-y-8">
           {current.matrix_questions
             ?.filter((q) => q.is_active)
-            .map((question) => (
-              <div key={question.id} className="space-y-2">
-                <Label>
-                  {question.question_text}
-                  {question.is_required && <span className="text-destructive"> *</span>}
-                </Label>
-                {question.question_type === "text" ? (
-                  <Textarea
-                    value={answers[question.id]?.answer_text ?? ""}
-                    onChange={(e) =>
-                      setAnswer(question.id, { answer_text: e.target.value })
-                    }
-                    placeholder="Your answer..."
-                  />
-                ) : question.question_type === "scale" ? (
-                  <Input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={answers[question.id]?.answer_text ?? ""}
-                    onChange={(e) =>
-                      setAnswer(question.id, { answer_text: e.target.value })
-                    }
-                  />
-                ) : (
-                  <Select
-                    value={answers[question.id]?.option_id ?? ""}
-                    onValueChange={(val) =>
-                      setAnswer(question.id, { option_id: val })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {question.matrix_options
-                        ?.filter((o) => o.is_active)
-                        .map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {option.option_text}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            ))}
-        </CardContent>
-      </Card>
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((question) => {
+              const activeOptions = (question.matrix_options ?? []).filter((o) => o.is_active);
+
+              return (
+                <div key={question.id} className="space-y-3">
+                  <Label className="text-base text-slate-800">
+                    {question.question_text}
+                    {question.is_required && <span className="text-destructive"> *</span>}
+                  </Label>
+                  {question.question_type === "text" ? (
+                    <Textarea
+                      value={answers[question.id]?.answer_text ?? ""}
+                      onChange={(e) =>
+                        setAnswer(question.id, { answer_text: e.target.value })
+                      }
+                      placeholder="Your answer..."
+                      className="min-h-24 rounded-xl"
+                    />
+                  ) : question.question_type === "scale" ? (
+                    <Input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={answers[question.id]?.answer_text ?? ""}
+                      onChange={(e) =>
+                        setAnswer(question.id, { answer_text: e.target.value })
+                      }
+                      className="rounded-xl"
+                    />
+                  ) : (
+                    <WordChoiceGrid
+                      options={activeOptions}
+                      value={answers[question.id]?.option_id}
+                      onChange={(optionId) => setAnswer(question.id, { option_id: optionId })}
+                    />
+                  )}
+                </div>
+              );
+            })}
+        </div>
+      </EmployerPageSection>
 
       <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
+          className="rounded-lg"
           disabled={step === 0}
           onClick={() => setStep((s) => s - 1)}
         >
-          Previous
+          Previous factor
         </Button>
         {step < activeCategories.length - 1 ? (
-          <Button onClick={() => setStep((s) => s + 1)}>
-            Next
+          <Button className="rounded-lg" onClick={() => setStep((s) => s + 1)}>
+            Next factor
           </Button>
         ) : (
-          <Button
-            disabled={saving}
-            onClick={() => handleSave(true)}
-          >
-            Submit Form
+          <Button className="rounded-lg" disabled={saving} onClick={() => handleSave(true)}>
+            Submit form
           </Button>
         )}
-        <Button variant="secondary" disabled={saving} onClick={() => handleSave(false)}>
-          Save Draft
+        <Button
+          variant="secondary"
+          className="rounded-lg"
+          disabled={saving}
+          onClick={() => handleSave(false)}
+        >
+          Save draft
         </Button>
       </div>
     </div>

@@ -1,41 +1,91 @@
 # Deep HR Match — Phase 1 MVP Seed Data
 # Run after migrations. Demo/placeholder data clearly labeled.
+#
+# Full 7×7 depth: npm run seed-matrix-77
+# Spec: docs/matrix-matching-language.md
 
--- 7^7 Matrix Categories (placeholder)
+-- 7^7 Matrix — 7 matching factors only × 1 sub-level × 7 words (minimal placeholder)
 INSERT INTO matrix_categories (id, name, description, sort_order, is_active) VALUES
-  ('a1000000-0000-4000-8000-000000000001', 'Work Style', '[PLACEHOLDER] How you prefer to work', 1, true),
-  ('a1000000-0000-4000-8000-000000000002', 'Values Alignment', '[PLACEHOLDER] Core values and culture fit', 2, true),
-  ('a1000000-0000-4000-8000-000000000003', 'Skills Depth', '[PLACEHOLDER] Technical and soft skills', 3, true),
-  ('a1000000-0000-4000-8000-000000000004', 'Growth Mindset', '[PLACEHOLDER] Learning and development orientation', 4, true)
-ON CONFLICT (id) DO NOTHING;
+  ('a1000000-0000-4000-8000-000000000001', '[PLACEHOLDER] Matching Factor 1', '[PLACEHOLDER] 7^7 matching factor 1 of 7', 1, true),
+  ('a1000000-0000-4000-8000-000000000002', '[PLACEHOLDER] Matching Factor 2', '[PLACEHOLDER] 7^7 matching factor 2 of 7', 2, true),
+  ('a1000000-0000-4000-8000-000000000003', '[PLACEHOLDER] Matching Factor 3', '[PLACEHOLDER] 7^7 matching factor 3 of 7', 3, true),
+  ('a1000000-0000-4000-8000-000000000004', '[PLACEHOLDER] Matching Factor 4', '[PLACEHOLDER] 7^7 matching factor 4 of 7', 4, true),
+  ('a1000000-0000-4000-8000-000000000005', '[PLACEHOLDER] Matching Factor 5', '[PLACEHOLDER] 7^7 matching factor 5 of 7', 5, true),
+  ('a1000000-0000-4000-8000-000000000006', '[PLACEHOLDER] Matching Factor 6', '[PLACEHOLDER] 7^7 matching factor 6 of 7', 6, true),
+  ('a1000000-0000-4000-8000-000000000007', '[PLACEHOLDER] Matching Factor 7', '[PLACEHOLDER] 7^7 matching factor 7 of 7', 7, true)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  sort_order = EXCLUDED.sort_order,
+  is_active = EXCLUDED.is_active;
 
--- Questions
 INSERT INTO matrix_questions (id, category_id, question_text, question_type, target_role, sort_order, is_required, is_active) VALUES
-  ('b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', '[PLACEHOLDER] Preferred work environment?', 'single_select', 'both', 1, true, true),
-  ('b1000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000001', '[PLACEHOLDER] Team collaboration style?', 'single_select', 'both', 2, true, true),
-  ('b1000000-0000-4000-8000-000000000003', 'a1000000-0000-4000-8000-000000000002', '[PLACEHOLDER] Most important company value?', 'single_select', 'both', 1, true, true),
-  ('b1000000-0000-4000-8000-000000000004', 'a1000000-0000-4000-8000-000000000003', '[PLACEHOLDER] Primary skill domain?', 'single_select', 'candidate', 1, true, true),
-  ('b1000000-0000-4000-8000-000000000005', 'a1000000-0000-4000-8000-000000000003', '[PLACEHOLDER] Required skill level for this role?', 'single_select', 'employer', 1, true, true),
-  ('b1000000-0000-4000-8000-000000000006', 'a1000000-0000-4000-8000-000000000004', '[PLACEHOLDER] Rate your growth ambition (1-10)', 'scale', 'candidate', 1, false, true),
-  ('b1000000-0000-4000-8000-000000000007', 'a1000000-0000-4000-8000-000000000004', '[PLACEHOLDER] Describe ideal career progression', 'text', 'both', 2, false, true)
-ON CONFLICT (id) DO NOTHING;
+  ('b1000000-0000-4000-8000-010100000101', 'a1000000-0000-4000-8000-000000000001', '[PLACEHOLDER] Matching Factor 1 — sub-level 1: choose one word', 'single_select', 'both', 1, true, true),
+  ('b1000000-0000-4000-8000-020100000101', 'a1000000-0000-4000-8000-000000000002', '[PLACEHOLDER] Matching Factor 2 — sub-level 1: choose one word', 'single_select', 'both', 1, true, true),
+  ('b1000000-0000-4000-8000-030100000101', 'a1000000-0000-4000-8000-000000000003', '[PLACEHOLDER] Matching Factor 3 — sub-level 1: choose one word', 'single_select', 'both', 1, true, true),
+  ('b1000000-0000-4000-8000-040100000101', 'a1000000-0000-4000-8000-000000000004', '[PLACEHOLDER] Matching Factor 4 — sub-level 1: choose one word', 'single_select', 'both', 1, true, true),
+  ('b1000000-0000-4000-8000-050100000101', 'a1000000-0000-4000-8000-000000000005', '[PLACEHOLDER] Matching Factor 5 — sub-level 1: choose one word', 'single_select', 'both', 1, true, true),
+  ('b1000000-0000-4000-8000-060100000101', 'a1000000-0000-4000-8000-000000000006', '[PLACEHOLDER] Matching Factor 6 — sub-level 1: choose one word', 'single_select', 'both', 1, true, true),
+  ('b1000000-0000-4000-8000-070100000101', 'a1000000-0000-4000-8000-000000000007', '[PLACEHOLDER] Matching Factor 7 — sub-level 1: choose one word', 'single_select', 'both', 1, true, true)
+ON CONFLICT (id) DO UPDATE SET
+  category_id = EXCLUDED.category_id,
+  question_text = EXCLUDED.question_text,
+  question_type = EXCLUDED.question_type,
+  target_role = EXCLUDED.target_role,
+  sort_order = EXCLUDED.sort_order,
+  is_required = EXCLUDED.is_required,
+  is_active = EXCLUDED.is_active;
 
--- Options
 INSERT INTO matrix_options (id, question_id, option_text, option_value, sort_order, is_active) VALUES
-  ('c1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', 'Remote', 'remote', 1, true),
-  ('c1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 'Hybrid', 'hybrid', 2, true),
-  ('c1000000-0000-4000-8000-000000000003', 'b1000000-0000-4000-8000-000000000001', 'On-site', 'onsite', 3, true),
-  ('c1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', 'Independent', 'independent', 1, true),
-  ('c1000000-0000-4000-8000-000000000005', 'b1000000-0000-4000-8000-000000000002', 'Collaborative', 'collaborative', 2, true),
-  ('c1000000-0000-4000-8000-000000000006', 'b1000000-0000-4000-8000-000000000003', 'Innovation', 'innovation', 1, true),
-  ('c1000000-0000-4000-8000-000000000007', 'b1000000-0000-4000-8000-000000000003', 'Integrity', 'integrity', 2, true),
-  ('c1000000-0000-4000-8000-000000000008', 'b1000000-0000-4000-8000-000000000003', 'Customer Focus', 'customer', 3, true),
-  ('c1000000-0000-4000-8000-000000000009', 'b1000000-0000-4000-8000-000000000004', 'Engineering', 'engineering', 1, true),
-  ('c1000000-0000-4000-8000-000000000010', 'b1000000-0000-4000-8000-000000000004', 'Product', 'product', 2, true),
-  ('c1000000-0000-4000-8000-000000000011', 'b1000000-0000-4000-8000-000000000004', 'Design', 'design', 3, true),
-  ('c1000000-0000-4000-8000-000000000012', 'b1000000-0000-4000-8000-000000000005', 'Junior', 'junior', 1, true),
-  ('c1000000-0000-4000-8000-000000000013', 'b1000000-0000-4000-8000-000000000005', 'Mid-level', 'mid', 2, true),
-  ('c1000000-0000-4000-8000-000000000014', 'b1000000-0000-4000-8000-000000000005', 'Senior', 'senior', 3, true)
+  ('c1000000-0000-4000-8000-010101000101', 'b1000000-0000-4000-8000-010100000101', 'word1', 'word1', 1, true),
+  ('c1000000-0000-4000-8000-010102000101', 'b1000000-0000-4000-8000-010100000101', 'word2', 'word2', 2, true),
+  ('c1000000-0000-4000-8000-010103000101', 'b1000000-0000-4000-8000-010100000101', 'word3', 'word3', 3, true),
+  ('c1000000-0000-4000-8000-010104000101', 'b1000000-0000-4000-8000-010100000101', 'word4', 'word4', 4, true),
+  ('c1000000-0000-4000-8000-010105000101', 'b1000000-0000-4000-8000-010100000101', 'word5', 'word5', 5, true),
+  ('c1000000-0000-4000-8000-010106000101', 'b1000000-0000-4000-8000-010100000101', 'word6', 'word6', 6, true),
+  ('c1000000-0000-4000-8000-010107000101', 'b1000000-0000-4000-8000-010100000101', 'word7', 'word7', 7, true),
+  ('c1000000-0000-4000-8000-020101000101', 'b1000000-0000-4000-8000-020100000101', 'word1', 'word1', 1, true),
+  ('c1000000-0000-4000-8000-020102000101', 'b1000000-0000-4000-8000-020100000101', 'word2', 'word2', 2, true),
+  ('c1000000-0000-4000-8000-020103000101', 'b1000000-0000-4000-8000-020100000101', 'word3', 'word3', 3, true),
+  ('c1000000-0000-4000-8000-020104000101', 'b1000000-0000-4000-8000-020100000101', 'word4', 'word4', 4, true),
+  ('c1000000-0000-4000-8000-020105000101', 'b1000000-0000-4000-8000-020100000101', 'word5', 'word5', 5, true),
+  ('c1000000-0000-4000-8000-020106000101', 'b1000000-0000-4000-8000-020100000101', 'word6', 'word6', 6, true),
+  ('c1000000-0000-4000-8000-020107000101', 'b1000000-0000-4000-8000-020100000101', 'word7', 'word7', 7, true),
+  ('c1000000-0000-4000-8000-030101000101', 'b1000000-0000-4000-8000-030100000101', 'word1', 'word1', 1, true),
+  ('c1000000-0000-4000-8000-030102000101', 'b1000000-0000-4000-8000-030100000101', 'word2', 'word2', 2, true),
+  ('c1000000-0000-4000-8000-030103000101', 'b1000000-0000-4000-8000-030100000101', 'word3', 'word3', 3, true),
+  ('c1000000-0000-4000-8000-030104000101', 'b1000000-0000-4000-8000-030100000101', 'word4', 'word4', 4, true),
+  ('c1000000-0000-4000-8000-030105000101', 'b1000000-0000-4000-8000-030100000101', 'word5', 'word5', 5, true),
+  ('c1000000-0000-4000-8000-030106000101', 'b1000000-0000-4000-8000-030100000101', 'word6', 'word6', 6, true),
+  ('c1000000-0000-4000-8000-030107000101', 'b1000000-0000-4000-8000-030100000101', 'word7', 'word7', 7, true),
+  ('c1000000-0000-4000-8000-040101000101', 'b1000000-0000-4000-8000-040100000101', 'word1', 'word1', 1, true),
+  ('c1000000-0000-4000-8000-040102000101', 'b1000000-0000-4000-8000-040100000101', 'word2', 'word2', 2, true),
+  ('c1000000-0000-4000-8000-040103000101', 'b1000000-0000-4000-8000-040100000101', 'word3', 'word3', 3, true),
+  ('c1000000-0000-4000-8000-040104000101', 'b1000000-0000-4000-8000-040100000101', 'word4', 'word4', 4, true),
+  ('c1000000-0000-4000-8000-040105000101', 'b1000000-0000-4000-8000-040100000101', 'word5', 'word5', 5, true),
+  ('c1000000-0000-4000-8000-040106000101', 'b1000000-0000-4000-8000-040100000101', 'word6', 'word6', 6, true),
+  ('c1000000-0000-4000-8000-040107000101', 'b1000000-0000-4000-8000-040100000101', 'word7', 'word7', 7, true),
+  ('c1000000-0000-4000-8000-050101000101', 'b1000000-0000-4000-8000-050100000101', 'word1', 'word1', 1, true),
+  ('c1000000-0000-4000-8000-050102000101', 'b1000000-0000-4000-8000-050100000101', 'word2', 'word2', 2, true),
+  ('c1000000-0000-4000-8000-050103000101', 'b1000000-0000-4000-8000-050100000101', 'word3', 'word3', 3, true),
+  ('c1000000-0000-4000-8000-050104000101', 'b1000000-0000-4000-8000-050100000101', 'word4', 'word4', 4, true),
+  ('c1000000-0000-4000-8000-050105000101', 'b1000000-0000-4000-8000-050100000101', 'word5', 'word5', 5, true),
+  ('c1000000-0000-4000-8000-050106000101', 'b1000000-0000-4000-8000-050100000101', 'word6', 'word6', 6, true),
+  ('c1000000-0000-4000-8000-050107000101', 'b1000000-0000-4000-8000-050100000101', 'word7', 'word7', 7, true),
+  ('c1000000-0000-4000-8000-060101000101', 'b1000000-0000-4000-8000-060100000101', 'word1', 'word1', 1, true),
+  ('c1000000-0000-4000-8000-060102000101', 'b1000000-0000-4000-8000-060100000101', 'word2', 'word2', 2, true),
+  ('c1000000-0000-4000-8000-060103000101', 'b1000000-0000-4000-8000-060100000101', 'word3', 'word3', 3, true),
+  ('c1000000-0000-4000-8000-060104000101', 'b1000000-0000-4000-8000-060100000101', 'word4', 'word4', 4, true),
+  ('c1000000-0000-4000-8000-060105000101', 'b1000000-0000-4000-8000-060100000101', 'word5', 'word5', 5, true),
+  ('c1000000-0000-4000-8000-060106000101', 'b1000000-0000-4000-8000-060100000101', 'word6', 'word6', 6, true),
+  ('c1000000-0000-4000-8000-060107000101', 'b1000000-0000-4000-8000-060100000101', 'word7', 'word7', 7, true),
+  ('c1000000-0000-4000-8000-070101000101', 'b1000000-0000-4000-8000-070100000101', 'word1', 'word1', 1, true),
+  ('c1000000-0000-4000-8000-070102000101', 'b1000000-0000-4000-8000-070100000101', 'word2', 'word2', 2, true),
+  ('c1000000-0000-4000-8000-070103000101', 'b1000000-0000-4000-8000-070100000101', 'word3', 'word3', 3, true),
+  ('c1000000-0000-4000-8000-070104000101', 'b1000000-0000-4000-8000-070100000101', 'word4', 'word4', 4, true),
+  ('c1000000-0000-4000-8000-070105000101', 'b1000000-0000-4000-8000-070100000101', 'word5', 'word5', 5, true),
+  ('c1000000-0000-4000-8000-070106000101', 'b1000000-0000-4000-8000-070100000101', 'word6', 'word6', 6, true),
+  ('c1000000-0000-4000-8000-070107000101', 'b1000000-0000-4000-8000-070100000101', 'word7', 'word7', 7, true)
 ON CONFLICT (id) DO NOTHING;
 
 -- NOTE: Demo users must be created via Supabase Auth first.
@@ -46,4 +96,4 @@ ON CONFLICT (id) DO NOTHING;
 --
 -- Demo candidate/employer profiles are created on signup.
 -- To seed demo match results, sign up demo users, mark candidate ready,
--- create a job, and click "Generate Matching Results" in the employer UI.
+-- complete 7^7 forms, create a job, and generate matches in the employer UI.

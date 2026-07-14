@@ -1,6 +1,13 @@
 import { notFound } from "next/navigation";
+import { FileUp, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  EmployerEmptyState,
+  EmployerJobContext,
+  EmployerPageSection,
+  employerInputClassName,
+} from "@/components/employer/employer-ui";
+import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { uploadJobJD } from "@/lib/employer/actions";
@@ -23,7 +30,7 @@ export default async function JobJDPage({
 
   const { data: job } = await supabase
     .from("jobs")
-    .select("title")
+    .select("title, status")
     .eq("id", id)
     .eq("employer_id", employer?.id ?? "")
     .single();
@@ -43,32 +50,61 @@ export default async function JobJDPage({
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload Job Description</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={upload} className="space-y-4">
-            <input type="file" name="file" accept=".pdf,.doc,.docx" required className="block w-full text-sm" />
-            <Button type="submit">Upload JD</Button>
-          </form>
-        </CardContent>
-      </Card>
-      {files && files.length > 0 && (
-        <Card className="mt-6">
-          <CardHeader><CardTitle>Uploaded Files</CardTitle></CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {files.map((f) => (
-                <li key={f.id} className="flex justify-between rounded border p-3 text-sm">
-                  <span>{f.file_name}</span>
-                  <span className="text-muted-foreground">{formatDate(f.uploaded_at)}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
+      <EmployerJobContext
+        jobTitle={job.title}
+        jobId={id}
+        description="Upload the job description document for this role"
+      />
+      <JobWorkflowNav jobId={id} currentStep="jd" canEdit={job.status === "draft"} />
+
+      <EmployerPageSection
+        title="Upload Job Description"
+        description="Accepted formats: PDF, DOC, DOCX"
+        icon={<FileUp className="h-6 w-6" />}
+        gradient="from-blue-500 to-blue-600"
+      >
+        <form action={upload} className="space-y-4">
+          <input
+            type="file"
+            name="file"
+            accept=".pdf,.doc,.docx"
+            required
+            className={employerInputClassName}
+          />
+          <Button type="submit" className="rounded-xl">
+            Upload JD
+          </Button>
+        </form>
+      </EmployerPageSection>
+
+      <EmployerPageSection
+        title="Uploaded Files"
+        description="Previously uploaded documents for this job"
+        icon={<FileText className="h-6 w-6" />}
+        gradient="from-slate-500 to-slate-600"
+        className="mt-6"
+      >
+        {!files?.length ? (
+          <EmployerEmptyState
+            icon={FileText}
+            title="No files uploaded"
+            description="Upload a job description document to keep everything in one place."
+            gradient="from-blue-500 to-blue-600"
+          />
+        ) : (
+          <ul className="space-y-3">
+            {files.map((f) => (
+              <li
+                key={f.id}
+                className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm"
+              >
+                <span className="font-medium text-slate-800">{f.file_name}</span>
+                <span className="shrink-0 text-slate-500">{formatDate(f.uploaded_at)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </EmployerPageSection>
     </>
   );
 }

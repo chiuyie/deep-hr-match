@@ -10,10 +10,18 @@ import {
   parseJobFormState,
 } from "@/lib/utils/job-form";
 import {
-  generatePlaceholderMatches,
+  canRunMatching,
+  runMatchingBlockedReason,
+} from "@/lib/employer/job-rules";
+import {
+  filterSharedMatrixCategories,
+  validateMatrixSubmission,
+} from "@/lib/matching/matrix-form";
+import {
   UNLOCK_CURRENCY,
   UNLOCK_PRICE_CENTS,
 } from "@/lib/matching/engine";
+import { triggerMatchRun } from "@/lib/matching/trigger";
 import { getStripe, getAppUrl } from "@/lib/stripe/client";
 
 async function getEmployerId(userId: string) {
@@ -71,6 +79,20 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
   };
 
   if (jobId) {
+    const { data: existing } = await supabase
+      .from("jobs")
+      .select("status")
+      .eq("id", jobId)
+      .eq("employer_id", employerId)
+      .single();
+
+    if (!existing) throw new Error("Job not found");
+    if (existing.status !== "draft") {
+      throw new Error(
+        "Published jobs cannot be edited. Create a new posting or view the existing job."
+      );
+    }
+
     const { error } = await supabase.from("jobs").update(payload).eq("id", jobId);
     if (error) throw new Error(error.message);
     revalidatePath(`/employer/jobs/${jobId}`);
@@ -123,7 +145,8 @@ export async function uploadJobJD(formData: FormData, jobId: string): Promise<vo
 
 export async function saveJobMatrixAnswers(
   jobId: string,
-  answers: { question_id: string; option_id?: string; answer_text?: string }[]
+  answers: { question_id: string; option_id?: string; answer_text?: string }[],
+  submit = false
 ) {
   const user = await requireRole("employer");
   const supabase = await createClient();
@@ -138,6 +161,27 @@ export async function saveJobMatrixAnswers(
     .single();
 
   if (!job) return { error: "Job not found" };
+
+  if (submit) {
+    const { data: categories } = await supabase
+      .from("matrix_categories")
+      .select("*, matrix_questions(*, matrix_options(*))")
+      .eq("is_active", true)
+      .order("sort_order");
+
+    const answerMap = Object.fromEntries(
+      answers.map((a) => [
+        a.question_id,
+        { option_id: a.option_id, answer_text: a.answer_text },
+      ])
+    );
+
+    const validationError = validateMatrixSubmission(
+      filterSharedMatrixCategories(categories ?? []),
+      answerMap
+    );
+    if (validationError) return { error: validationError };
+  }
 
   for (const answer of answers) {
     await supabase.from("job_matrix_answers").upsert(
@@ -161,7 +205,31 @@ export async function generateMatchingResults(jobId: string): Promise<void> {
   const employerId = await getEmployerId(user.id);
   if (!employerId) throw new Error("Company profile not found");
 
-  await generatePlaceholderMatches(supabase, {
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("status")
+    .eq("id", jobId)
+    .eq("employer_id", employerId)
+    .single();
+
+  if (!job) throw new Error("Job not found");
+
+  const { count: matchCount } = await supabase
+    .from("match_results")
+    .select("*", { count: "exact", head: true })
+    .eq("job_id", jobId);
+
+  const lifecycle = {
+    status: job.status,
+    hasMatches: (matchCount ?? 0) > 0,
+  };
+
+  const blocked = runMatchingBlockedReason(lifecycle);
+  if (blocked || !canRunMatching(lifecycle)) {
+    throw new Error(blocked ?? "Matching cannot be run for this job.");
+  }
+
+  await triggerMatchRun(supabase, {
     jobId,
     employerId,
   });

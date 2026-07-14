@@ -25,6 +25,8 @@ Copy `.env.example` to `.env.local` for local development.
 | `SUPABASE_DB_URL` | Optional | Direct Postgres for migration scripts |
 | `EMPLOYER_EMAIL` | Optional | Target for `seed-employer-jobs` |
 | `DUMMY_USER_PASSWORD` | Optional | Demo user password (default: `DemoUser123!`) |
+| `MATCHING_ENGINE_URL` | Optional | External matching service base URL; unset = inline placeholder |
+| `MATCHING_ENGINE_API_KEY` | Optional | Bearer token for `POST /runs` on external service |
 
 **Never commit** `.env.local` or expose service role / Stripe secret keys client-side.
 

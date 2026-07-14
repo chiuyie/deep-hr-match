@@ -14,9 +14,9 @@ const adminTasks = [
     icon: Users,
   },
   {
-    title: "Manage Level Data",
+    title: "7^7 Matching Form",
     description:
-      "Import, export, and manage the hierarchical data for skills, domains, and more.",
+      "Edit matching factors, sub-levels, and word choices used by employers and candidates.",
     href: "/admin/matrix",
     icon: Database,
   },

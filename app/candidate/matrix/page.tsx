@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveCandidateMatrixAnswers } from "@/lib/candidate/actions";
+import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 
 export default async function CandidateMatrixPage() {
   const user = await requireRole("candidate");
@@ -21,15 +22,7 @@ export default async function CandidateMatrixPage() {
     .eq("is_active", true)
     .order("sort_order");
 
-  const filtered = (categories ?? [])
-    .map((cat) => ({
-      ...cat,
-      matrix_questions: (cat.matrix_questions ?? []).filter(
-        (q: { target_role: string; is_active: boolean }) =>
-          q.is_active && (q.target_role === "candidate" || q.target_role === "both")
-      ),
-    }))
-    .filter((cat) => cat.matrix_questions.length > 0);
+  const filtered = filterSharedMatrixCategories(categories ?? []);
 
   const { data: answers } = await supabase
     .from("candidate_matrix_answers")

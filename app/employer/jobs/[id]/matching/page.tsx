@@ -1,11 +1,28 @@
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { EmployerJobContext, EmployerPageSection } from "@/components/employer/employer-ui";
+import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { MatchingResultsTable } from "@/components/matching/matching-results-table";
 import { requireRole, anonymizeCandidateId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { generateMatchingResults } from "@/lib/employer/actions";
+import {
+  canEditJob,
+  canRunMatching,
+  matchingRunButtonLabel,
+  refreshMatchingWarning,
+  runMatchingBlockedReason,
+} from "@/lib/employer/job-rules";
 import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
+import { MATCH_DISPLAY_LIMIT } from "@/lib/matching/engine";
+import {
+  countNewReadyCandidatesSince,
+  getSnapshotGeneratedAt,
+  newCandidatesNotice,
+} from "@/lib/matching/snapshot";
+import { formatDate } from "@/lib/utils/profile";
 import type { AnonymousCandidateMatch } from "@/types/database";
+import { Clock, RefreshCw, Target } from "lucide-react";
 
 export default async function JobMatchingPage({
   params,
@@ -24,7 +41,7 @@ export default async function JobMatchingPage({
 
   const { data: job } = await supabase
     .from("jobs")
-    .select("title")
+    .select("title, status")
     .eq("id", id)
     .eq("employer_id", employer?.id ?? "")
     .single();
@@ -38,6 +55,23 @@ export default async function JobMatchingPage({
     .order("ranking_position");
 
   const unlockedIds = await getUnlockedCandidateIds(employer.id, id);
+
+  const lifecycle = {
+    status: job.status,
+    hasMatches: (matchResults?.length ?? 0) > 0,
+    hasUnlocks: unlockedIds.length > 0,
+  };
+
+  const canRun = canRunMatching(lifecycle);
+  const runBlocked = runMatchingBlockedReason(lifecycle);
+  const runLabel = matchingRunButtonLabel(lifecycle);
+  const refreshWarning = refreshMatchingWarning(lifecycle);
+
+  const lastMatchedAt = getSnapshotGeneratedAt(matchResults ?? []);
+  const newCandidatesSince = lastMatchedAt
+    ? await countNewReadyCandidatesSince(supabase, lastMatchedAt)
+    : 0;
+  const newCandidatesMessage = newCandidatesNotice(newCandidatesSince);
 
   const candidateIds = matchResults?.map((m) => m.candidate_id) ?? [];
   const { data: candidates } = candidateIds.length
@@ -71,10 +105,74 @@ export default async function JobMatchingPage({
 
   return (
     <>
-      <form action={generate} className="mb-6 flex justify-end">
-        <Button type="submit">Generate Matching Results</Button>
-      </form>
-      <MatchingResultsTable jobId={id} results={results} />
+      <EmployerJobContext
+        jobTitle={job.title}
+        jobId={id}
+        description="Anonymous ranked snapshot — unlock profiles to view full details ($49 each)"
+      />
+      <JobWorkflowNav jobId={id} currentStep="matching" canEdit={canEditJob(lifecycle)} />
+
+      {lastMatchedAt && (
+        <EmployerPageSection
+          title="Match snapshot"
+          description={
+            newCandidatesMessage ??
+            "Results reflect the candidate pool at the time of the last run. Refresh to include new candidates."
+          }
+          icon={<Clock className="h-6 w-6" />}
+          gradient="from-slate-500 to-slate-600"
+          className="mb-6 !p-5"
+        >
+          <p className="text-sm text-slate-600">
+            Last matched <span className="font-medium text-slate-800">{formatDate(lastMatchedAt)}</span>
+            {newCandidatesSince > 0 && (
+              <>
+                {" "}
+                ·{" "}
+                <span className="font-medium text-amber-700">
+                  {newCandidatesSince} new candidate{newCandidatesSince === 1 ? "" : "s"} in pool
+                </span>
+              </>
+            )}
+          </p>
+        </EmployerPageSection>
+      )}
+
+      {canRun ? (
+        <div className="mb-6 space-y-3">
+          {refreshWarning && (
+            <EmployerPageSection
+              title="Refresh matches"
+              description={refreshWarning}
+              icon={<RefreshCw className="h-6 w-6" />}
+              gradient="from-amber-500 to-amber-600"
+              className="!p-5"
+            />
+          )}
+          <form action={generate} className="flex justify-end">
+            <Button type="submit" className="rounded-xl">
+              {runLabel}
+            </Button>
+          </form>
+        </div>
+      ) : (
+        runBlocked && (
+          <EmployerPageSection
+            title="Matching unavailable"
+            description={runBlocked}
+            icon={<Target className="h-6 w-6" />}
+            gradient="from-slate-500 to-slate-600"
+            className="mb-6 !p-5"
+          />
+        )
+      )}
+
+      <MatchingResultsTable
+        jobId={id}
+        results={results}
+        displayLimit={MATCH_DISPLAY_LIMIT}
+        lastMatchedAt={lastMatchedAt}
+      />
     </>
   );
 }

@@ -359,7 +359,10 @@ lib/
   candidate/                  # Profile/CV/matrix actions, onboarding flow
   employer/                   # Profile, job, matrix, matching, unlock actions
   admin/                      # Admin CRUD actions
-  matching/engine.ts          # Placeholder matching engine
+  matching/
+    engine.ts                 # Phase 1 placeholder (dev)
+    trigger.ts                # Inline vs external engine dispatch
+    snapshot.ts               # Snapshot metadata helpers
   stripe/                     # Stripe client + app URL helper
   validations/schemas.ts      # Zod schemas
   constants/
@@ -426,14 +429,14 @@ Employers use a multi-section form (`components/forms/job-creation/`) with:
 - Section nav: job identification, requirements, compensation, benefits, preferred background
 - `form_data` JSONB on `jobs` (migration 004) stores extended form fields
 
-### Matching engine (Phase 1)
+### Matching engine (Phase 1 → external service)
 
-Final algorithm is **not confirmed**. Current implementation:
-
-- Structure in `lib/matching/engine.ts`
-- Placeholder/demo scores labeled in UI
-- `is_placeholder: true` on all match results
+- **Phase 1:** Inline placeholder in `lib/matching/engine.ts` when `MATCHING_ENGINE_URL` is unset
+- **Production:** Separate matching repo/service writes `match_results` to the same Supabase DB
+- **Trigger:** `lib/matching/trigger.ts` — see [docs/matching-engine-integration.md](./docs/matching-engine-integration.md)
 - Only candidates with `status = 'ready_for_matching'` are included
+- **Snapshot model:** each generate/refresh stores top 25 ranked candidates at that moment; new candidates are included only after **Refresh Matches**
+- Full rules: [docs/job-lifecycle.md](./docs/job-lifecycle.md) and [docs/matching-engine.md](./docs/matching-engine.md)
 
 ```typescript
 // TODO: Replace placeholder scoring logic after Deep HR Match matching algorithm is finalized.
@@ -444,18 +447,22 @@ Final algorithm is **not confirmed**. Current implementation:
 ## Employer Job Flow
 
 ```
-Employer Profile → New Job → (optional) JD Upload → 7^7 Job Form → Generate Matching → Unlock Candidates
+Employer Profile → New Job → (optional) JD Upload → 7^7 Job Form → Post (active)
+       → Generate Matches (snapshot) → Unlock Candidates → Refresh Matches (optional)
 ```
+
+Posted jobs are **read-only** — create a new job if requirements change. Matching is free; unlocks are paid.
 
 | Route | Purpose |
 |-------|---------|
 | `/employer/company` | Employer profile |
 | `/employer/jobs` | Job list |
 | `/employer/jobs/new` | Create job |
-| `/employer/jobs/[id]` | Edit job |
+| `/employer/jobs/[id]` | Edit draft job only |
+| `/employer/jobs/[id]/view` | Read-only job overview |
 | `/employer/jobs/[id]/jd` | Upload job description file |
 | `/employer/jobs/[id]/matrix` | Job 7^7 form |
-| `/employer/jobs/[id]/matching` | Ranked anonymous candidates |
+| `/employer/jobs/[id]/matching` | Ranked anonymous snapshot + refresh |
 | `/employer/jobs/[id]/unlocked` | Unlocked candidates for a job |
 
 ---
@@ -476,7 +483,7 @@ Employer Profile → New Job → (optional) JD Upload → 7^7 Job Form → Gener
 | Action | Cost |
 |--------|------|
 | Job posting | Free |
-| Matching generation | Free |
+| Matching generation / refresh | Free (snapshot of top 25 ready candidates) |
 | Unlock candidate profile | **$49.00 USD** each (test mode; configurable in `lib/matching/engine.ts`) |
 
 ---

@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "dev:turbo": "next dev",
+    "dev": "next dev",
+    "dev:webpack": "next dev --webpack",
+    "dev:clean": "node scripts/clean-next.mjs && npm run dev",
+    "clean": "node scripts/clean-next.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -12,7 +14,8 @@
     "test:watch": "vitest",
     "create-admin": "node --env-file=.env.local scripts/create-admin.mjs",
     "seed-employer-jobs": "node scripts/seed-employer-jobs.mjs",
-    "seed-dummy-users": "node scripts/seed-dummy-users.mjs"
+    "seed-dummy-users": "node scripts/seed-dummy-users.mjs",
+    "seed-matrix-77": "node scripts/seed-matrix-77-placeholder.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

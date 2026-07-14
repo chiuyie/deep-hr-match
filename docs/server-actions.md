@@ -41,7 +41,7 @@ Deep HR Match uses **Next.js Server Actions** (`"use server"`) instead of a REST
 | `saveJob` | `FormData`, `jobId?` | Parse job form state, validate, map to DB columns + `form_data` JSONB. Create or update `jobs` |
 | `uploadJobJD` | `FormData` (file), `jobId` | Upload to `job-jds` bucket at `{jobId}/{timestamp}-{filename}`, insert `job_jd_files` |
 | `saveJobMatrixAnswers` | `FormData`, `jobId` | Upsert `job_matrix_answers` |
-| `generateMatchingResults` | `jobId` | Calls `generatePlaceholderMatches()` — see [Matching Engine](./matching-engine.md) |
+| `generateMatchingResults` | `jobId` | Lifecycle guards, then `triggerMatchRun()` — inline placeholder or external service. See [Matching Engine Integration](./matching-engine-integration.md) |
 | `createUnlockCheckout` | `jobId`, `candidateIds[]` | Creates `payments` row, Stripe Checkout session, redirects to Stripe |
 
 ### Job form pipeline

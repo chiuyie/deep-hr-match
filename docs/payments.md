@@ -7,7 +7,7 @@ Deep HR Match uses **Stripe Checkout** (test mode) for candidate profile unlocks
 | Action | Cost |
 |--------|------|
 | Job posting | Free |
-| Matching generation | Free |
+| Matching generation / refresh | Free (top-25 snapshot) |
 | Unlock candidate profile | **$49.00 USD** per candidate |
 
 Constants in `lib/matching/engine.ts`:

@@ -1,11 +1,17 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { notFound } from "next/navigation";
+import { ArrowLeft, Unlock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  EmployerEmptyState,
+  EmployerJobContext,
+  EmployerPageSection,
+} from "@/components/employer/employer-ui";
+import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
+import { UnlockedCandidateCard } from "@/components/employer/unlocked-candidate-card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getUnlockedCandidateDetails } from "@/lib/auth/unlock";
-import { formatDate } from "@/lib/utils/profile";
 
 export default async function JobUnlockedPage({
   params,
@@ -27,10 +33,12 @@ export default async function JobUnlockedPage({
 
   const { data: job } = await supabase
     .from("jobs")
-    .select("title")
+    .select("title, status")
     .eq("id", jobId)
     .eq("employer_id", employer?.id ?? "")
     .single();
+
+  if (!job) notFound();
 
   const { data: unlocks } = await supabase
     .from("unlocks")
@@ -55,60 +63,67 @@ export default async function JobUnlockedPage({
 
   return (
     <>
+      <EmployerJobContext
+        jobTitle={job.title}
+        jobId={jobId}
+        description="Full candidate profiles unlocked for this job"
+      />
+      <JobWorkflowNav jobId={jobId} currentStep="unlocked" canEdit={job.status === "draft"} />
+
       {session_id && (
-        <Card className="mb-6 border-green-200 bg-green-50">
-          <CardContent className="py-3 text-sm text-green-800">
-            Payment successful. Candidate profiles are now unlocked.
-          </CardContent>
-        </Card>
+        <EmployerPageSection
+          title="Payment successful"
+          description="Candidate profiles are now unlocked and ready to review"
+          icon={<Unlock className="h-6 w-6" />}
+          gradient="from-emerald-500 to-emerald-600"
+          className="mb-6 !p-5"
+        >
+          <p className="text-sm text-emerald-800">
+            Your unlock purchase was completed. View the candidate details below.
+          </p>
+        </EmployerPageSection>
       )}
 
       {!unlockedDetails.length ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No unlocked candidates yet. Generate matches and unlock profiles from the matching page.
-          </CardContent>
-        </Card>
+        <EmployerPageSection
+          title="Unlocked Candidates"
+          description="Candidates you have purchased for this job"
+          icon={<Users className="h-6 w-6" />}
+          gradient="from-amber-500 to-amber-600"
+        >
+          <EmployerEmptyState
+            icon={Users}
+            title="No unlocked candidates yet"
+            description="Generate matches and unlock profiles from the matching results page."
+            actionLabel="Go to matching results"
+            actionHref={`/employer/jobs/${jobId}/matching`}
+            gradient="from-emerald-500 to-emerald-600"
+          />
+        </EmployerPageSection>
       ) : (
         <div className="space-y-4">
           {unlockedDetails.map(({ profile, cvDownloadUrl, matchResult, unlocked_at }) => (
-            <Card key={profile?.id}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {profile?.full_name}
-                  <Badge variant="outline">Unlocked</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <p><strong>Email:</strong> {profile?.email}</p>
-                <p><strong>Phone:</strong> {profile?.phone}</p>
-                <p><strong>Title:</strong> {profile?.current_job_title}</p>
-                <p><strong>Experience:</strong> {profile?.years_of_experience} years</p>
-                <p><strong>Skills:</strong> {profile?.skills?.join(", ")}</p>
-                {matchResult && (
-                  <p>
-                    <strong>Match Score:</strong> {matchResult.overall_score}%
-                    {matchResult.is_placeholder && (
-                      <Badge className="ml-2" variant="secondary">DEMO</Badge>
-                    )}
-                  </p>
-                )}
-                <p className="text-muted-foreground">Unlocked {formatDate(unlocked_at)}</p>
-                {cvDownloadUrl && (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={cvDownloadUrl} target="_blank" rel="noopener noreferrer">
-                      Download CV
-                    </a>
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            <UnlockedCandidateCard
+              key={profile?.id}
+              fullName={profile?.full_name}
+              email={profile?.email}
+              phone={profile?.phone}
+              yearsOfExperience={profile?.years_of_experience}
+              skills={profile?.skills}
+              matchScore={matchResult?.overall_score != null ? Number(matchResult.overall_score) : null}
+              isPlaceholder={matchResult?.is_placeholder}
+              unlockedAt={unlocked_at}
+              cvDownloadUrl={cvDownloadUrl}
+            />
           ))}
         </div>
       )}
 
-      <Button variant="outline" className="mt-4" asChild>
-        <Link href={`/employer/jobs/${jobId}/matching`}>Back to Matching Results</Link>
+      <Button variant="outline" className="mt-6 rounded-xl" asChild>
+        <Link href={`/employer/jobs/${jobId}/matching`}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Matching Results
+        </Link>
       </Button>
     </>
   );

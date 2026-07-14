@@ -159,9 +159,12 @@ Enforced in `app/candidate/layout.tsx` via `lib/candidate/onboarding.ts`.
 ### Employer job lifecycle
 
 ```
-Employer profile → New job → (optional) JD upload → Job 7^7 form
-    → Generate matching → View anonymous results → Stripe unlock → Full PII
+Employer profile → New job (draft) → Post (active) → Generate match snapshot
+    → View anonymous top 25 → Stripe unlock → Full PII
+    → Refresh snapshot (optional, includes new candidates)
 ```
+
+Posted jobs are read-only. See [Job Lifecycle](./job-lifecycle.md).
 
 ### Admin bootstrap
 
@@ -188,7 +191,7 @@ Middleware does **not** enforce role matching — that happens in layouts/pages 
 | `lib/candidate/` | Profile, CV, matrix actions, onboarding logic |
 | `lib/employer/` | Profile, jobs, JD, matrix, matching, unlock actions |
 | `lib/admin/` | Matrix CRUD actions |
-| `lib/matching/` | Placeholder matching engine |
+| `lib/matching/` | Trigger dispatch, Phase 1 placeholder, snapshot helpers |
 | `lib/stripe/` | Stripe client, app URL helper |
 | `lib/validations/` | Zod schemas |
 | `lib/constants/` | Branding, nav, job form config, employer pages |

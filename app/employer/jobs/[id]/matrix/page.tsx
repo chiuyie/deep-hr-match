@@ -1,9 +1,13 @@
 import { notFound } from "next/navigation";
+import { Grid3X3 } from "lucide-react";
 import { MatrixForm } from "@/components/forms/matrix-form";
+import { EmployerJobContext } from "@/components/employer/employer-ui";
+import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveJobMatrixAnswers } from "@/lib/employer/actions";
+import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 
 export default async function JobMatrixPage({
   params,
@@ -22,7 +26,7 @@ export default async function JobMatrixPage({
 
   const { data: job } = await supabase
     .from("jobs")
-    .select("title")
+    .select("title, status")
     .eq("id", id)
     .eq("employer_id", employer?.id ?? "")
     .single();
@@ -35,15 +39,7 @@ export default async function JobMatrixPage({
     .eq("is_active", true)
     .order("sort_order");
 
-  const filtered = (categories ?? [])
-    .map((cat) => ({
-      ...cat,
-      matrix_questions: (cat.matrix_questions ?? []).filter(
-        (q: { target_role: string; is_active: boolean }) =>
-          q.is_active && (q.target_role === "employer" || q.target_role === "both")
-      ),
-    }))
-    .filter((cat) => cat.matrix_questions.length > 0);
+  const filtered = filterSharedMatrixCategories(categories ?? []);
 
   const { data: answers } = await supabase
     .from("job_matrix_answers")
@@ -62,16 +58,24 @@ export default async function JobMatrixPage({
     submit: boolean
   ) {
     "use server";
-    void submit;
-    return saveJobMatrixAnswers(id, payload);
+    return saveJobMatrixAnswers(id, payload, submit);
   }
 
   return (
-    <MatrixForm
-      categories={filtered}
-      existingAnswers={answerMap}
-      onSave={onSave}
-      targetLabel={`Job ${FRAMEWORK_MATCHING_LANGUAGE}`}
-    />
+    <>
+      <EmployerJobContext
+        jobTitle={job.title}
+        jobId={id}
+        description={`Complete the ${FRAMEWORK_MATCHING_LANGUAGE} questionnaire for this role`}
+      />
+      <JobWorkflowNav jobId={id} currentStep="matrix" canEdit={job.status === "draft"} />
+      <MatrixForm
+        categories={filtered}
+        existingAnswers={answerMap}
+        onSave={onSave}
+        targetLabel={`Job ${FRAMEWORK_MATCHING_LANGUAGE}`}
+        headerIcon={<Grid3X3 className="h-6 w-6" />}
+      />
+    </>
   );
 }
