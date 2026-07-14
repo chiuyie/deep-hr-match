@@ -117,7 +117,7 @@ export function EmployerActionCard({
     <Link
       href={href}
       className={cn(
-        "group flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-lg",
+        "group flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-lg",
         accent
       )}
     >

@@ -121,7 +121,7 @@ export function MatchingResultsTable({
                     {row.skills_overview.slice(0, 3).join(", ") || "—"}
                   </p>
                   {!row.is_unlocked && (
-                    <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
+                    <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-slate-700">
                       <Checkbox
                         checked={selected.includes(row.id)}
                         onCheckedChange={() => toggle(row.id)}

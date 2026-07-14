@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
+import { CheckCircle2, Clock, RefreshCw, Target } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { EmployerJobContext, EmployerPageSection } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { MatchingResultsTable } from "@/components/matching/matching-results-table";
 import { requireRole, anonymizeCandidateId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { generateMatchingResults } from "@/lib/employer/actions";
 import {
   canEditJob,
@@ -22,14 +25,16 @@ import {
 } from "@/lib/matching/snapshot";
 import { formatDate } from "@/lib/utils/profile";
 import type { AnonymousCandidateMatch } from "@/types/database";
-import { Clock, RefreshCw, Target } from "lucide-react";
 
 export default async function JobMatchingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ matrix?: string }>;
 }) {
   const { id } = await params;
+  const { matrix } = await searchParams;
   const user = await requireRole("employer");
   const supabase = await createClient();
 
@@ -111,6 +116,18 @@ export default async function JobMatchingPage({
         description="Anonymous ranked snapshot — unlock profiles to view full details ($49 each)"
       />
       <JobWorkflowNav jobId={id} currentStep="matching" canEdit={canEditJob(lifecycle)} />
+
+      {matrix === "complete" && (
+        <Alert className="mb-6 border-emerald-200 bg-emerald-50 text-emerald-900">
+          <CheckCircle2 />
+          <AlertTitle>{FRAMEWORK_MATCHING_LANGUAGE} saved</AlertTitle>
+          <AlertDescription>
+            {canRun
+              ? "Your matching questionnaire is complete. Generate matches below when you are ready."
+              : "Your matching questionnaire is complete. Post the job as Active before generating matches."}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {lastMatchedAt && (
         <EmployerPageSection

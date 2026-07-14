@@ -23,7 +23,7 @@ export function LoginMenu() {
           <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
             <Link
               href="/auth/sign-in?role=employer"
-              className="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="block cursor-pointer px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
               onClick={() => setOpen(false)}
             >
               Login as Employer
@@ -31,7 +31,7 @@ export function LoginMenu() {
             <Link
               href="/auth/sign-in?role=candidate"
               className={cn(
-                "block border-t border-slate-200 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                "block cursor-pointer border-t border-slate-200 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               )}
               onClick={() => setOpen(false)}
             >
@@ -39,7 +39,7 @@ export function LoginMenu() {
             </Link>
             <Link
               href="/auth/admin/sign-in"
-              className="block border-t border-slate-200 px-4 py-3 text-sm text-muted-foreground hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+              className="block cursor-pointer border-t border-slate-200 px-4 py-3 text-sm text-muted-foreground hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
               onClick={() => setOpen(false)}
             >
               Admin Portal

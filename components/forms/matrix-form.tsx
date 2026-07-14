@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ interface MatrixFormProps {
   onSave: (
     answers: { question_id: string; option_id?: string; answer_text?: string }[],
     submit: boolean
-  ) => Promise<{ error?: string; success?: boolean }>;
+  ) => Promise<{ error?: string; success?: boolean; redirectTo?: string }>;
   targetLabel?: string;
   headerIcon?: React.ReactNode;
 }
@@ -52,7 +53,7 @@ function WordChoiceGrid({
             type="button"
             onClick={() => onChange(option.id)}
             className={cn(
-              "rounded-xl border px-3 py-3 text-left text-sm font-medium transition-colors",
+              "cursor-pointer rounded-xl border px-3 py-3 text-left text-sm font-medium transition-colors",
               selected
                 ? "border-primary bg-primary/10 text-primary shadow-sm"
                 : "border-slate-200 bg-white text-slate-700 hover:border-primary/40 hover:bg-slate-50"
@@ -73,6 +74,7 @@ export function MatrixForm({
   targetLabel = FRAMEWORK_MATCHING_LANGUAGE,
   headerIcon = <Grid3X3 className="h-6 w-6" />,
 }: MatrixFormProps) {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState(existingAnswers);
   const [saving, setSaving] = useState(false);
@@ -104,10 +106,23 @@ export function MatrixForm({
       question_id,
       ...val,
     }));
-    const result = await onSave(payload, submit);
-    setSaving(false);
-    if (result.error) toast.error(result.error);
-    else toast.success(submit ? "Form submitted" : "Draft saved");
+    try {
+      const result = await onSave(payload, submit);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (submit && result.redirectTo) {
+        toast.success("Form submitted — continuing to the next step");
+        router.push(result.redirectTo);
+        return;
+      }
+
+      toast.success(submit ? "Form submitted" : "Draft saved");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (!activeCategories.length) {
@@ -222,7 +237,7 @@ export function MatrixForm({
           </Button>
         ) : (
           <Button className="rounded-lg" disabled={saving} onClick={() => handleSave(true)}>
-            Submit form
+            {saving ? "Submitting…" : "Submit & continue"}
           </Button>
         )}
         <Button

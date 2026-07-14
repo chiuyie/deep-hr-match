@@ -94,7 +94,7 @@ export function JobWorkflowNav({
                 href={step.path(jobId)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
+                  "flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
                   active
                     ? "bg-primary/10 text-primary shadow-sm"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"

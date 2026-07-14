@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  canRunMatching,
+  getEmployerMatrixSubmitRedirect,
+  runMatchingBlockedReason,
+} from "@/lib/employer/job-rules";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { employerProfileSchema, jobSchema } from "@/lib/validations/schemas";
@@ -9,10 +14,6 @@ import {
   formStateToJobPayload,
   parseJobFormState,
 } from "@/lib/utils/job-form";
-import {
-  canRunMatching,
-  runMatchingBlockedReason,
-} from "@/lib/employer/job-rules";
 import {
   filterSharedMatrixCategories,
   validateMatrixSubmission,
@@ -155,7 +156,7 @@ export async function saveJobMatrixAnswers(
 
   const { data: job } = await supabase
     .from("jobs")
-    .select("id")
+    .select("id, status")
     .eq("id", jobId)
     .eq("employer_id", employerId)
     .single();
@@ -196,6 +197,16 @@ export async function saveJobMatrixAnswers(
   }
 
   revalidatePath(`/employer/jobs/${jobId}/matrix`);
+  revalidatePath(`/employer/jobs/${jobId}`);
+  revalidatePath(`/employer/jobs/${jobId}/matching`);
+
+  if (submit) {
+    return {
+      success: true,
+      redirectTo: getEmployerMatrixSubmitRedirect(jobId, job.status),
+    };
+  }
+
   return { success: true };
 }
 

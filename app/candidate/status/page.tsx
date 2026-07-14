@@ -40,7 +40,7 @@ const statusMessages = {
 export default async function CandidateStatusPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; success?: string; prompt?: string }>;
+  searchParams: Promise<{ error?: string; success?: string; prompt?: string; matrix?: string }>;
 }) {
   const user = await requireRole("candidate");
   const supabase = await createClient();
@@ -91,6 +91,18 @@ export default async function CandidateStatusPage({
             <AlertDescription>
               Employers can now find you in matching results. You'll be contacted outside the
               platform when an employer unlocks your profile.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {params.matrix === "complete" && (
+          <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
+            <CheckCircle2 />
+            <AlertTitle>{FRAMEWORK_MATCHING_LANGUAGE} complete</AlertTitle>
+            <AlertDescription>
+              {checklistComplete && profile?.status !== "ready_for_matching"
+                ? "You have finished every onboarding step. Mark your profile ready below when you want to appear in employer matching results."
+                : "Your matching language responses are saved."}
             </AlertDescription>
           </Alert>
         )}

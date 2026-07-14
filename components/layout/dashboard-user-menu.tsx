@@ -34,6 +34,7 @@ export function DashboardUserMenu({ role, userName }: DashboardUserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
+        nativeButton
         render={
           <Button
             variant="ghost"
@@ -67,17 +68,10 @@ export function DashboardUserMenu({ role, userName }: DashboardUserMenuProps) {
               : "Admin home"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <form action={signOut}>
-          <DropdownMenuItem
-            variant="destructive"
-            render={
-              <button type="submit" className="w-full cursor-default text-left" />
-            }
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </DropdownMenuItem>
-        </form>
+        <DropdownMenuItem variant="destructive" onClick={() => void signOut()}>
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

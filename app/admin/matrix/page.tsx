@@ -26,7 +26,7 @@ export default async function AdminMatrixPage() {
       role="admin"
       userName={user.name}
       title={`${FRAMEWORK_MATCHING_LANGUAGE} Editor`}
-      description="View and edit matching factors, sub-levels, and words"
+      description="Edit matching factors, question rounds, and word options"
     >
       <MatrixAdminEditor categories={sorted} />
     </DashboardShell>

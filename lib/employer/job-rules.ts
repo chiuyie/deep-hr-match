@@ -83,3 +83,11 @@ export function refreshMatchingWarning(state: JobLifecycleState): string | null 
 
 /** @deprecated Use refreshMatchingWarning */
 export const regenerateWarning = refreshMatchingWarning;
+
+/** Where to send the employer after submitting the job 7^7 form. */
+export function getEmployerMatrixSubmitRedirect(jobId: string, status: JobStatus): string {
+  if (status === "draft") {
+    return `/employer/jobs/${jobId}?matrix=complete`;
+  }
+  return `/employer/jobs/${jobId}/matching?matrix=complete`;
+}

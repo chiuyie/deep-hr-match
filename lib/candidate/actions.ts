@@ -156,7 +156,7 @@ export async function saveCandidateMatrixAnswers(
   revalidatePath("/candidate/status");
 
   if (submit) {
-    redirect("/candidate/status?prompt=ready");
+    return { success: true, redirectTo: "/candidate/status?matrix=complete" };
   }
 
   return { success: true };
