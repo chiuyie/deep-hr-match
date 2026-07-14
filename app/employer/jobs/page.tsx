@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Briefcase, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -12,12 +11,12 @@ import {
 } from "@/components/ui/table";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { JobRowActions } from "@/components/employer/job-row-actions";
+import { StatusBadge } from "@/components/status-badge";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import type { JobLifecycleState } from "@/lib/employer/job-rules";
-import { formatDate, statusLabel } from "@/lib/utils/profile";
+import { formatDate } from "@/lib/utils/profile";
 import type { JobStatus } from "@/types/database";
-
 export default async function EmployerJobsPage() {
   const user = await requireRole("employer");
   const supabase = await createClient();
@@ -92,7 +91,7 @@ export default async function EmployerJobsPage() {
                     <p className="font-semibold text-slate-800">{job.title}</p>
                     <p className="mt-1 text-sm text-slate-500">{job.location ?? "No location"}</p>
                   </div>
-                  <Badge variant="secondary">{statusLabel(job.status)}</Badge>
+                  <StatusBadge status={job.status} />
                 </div>
                 <p className="mt-3 text-xs text-slate-500">Created {formatDate(job.created_at)}</p>
                 <div className="mt-4">
@@ -123,7 +122,7 @@ export default async function EmployerJobsPage() {
                     <TableCell className="font-medium text-slate-800">{job.title}</TableCell>
                     <TableCell>{job.location ?? "—"}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{statusLabel(job.status)}</Badge>
+                      <StatusBadge status={job.status} />
                     </TableCell>
                     <TableCell>{formatDate(job.created_at)}</TableCell>
                     <TableCell>

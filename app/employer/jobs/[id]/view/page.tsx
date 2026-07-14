@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Briefcase, MapPin, Pencil } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   EmployerDetailField,
@@ -21,7 +21,7 @@ import {
   countNewReadyCandidatesSince,
   getSnapshotGeneratedAt,
 } from "@/lib/matching/snapshot";
-import { formatDate, statusLabel } from "@/lib/utils/profile";
+import { formatDate } from "@/lib/utils/profile";
 
 export default async function JobViewPage({
   params,
@@ -124,7 +124,7 @@ export default async function JobViewPage({
         }
       >
         <div className="mb-6 flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{statusLabel(job.status)}</Badge>
+          <StatusBadge status={job.status} />
           {job.location && (
             <span className="inline-flex items-center gap-1 text-sm text-slate-500">
               <MapPin className="h-3.5 w-3.5" />

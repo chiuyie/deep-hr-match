@@ -4,6 +4,7 @@ import {
   formatCurrency,
   formatDate,
   parseCommaList,
+  statusBadgeClassName,
   statusLabel,
 } from "@/lib/utils/profile";
 
@@ -97,5 +98,13 @@ describe("statusLabel", () => {
   it("title-cases underscore-separated status values", () => {
     expect(statusLabel("ready_for_matching")).toBe("Ready For Matching");
     expect(statusLabel("draft")).toBe("Draft");
+  });
+});
+
+describe("statusBadgeClassName", () => {
+  it("uses different styles for draft and closed", () => {
+    expect(statusBadgeClassName("draft")).not.toBe(statusBadgeClassName("closed"));
+    expect(statusBadgeClassName("draft")).toContain("amber");
+    expect(statusBadgeClassName("closed")).toContain("slate");
   });
 });

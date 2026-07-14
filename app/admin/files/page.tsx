@@ -1,25 +1,19 @@
-import { DashboardShell } from "@/components/layout/dashboard-shell";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText } from "lucide-react";
+import { AdminFileLink, AdminPageSection } from "@/components/admin/admin-ui";
+import { AdminSearchableTable } from "@/components/admin/admin-searchable-table";
+import { adminRowSearchProps } from "@/lib/admin/table-search";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { requireRole } from "@/lib/auth/session";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { adminFileDownloadUrl, formatFileSize } from "@/lib/admin/files";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils/profile";
 
 export default async function AdminFilesPage() {
-  await requireRole("admin");
   const supabase = await createClient();
 
   const { data: cvs } = await supabase
     .from("candidate_cv_files")
-    .select("*, candidate_profiles(full_name)")
+    .select("*, candidate_profiles(full_name, email)")
     .order("uploaded_at", { ascending: false });
 
   const { data: jds } = await supabase
@@ -27,68 +21,110 @@ export default async function AdminFilesPage() {
     .select("*, jobs(title)")
     .order("uploaded_at", { ascending: false });
 
+  const cvRows = cvs ?? [];
+  const jdRows = jds ?? [];
+
   return (
-    <DashboardShell role="admin" title="Uploaded Files" description="CV and JD file metadata">
-      <Tabs defaultValue="cvs">
-        <TabsList>
-          <TabsTrigger value="cvs">CV Files ({cvs?.length ?? 0})</TabsTrigger>
-          <TabsTrigger value="jds">JD Files ({jds?.length ?? 0})</TabsTrigger>
+    <AdminPageSection
+      title="Uploaded files"
+      description="CV and job description documents stored in Supabase"
+      icon={<FileText className="h-6 w-6" />}
+      gradient="from-slate-600 to-slate-800"
+    >
+      <Tabs defaultValue="cvs" className="space-y-4">
+        <TabsList className="grid w-full max-w-md grid-cols-2 rounded-xl">
+          <TabsTrigger value="cvs" className="rounded-lg">
+            CV files ({cvRows.length})
+          </TabsTrigger>
+          <TabsTrigger value="jds" className="rounded-lg">
+            JD files ({jdRows.length})
+          </TabsTrigger>
         </TabsList>
+
         <TabsContent value="cvs">
-          <Card>
-            <CardHeader><CardTitle>Candidate CVs</CardTitle></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>File</TableHead>
-                    <TableHead>Candidate</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Uploaded</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(cvs ?? []).map((f) => (
-                    <TableRow key={f.id}>
-                      <TableCell>{f.file_name}</TableCell>
-                      <TableCell>{(f.candidate_profiles as { full_name: string } | null)?.full_name ?? "—"}</TableCell>
-                      <TableCell>{f.file_size ? `${Math.round(f.file_size / 1024)} KB` : "—"}</TableCell>
-                      <TableCell>{formatDate(f.uploaded_at)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <AdminSearchableTable
+            recordCount={cvRows.length}
+            searchPlaceholder="Search CV files…"
+            emptyIcon={<FileText className="h-7 w-7" />}
+            emptyTitle="No CV uploads"
+            emptyDescription="Candidate CV files will appear here after upload."
+            columns={["File", "Candidate", "Size", "Uploaded", "Download"]}
+          >
+            {cvRows.map((file) => {
+              const candidate = file.candidate_profiles as {
+                full_name: string | null;
+                email: string | null;
+              } | null;
+
+              return (
+                <TableRow
+                  key={file.id}
+                  {...adminRowSearchProps(
+                    `${file.file_name} ${candidate?.full_name ?? ""} ${candidate?.email ?? ""}`
+                  )}
+                >
+                  <TableCell className="font-medium text-slate-800">{file.file_name}</TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium text-slate-800">
+                        {candidate?.full_name ?? "—"}
+                      </p>
+                      {candidate?.email && (
+                        <p className="text-xs text-slate-500">{candidate.email}</p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-slate-600">
+                    {formatFileSize(file.file_size)}
+                  </TableCell>
+                  <TableCell className="text-slate-500">{formatDate(file.uploaded_at)}</TableCell>
+                  <TableCell>
+                    <AdminFileLink
+                      href={adminFileDownloadUrl("candidate-cvs", file.file_path)}
+                      label="Download"
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </AdminSearchableTable>
         </TabsContent>
+
         <TabsContent value="jds">
-          <Card>
-            <CardHeader><CardTitle>Job Descriptions</CardTitle></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>File</TableHead>
-                    <TableHead>Job</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Uploaded</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(jds ?? []).map((f) => (
-                    <TableRow key={f.id}>
-                      <TableCell>{f.file_name}</TableCell>
-                      <TableCell>{(f.jobs as { title: string } | null)?.title ?? "—"}</TableCell>
-                      <TableCell>{f.file_size ? `${Math.round(f.file_size / 1024)} KB` : "—"}</TableCell>
-                      <TableCell>{formatDate(f.uploaded_at)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <AdminSearchableTable
+            recordCount={jdRows.length}
+            searchPlaceholder="Search JD files…"
+            emptyIcon={<FileText className="h-7 w-7" />}
+            emptyTitle="No JD uploads"
+            emptyDescription="Job description files will appear here after employer upload."
+            columns={["File", "Job", "Size", "Uploaded", "Download"]}
+          >
+            {jdRows.map((file) => {
+              const jobTitle = (file.jobs as { title: string } | null)?.title ?? "";
+
+              return (
+                <TableRow
+                  key={file.id}
+                  {...adminRowSearchProps(`${file.file_name} ${jobTitle}`)}
+                >
+                  <TableCell className="font-medium text-slate-800">{file.file_name}</TableCell>
+                  <TableCell className="text-slate-600">{jobTitle || "—"}</TableCell>
+                  <TableCell className="text-slate-600">
+                    {formatFileSize(file.file_size)}
+                  </TableCell>
+                  <TableCell className="text-slate-500">{formatDate(file.uploaded_at)}</TableCell>
+                  <TableCell>
+                    <AdminFileLink
+                      href={adminFileDownloadUrl("job-jds", file.file_path)}
+                      label="Download"
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </AdminSearchableTable>
         </TabsContent>
       </Tabs>
-    </DashboardShell>
+    </AdminPageSection>
   );
 }

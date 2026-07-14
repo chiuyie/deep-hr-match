@@ -59,3 +59,29 @@ export function statusLabel(status: string): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
+
+/** Distinct badge colors per status — draft ≠ closed, etc. */
+export function statusBadgeClassName(status: string): string {
+  const key = status.toLowerCase();
+
+  const styles: Record<string, string> = {
+    // Jobs
+    draft: "border-amber-300 bg-amber-50 text-amber-900",
+    active: "border-emerald-500 bg-emerald-600 text-white",
+    closed: "border-slate-400 bg-slate-200 text-slate-800",
+    // Candidates
+    incomplete: "border-orange-300 bg-orange-50 text-orange-900",
+    ready_for_matching: "border-emerald-400 bg-emerald-50 text-emerald-900",
+    // Payments / general
+    pending: "border-blue-300 bg-blue-50 text-blue-800",
+    paid: "border-emerald-500 bg-emerald-600 text-white",
+    completed: "border-emerald-500 bg-emerald-600 text-white",
+    succeeded: "border-emerald-500 bg-emerald-600 text-white",
+    cancelled: "border-red-300 bg-red-50 text-red-800",
+    failed: "border-red-300 bg-red-50 text-red-800",
+    inactive: "border-slate-300 bg-slate-50 text-slate-600",
+    archived: "border-slate-300 bg-slate-50 text-slate-600",
+  };
+
+  return styles[key] ?? "border-border bg-muted text-muted-foreground";
+}

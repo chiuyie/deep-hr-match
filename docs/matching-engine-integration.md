@@ -120,7 +120,7 @@ INSERT INTO match_results (
 | `candidate_profiles` | Profile fields for ready candidates |
 | `candidate_matrix_answers` | Candidate 7^7 answers |
 
-**7^7 word matching (Phase 1):** For each sub-level question, compare `option_id` on job vs candidate. Exact match = 1 point; score = matched / comparable × 100. See [matrix-matching-language.md](./matrix-matching-language.md) and `lib/matching/matrix-score.ts`.
+**7^7 word matching (Phase 1):** For each word level, compare `option_id` on job vs candidate. Exact match = 1 point; score = matched / comparable × 100. See [matrix-matching-language.md](./matrix-matching-language.md) and `lib/matching/matrix-score.ts`.
 | `candidate_cv_files` | Optional — path/metadata for future CV parsing |
 
 Do **not** expose candidate PII to employers via `match_results` — names/emails stay hidden until unlock.

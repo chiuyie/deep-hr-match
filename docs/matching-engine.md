@@ -7,7 +7,7 @@ Phase 1 uses a **placeholder matching engine** in this repo for local dev. The *
 **Files (this repo):**
 - `lib/matching/trigger.ts` — dispatches inline placeholder or external HTTP service
 - `lib/matching/engine.ts` — Phase 1 placeholder scoring (dev/demo; uses matrix word match when available)
-- `lib/matching/matrix-score.ts` — exact word match per sub-level
+- `lib/matching/matrix-score.ts` — exact word match per word level
 - `lib/matching/snapshot.ts` — snapshot metadata helpers
 - `lib/employer/job-rules.ts` — when employers can generate/refresh
 

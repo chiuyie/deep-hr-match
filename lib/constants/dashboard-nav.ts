@@ -95,15 +95,60 @@ export const employerNav: DashboardNavItem[] = [
 ];
 
 const adminNav: DashboardNavItem[] = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/candidates", label: "Candidates", icon: Users },
-  { href: "/admin/employers", label: "Employers", icon: Building2 },
-  { href: "/admin/jobs", label: "Jobs", icon: Briefcase },
-  { href: "/admin/matching", label: "Matching", icon: Target },
-  { href: "/admin/matrix", label: "Matrix Config", icon: Grid3X3 },
-  { href: "/admin/payments", label: "Payments", icon: CreditCard },
-  { href: "/admin/unlocks", label: "Unlocks", icon: Unlock },
-  { href: "/admin/files", label: "Files", icon: FileText },
+  {
+    href: "/admin",
+    label: "Overview",
+    description: "Platform metrics and quick links",
+    icon: LayoutDashboard,
+  },
+  {
+    href: "/admin/candidates",
+    label: "Candidates",
+    description: "Profiles and onboarding progress",
+    icon: Users,
+  },
+  {
+    href: "/admin/employers",
+    label: "Employers",
+    description: "Company accounts and contacts",
+    icon: Building2,
+  },
+  {
+    href: "/admin/jobs",
+    label: "Jobs",
+    description: "All job postings",
+    icon: Briefcase,
+  },
+  {
+    href: "/admin/matching",
+    label: "Matching",
+    description: "Ranked match results",
+    icon: Target,
+  },
+  {
+    href: "/admin/matrix",
+    label: "Matrix Config",
+    description: "7^7 factors and word levels",
+    icon: Grid3X3,
+  },
+  {
+    href: "/admin/payments",
+    label: "Payments",
+    description: "Stripe purchase records",
+    icon: CreditCard,
+  },
+  {
+    href: "/admin/unlocks",
+    label: "Unlocks",
+    description: "Profile unlock history",
+    icon: Unlock,
+  },
+  {
+    href: "/admin/files",
+    label: "Files",
+    description: "CV and JD uploads",
+    icon: FileText,
+  },
 ];
 
 const navByRole: Record<UserRole, DashboardNavConfig> = {

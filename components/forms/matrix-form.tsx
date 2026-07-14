@@ -147,16 +147,18 @@ export function MatrixForm({
     <div className="space-y-6">
       <EmployerPageSection
         title={`How ${FRAMEWORK} works`}
-        description={`${MATRIX_FACTOR_COUNT} matching factors · ${MATRIX_WORDS_PER_LEVEL} words per sub-level · same form for employers and candidates`}
+        description={`Level 1: ${MATRIX_FACTOR_COUNT} factors · Level 2+: ${MATRIX_WORDS_PER_LEVEL} words per level · same form for employers and candidates`}
         icon={headerIcon}
         gradient="from-indigo-500 to-indigo-600"
         className="!p-5"
       >
         <p className="text-sm text-slate-600">
-          Each factor has sub-levels. At every sub-level, pick exactly one of{" "}
-          {MATRIX_WORDS_PER_LEVEL} words. When employer and candidate choose the{" "}
-          <span className="font-medium text-slate-800">same word at the same sub-level</span>, that
-          cell scores as a perfect match. All factors are required before submit.
+          <strong>Level 1</strong> is the {MATRIX_FACTOR_COUNT} matching factors — you pick a word
+          from every factor. <strong>Level 2</strong> is the first set of {MATRIX_WORDS_PER_LEVEL}{" "}
+          words; deeper levels expand from those choices (7^7). When employer and candidate choose
+          the{" "}
+          <span className="font-medium text-slate-800">same word at the same level</span>, that cell
+          scores as a perfect match. All factors are required before submit.
         </p>
       </EmployerPageSection>
 

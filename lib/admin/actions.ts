@@ -7,6 +7,7 @@ import {
   MATRIX_WORDS_PER_LEVEL,
   matchingFactorLabel,
   placeholderWordLabel,
+  wordLevelQuestionText,
 } from "@/lib/matching/matrix-constants";
 import {
   matrixCategorySchema,
@@ -163,7 +164,7 @@ export async function toggleMatrixItem(
   return { success: true };
 }
 
-/** Add a sub-level (question) under a matching factor with default word1–word7. */
+/** Add a word level (Level 2+) under a matching factor with default word1–word7. */
 export async function createMatrixSubLevel(categoryId: string) {
   await requireRole("admin");
   const supabase = await createClient();
@@ -179,16 +180,16 @@ export async function createMatrixSubLevel(categoryId: string) {
   }
 
   const existingLevels = category.matrix_questions ?? [];
-  const nextLevel = existingLevels.length + 1;
+  const nextQuestionIndex = existingLevels.length;
   const nextSort =
     existingLevels.reduce((max, q) => Math.max(max, q.sort_order ?? 0), 0) + 1;
-  const factorNumber = category.sort_order || nextLevel;
+  const factorNumber = category.sort_order || nextQuestionIndex + 1;
 
   const { data: question, error: questionError } = await supabase
     .from("matrix_questions")
     .insert({
       category_id: categoryId,
-      question_text: `${matchingFactorLabel(factorNumber)} — sub-level ${nextLevel}: choose one word`,
+      question_text: wordLevelQuestionText(factorNumber, nextQuestionIndex),
       question_type: "single_select",
       target_role: "both",
       sort_order: nextSort,
@@ -199,7 +200,7 @@ export async function createMatrixSubLevel(categoryId: string) {
     .single();
 
   if (questionError || !question) {
-    return { error: questionError?.message ?? "Failed to create sub-level" };
+    return { error: questionError?.message ?? "Failed to create word level" };
   }
 
   const options = Array.from({ length: MATRIX_WORDS_PER_LEVEL }, (_, index) => {
@@ -223,7 +224,7 @@ export async function createMatrixSubLevel(categoryId: string) {
   return { success: true };
 }
 
-/** Add one word option to a sub-level. */
+/** Add one word option to a word level. */
 export async function createMatrixWord(questionId: string, optionText: string) {
   await requireRole("admin");
   const supabase = await createClient();

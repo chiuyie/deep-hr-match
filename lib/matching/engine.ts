@@ -33,15 +33,15 @@ function buildMatrixSummary(
   }
 
   return {
-    match_summary: `[DEMO] 7^7 word match: ${matchedCount}/${totalCount} sub-levels aligned (${matrixScore}%).`,
+    match_summary: `[DEMO] 7^7 word match: ${matchedCount}/${totalCount} word levels aligned (${matrixScore}%).`,
     strengths:
       matchedCount > 0
-        ? [`[DEMO] ${matchedCount} exact word match${matchedCount === 1 ? "" : "es"} at the same sub-level`]
+        ? [`[DEMO] ${matchedCount} exact word match${matchedCount === 1 ? "" : "es"} at the same level`]
         : [],
     gaps:
       totalCount - matchedCount > 0
         ? [
-            `[DEMO] ${totalCount - matchedCount} sub-level${totalCount - matchedCount === 1 ? "" : "s"} with different word choices`,
+            `[DEMO] ${totalCount - matchedCount} word level${totalCount - matchedCount === 1 ? "" : "s"} with different word choices`,
           ]
         : [],
   };
