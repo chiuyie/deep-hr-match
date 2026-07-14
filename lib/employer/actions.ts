@@ -58,7 +58,6 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
   const payload = {
     title: jobPayload.title,
     description: jobPayload.description,
-    form_data: jobPayload.form_data,
     department: jobPayload.department,
     location: jobPayload.location,
     employment_type: jobPayload.employment_type,
