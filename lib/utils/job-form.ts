@@ -127,7 +127,6 @@ export function jobRecordToFormState(job: JobRecordInput): JobFormState {
 }
 
 export function formStateToJobPayload(state: JobFormState) {
-  console.log(state)
   const { job_title, job_description, ...rest } = state;
   const form_data: JobFormState = { ...rest };
 
