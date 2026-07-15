@@ -13,10 +13,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Deep HR Match",
   description: `Connecting exceptional talent with forward-thinking companies through our ${FRAMEWORK_MATCHING_LANGUAGE}.`,
-  icons: {
-    icon: "/brand-logo.png",
-    apple: "/brand-logo.png",
-  },
 };
 
 export default function RootLayout({

@@ -68,7 +68,7 @@ export function DashboardHeader({
           )}
         </Button>
         {!collapsed && (
-          <BrandLogo href={nav.homeHref} className="min-w-0 flex-1 overflow-hidden" />
+          <BrandLogo href={nav.homeHref} className="min-w-0 flex-1" />
         )}
       </div>
 
@@ -123,11 +123,13 @@ export function DashboardHeader({
         <BrandLogo href={nav.homeHref} className="shrink-0 lg:hidden" />
 
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">
+          <h1 className="break-words text-base font-semibold leading-snug tracking-tight text-foreground sm:text-lg">
             {title}
           </h1>
           {description && (
-            <p className="hidden truncate text-sm text-muted-foreground sm:block">{description}</p>
+            <p className="hidden break-words text-sm leading-snug text-muted-foreground sm:block">
+              {description}
+            </p>
           )}
         </div>
 

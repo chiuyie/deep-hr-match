@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getDefaultFormFields } from "@/lib/form-fields/defaults";
+import { groupFormFieldsBySection } from "@/lib/form-fields/grouping";
 import type {
   FormFieldAudience,
   FormFieldDefinition,
@@ -8,16 +9,7 @@ import type {
 } from "@/lib/form-fields/types";
 
 function groupBySection(fields: FormFieldDefinition[]): FormFieldSectionGroup[] {
-  const map = new Map<string, FormFieldDefinition[]>();
-  for (const field of fields) {
-    const list = map.get(field.section) ?? [];
-    list.push(field);
-    map.set(field.section, list);
-  }
-  return [...map.entries()].map(([section, sectionFields]) => ({
-    section,
-    fields: sectionFields.sort((a, b) => a.sort_order - b.sort_order),
-  }));
+  return groupFormFieldsBySection(fields);
 }
 
 export async function ensureFormFieldsSeeded() {

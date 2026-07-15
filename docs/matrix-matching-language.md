@@ -25,8 +25,8 @@ Users must choose **one word from every factor** at each word level. At full dep
 | Layer | Count | Notes |
 |-------|-------|-------|
 | Level 1 · Factors | 7 | Numbered only — Matching Factor 1 … 7 (no HR-themed categories) |
-| Word levels per factor | 1 (expandable to 7) | Level 2 only in seed; run `npm run seed-matrix-77` for full depth |
-| Words per level | 7 | Single-select; exact word match scores perfectly |
+| Word levels per factor | 7 (Level 2–8) | Run `npm run seed-matrix-77` (default full depth) |
+| Words per level | 7 | Level 2: one per column; Levels 3–8: seven stacked per column |
 
 ## Shared form
 
@@ -69,9 +69,11 @@ candidate_matrix_answers → candidate picks (option_id)
 ## Seeding
 
 ```bash
-# Minimal (7 factors × Level 2 only × 7 words) — in supabase/seed.sql
-# Full depth (7 factors × 7 word levels × 7 words):
+# Full 7^7 depth (7 factors × 7 word levels × 7 words per column branch):
 npm run seed-matrix-77
+
+# Minimal (Level 2 only, 7 words per factor):
+MATRIX_LEVELS=1 npm run seed-matrix-77
 ```
 
 The seed script replaces existing matrix categories/questions/options. Existing matrix answers may become orphaned — re-run forms after seeding.

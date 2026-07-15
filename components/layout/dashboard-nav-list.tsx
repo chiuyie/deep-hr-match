@@ -52,8 +52,8 @@ export function DashboardNavList({
               <Button
                 variant={active ? "secondary" : "ghost"}
                 className={cn(
-                  "relative h-auto w-full text-left",
-                  collapsed ? "justify-center px-0 py-2.5" : "justify-start gap-3 px-3 py-2.5",
+                  "relative h-auto w-full whitespace-normal text-left",
+                  collapsed ? "justify-center px-0 py-2.5" : "items-start justify-start gap-3 px-3 py-2.5",
                   active && "bg-primary/10 text-primary hover:bg-primary/10"
                 )}
                 asChild
@@ -62,7 +62,7 @@ export function DashboardNavList({
                   href={item.href}
                   onClick={onNavigate}
                   aria-current={active ? "page" : undefined}
-                  title={collapsed ? item.label : item.description}
+                  title={collapsed ? item.label : undefined}
                 >
                   {active && !collapsed && (
                     <span
@@ -70,14 +70,14 @@ export function DashboardNavList({
                       className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-primary"
                     />
                   )}
-                  <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                   {!collapsed && (
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate">{item.label}</span>
+                      <span className="block break-words leading-snug">{item.label}</span>
                       {item.description && (
                         <span
                           className={cn(
-                            "mt-0.5 block truncate text-xs font-normal",
+                            "mt-0.5 block break-words text-xs font-normal leading-snug",
                             active ? "text-primary/80" : "text-muted-foreground"
                           )}
                         >
@@ -98,7 +98,7 @@ export function DashboardNavList({
         <Card className="mt-6 border-border bg-muted/40 shadow-none">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground">Signed in as</p>
-            <p className="mt-0.5 truncate text-sm font-medium text-foreground">{userName}</p>
+            <p className="mt-0.5 break-words text-sm font-medium text-foreground">{userName}</p>
             <Badge variant="secondary" className="mt-2">
               {getRoleLabel(role)}
             </Badge>
@@ -140,8 +140,12 @@ export function DashboardUserBadge({
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-foreground">{userName || "User"}</p>
-        <p className="truncate text-xs text-muted-foreground">{getRoleLabel(role)} account</p>
+        <p className="break-words text-sm font-medium leading-snug text-foreground">
+          {userName || "User"}
+        </p>
+        <p className="break-words text-xs leading-snug text-muted-foreground">
+          {getRoleLabel(role)} account
+        </p>
       </div>
     </div>
   );

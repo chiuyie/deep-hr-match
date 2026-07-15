@@ -117,7 +117,7 @@ export function MatchingResultsTable({
                     {row.years_of_experience != null ? `${row.years_of_experience} yrs` : "—"} ·{" "}
                     {row.highest_education ?? "—"}
                   </p>
-                  <p className="mt-1 truncate text-sm text-slate-500">
+                  <p className="mt-1 break-words text-sm text-slate-500">
                     {row.skills_overview.slice(0, 3).join(", ") || "—"}
                   </p>
                   {!row.is_unlocked && (
@@ -176,7 +176,7 @@ export function MatchingResultsTable({
                           : "—"}
                       </TableCell>
                       <TableCell>{row.highest_education ?? "—"}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">
+                      <TableCell className="max-w-xs whitespace-normal break-words">
                         {row.skills_overview.slice(0, 3).join(", ") || "—"}
                       </TableCell>
                       <TableCell>
