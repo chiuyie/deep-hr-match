@@ -402,7 +402,31 @@ function SideBySideColumns({
         </>
       )}
 
-      <div className="grid gap-3 border-t border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-2">
+      <div className="hidden border-t border-slate-200 bg-slate-50/70 md:grid md:grid-cols-[3rem_1fr_auto_1fr] md:items-stretch md:divide-x md:divide-slate-200">
+        <div aria-hidden />
+        <div className="flex items-stretch p-4">
+          <AddFieldButton
+            pending={pending}
+            audience="candidate"
+            formGroup="profile"
+            section={leftSection}
+            accent="border-blue-200 bg-blue-50/50 hover:bg-blue-50"
+            onRunAction={onRunAction}
+          />
+        </div>
+        <div className="w-10 shrink-0" aria-hidden />
+        <div className="flex items-stretch p-4">
+          <AddFieldButton
+            pending={pending}
+            audience="employer"
+            formGroup="profile"
+            section={rightSection}
+            accent="border-cyan-200 bg-cyan-50/50 hover:bg-cyan-50"
+            onRunAction={onRunAction}
+          />
+        </div>
+      </div>
+      <div className="grid gap-3 border-t border-slate-200 bg-slate-50/70 p-4 md:hidden sm:grid-cols-2">
         <AddFieldButton
           pending={pending}
           audience="candidate"
@@ -473,7 +497,7 @@ function ComparisonRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[3rem_1fr_auto_1fr] border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/70",
+        "grid grid-cols-[3rem_1fr_auto_1fr] items-stretch border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/70",
         index % 2 === 1 && "bg-slate-50/30"
       )}
     >
@@ -481,7 +505,7 @@ function ComparisonRow({
         {index + 1}
       </div>
       <PairedFieldCell field={row.left} pending={pending} side="candidate" onRunAction={onRunAction} />
-      <div className="flex w-10 items-stretch justify-center bg-gradient-to-b from-transparent via-slate-100/80 to-transparent">
+      <div className="flex w-10 shrink-0 items-stretch justify-center bg-gradient-to-b from-transparent via-slate-100/80 to-transparent">
         <div className="w-px bg-slate-200" />
       </div>
       <PairedFieldCell field={row.right} pending={pending} side="employer" onRunAction={onRunAction} />
@@ -546,7 +570,7 @@ function PairedFieldCell({
     return (
       <div
         className={cn(
-          "flex min-h-[4rem] items-center justify-center",
+          "flex h-full min-h-[5rem] items-center justify-center self-stretch",
           mobile ? "rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-3 py-4" : "px-4 py-4"
         )}
       >
@@ -556,12 +580,13 @@ function PairedFieldCell({
   }
 
   return (
-    <div className={cn("px-3 py-3", !mobile && "md:px-4")}>
+    <div className={cn("flex h-full min-h-[5rem] self-stretch items-stretch px-3 py-3", !mobile && "md:px-4")}>
       <FieldRow
         field={field}
         pending={pending}
         compact
         side={side}
+        className="h-full w-full"
         onRunAction={onRunAction}
       />
     </div>
@@ -734,12 +759,14 @@ function FieldRow({
   pending,
   compact = false,
   side = "candidate",
+  className,
   onRunAction,
 }: {
   field: FormFieldDefinition;
   pending: boolean;
   compact?: boolean;
   side?: "candidate" | "employer";
+  className?: string;
   onRunAction: (
     action: () => Promise<{ error?: string; success?: boolean }>,
     successMsg: string
@@ -851,7 +878,8 @@ function FieldRow({
           "group rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all hover:-translate-y-px hover:shadow-md",
           "border-l-4",
           sideAccent,
-          !field.is_active && "opacity-60"
+          !field.is_active && "opacity-60",
+          className
         )}
       >
         <div className="flex items-start gap-2">
@@ -1067,7 +1095,7 @@ function AddFieldButton({
       <Button
         size="sm"
         variant="outline"
-        className={cn("h-10 w-full justify-center rounded-xl border-dashed text-sm", accent)}
+        className={cn("h-10 min-h-10 w-full flex-1 justify-center rounded-xl border-dashed text-sm", accent)}
         disabled={pending}
         onClick={() => setOpen(true)}
       >
@@ -1078,7 +1106,7 @@ function AddFieldButton({
   }
 
   return (
-    <div className={cn("rounded-xl border border-dashed p-4", accent)}>
+    <div className={cn("flex w-full flex-col rounded-xl border border-dashed p-4", accent)}>
       <p className="mb-3 text-sm font-semibold text-slate-700">New custom field</p>
       {pickSection && pickSection.length > 1 && (
         <select

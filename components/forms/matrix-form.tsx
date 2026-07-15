@@ -9,11 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
-import { FRAMEWORK, FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
-import {
-  MATRIX_FACTOR_COUNT,
-  MATRIX_WORDS_PER_LEVEL,
-} from "@/lib/matching/matrix-constants";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { validateMatrixSubmission } from "@/lib/matching/matrix-form";
 import { cn } from "@/lib/utils";
 import { Grid3X3 } from "lucide-react";
@@ -145,23 +141,6 @@ export function MatrixForm({
 
   return (
     <div className="space-y-6">
-      <EmployerPageSection
-        title={`How ${FRAMEWORK} works`}
-        description={`Level 1: ${MATRIX_FACTOR_COUNT} factors · Level 2+: ${MATRIX_WORDS_PER_LEVEL} words per level · same form for employers and candidates`}
-        icon={headerIcon}
-        gradient="from-indigo-500 to-indigo-600"
-        className="!p-5"
-      >
-        <p className="text-sm text-slate-600">
-          <strong>Level 1</strong> is the {MATRIX_FACTOR_COUNT} matching factors — you pick a word
-          from every factor. <strong>Level 2</strong> is the first set of {MATRIX_WORDS_PER_LEVEL}{" "}
-          words; deeper levels expand from those choices (7^7). When employer and candidate choose
-          the{" "}
-          <span className="font-medium text-slate-800">same word at the same level</span>, that cell
-          scores as a perfect match. All factors are required before submit.
-        </p>
-      </EmployerPageSection>
-
       <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-4">
           <h2 className="text-lg font-semibold text-slate-800">{targetLabel}</h2>
