@@ -4,6 +4,7 @@ import {
   CreditCard,
   FileText,
   Grid3X3,
+  ListTree,
   Target,
   Unlock,
   Users,
@@ -13,7 +14,7 @@ import {
   AdminPageSection,
   AdminStatCard,
 } from "@/components/admin/admin-ui";
-import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { FRAMEWORK_MATCHING_LANGUAGE_FORM } from "@/lib/constants/branding";
 import { createClient } from "@/lib/supabase/server";
 
 const peopleActions = [
@@ -73,11 +74,18 @@ const operationsActions = [
 
 const configActions = [
   {
-    title: FRAMEWORK_MATCHING_LANGUAGE,
-    description: "Edit Level 1 factors and Level 2+ word options",
+    title: FRAMEWORK_MATCHING_LANGUAGE_FORM,
+    description: "Edit factor names and word levels",
     href: "/admin/matrix",
     icon: Grid3X3,
     accent: "hover:bg-indigo-500/5 text-indigo-600",
+  },
+  {
+    title: "Form Fields",
+    description: "Compare and edit candidate vs employer input fields",
+    href: "/admin/forms",
+    icon: ListTree,
+    accent: "hover:bg-violet-500/5 text-violet-600",
   },
 ];
 

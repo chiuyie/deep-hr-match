@@ -1,4 +1,4 @@
-import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { FRAMEWORK_MATCHING_LANGUAGE_FORM_EDITOR } from "@/lib/constants/branding";
 import { isDashboardNavActive } from "@/lib/constants/dashboard-nav";
 
 export interface AdminPageMeta {
@@ -77,8 +77,15 @@ export function getAdminPageMeta(pathname: string): AdminPageMeta {
 
   if (pathname === "/admin/matrix") {
     return {
-      title: `${FRAMEWORK_MATCHING_LANGUAGE} Editor`,
-      description: "Configure Level 1 factors and Level 2+ word options",
+      title: FRAMEWORK_MATCHING_LANGUAGE_FORM_EDITOR,
+      contentClassName: wideContentClassName,
+    };
+  }
+
+  if (pathname === "/admin/forms") {
+    return {
+      title: "Form Fields",
+      description: "Compare and edit candidate vs employer input fields",
       contentClassName: wideContentClassName,
     };
   }

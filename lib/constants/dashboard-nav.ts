@@ -6,13 +6,14 @@ import {
   FileText,
   Grid3X3,
   LayoutDashboard,
+  ListTree,
   Plus,
   Target,
   Unlock,
   User,
   Users,
 } from "lucide-react";
-import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { FRAMEWORK_MATCHING_LANGUAGE, FRAMEWORK_MATCHING_LANGUAGE_FORM } from "@/lib/constants/branding";
 import type { UserRole } from "@/types/database";
 
 export interface DashboardNavItem {
@@ -127,9 +128,15 @@ const adminNav: DashboardNavItem[] = [
   },
   {
     href: "/admin/matrix",
-    label: "Matrix Config",
-    description: "7^7 factors and word levels",
+    label: FRAMEWORK_MATCHING_LANGUAGE_FORM,
+    description: "Edit the 7 factor names and word levels",
     icon: Grid3X3,
+  },
+  {
+    href: "/admin/forms",
+    label: "Form Fields",
+    description: "Compare candidate vs employer inputs",
+    icon: ListTree,
   },
   {
     href: "/admin/payments",

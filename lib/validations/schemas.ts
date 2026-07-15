@@ -73,6 +73,22 @@ export const matrixOptionSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
+export const formFieldSchema = z.object({
+  audience: z.enum(["candidate", "employer"]),
+  form_group: z.enum(["profile", "job"]),
+  section: z.string().min(1),
+  field_key: z.string().min(1),
+  label: z.string().min(1),
+  field_type: z
+    .enum(["text", "email", "number", "textarea", "tel", "url", "select", "checkbox", "file"])
+    .default("text"),
+  placeholder: z.string().optional().nullable(),
+  is_required: z.boolean().default(false),
+  is_active: z.boolean().default(true),
+  is_custom: z.boolean().default(false),
+  sort_order: z.coerce.number().default(0),
+});
+
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 export type CandidateProfileInput = z.infer<typeof candidateProfileSchema>;

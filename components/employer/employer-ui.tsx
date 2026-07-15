@@ -10,7 +10,7 @@ interface EmployerPageSectionProps {
   icon?: React.ReactNode;
   gradient?: string;
   action?: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   id?: string;
 }
@@ -33,7 +33,12 @@ export function EmployerPageSection({
         className
       )}
     >
-      <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">
+      <div
+        className={cn(
+          "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
+          children != null && "mb-6 sm:mb-8"
+        )}
+      >
         <div className="flex items-start gap-4">
           {icon && (
             <div

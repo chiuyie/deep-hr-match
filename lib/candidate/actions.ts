@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { candidateProfileSchema } from "@/lib/validations/schemas";
+import { extractCustomFields, stripCustomEntries } from "@/lib/form-fields/parse-custom";
 import {
   calculateProfileCompletion,
   parseCommaList,
@@ -47,13 +48,14 @@ export async function saveCandidateProfile(formData: FormData, submit = false): 
   const user = await requireRole("candidate");
   const supabase = await createClient();
 
-  const raw = Object.fromEntries(formData.entries());
+  const raw = stripCustomEntries(Object.fromEntries(formData.entries()));
   const parsed = candidateProfileSchema.safeParse(raw);
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message);
   }
 
-  const payload = buildProfilePayload(parsed.data, submit);
+  const custom_fields = extractCustomFields(formData);
+  const payload = buildProfilePayload({ ...parsed.data, custom_fields }, submit);
 
   const { error } = await supabase
     .from("candidate_profiles")
@@ -112,7 +114,7 @@ export async function uploadCandidateCV(formData: FormData): Promise<void> {
 export async function saveCandidateMatrixAnswers(
   answers: { question_id: string; option_id?: string; answer_text?: string }[],
   submit = false
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<{ error?: string; success?: boolean; redirectTo?: string }> {
   const user = await requireRole("candidate");
   const supabase = await createClient();
   const candidateId = await getCandidateId(user.id);

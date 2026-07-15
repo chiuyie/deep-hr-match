@@ -224,8 +224,12 @@ export async function createMatrixSubLevel(categoryId: string) {
   return { success: true };
 }
 
-/** Add one word option to a word level. */
-export async function createMatrixWord(questionId: string, optionText: string) {
+/** Add one word at a level. Pass column (1–7) to stack words in that spreadsheet column. */
+export async function createMatrixWord(
+  questionId: string,
+  optionText: string,
+  column?: number
+) {
   await requireRole("admin");
   const supabase = await createClient();
 
@@ -237,8 +241,33 @@ export async function createMatrixWord(questionId: string, optionText: string) {
     .select("sort_order")
     .eq("question_id", questionId);
 
-  const nextSort =
-    (existing ?? []).reduce((max, row) => Math.max(max, row.sort_order ?? 0), 0) + 1;
+  const rows = existing ?? [];
+  const columnOf = (sortOrder: number) =>
+    ((sortOrder - 1) % MATRIX_WORDS_PER_LEVEL) + 1;
+
+  let slot: number;
+  if (column != null) {
+    if (column < 1 || column > MATRIX_WORDS_PER_LEVEL) {
+      return { error: "Column must be between 1 and 7" };
+    }
+    const inColumn = rows
+      .filter((row) => columnOf(row.sort_order ?? 0) === column)
+      .map((row) => row.sort_order ?? 0);
+    slot =
+      inColumn.length === 0
+        ? column
+        : Math.max(...inColumn) + MATRIX_WORDS_PER_LEVEL;
+  } else {
+    for (let col = 1; col <= MATRIX_WORDS_PER_LEVEL; col += 1) {
+      const inColumn = rows.filter((row) => columnOf(row.sort_order ?? 0) === col);
+      if (inColumn.length === 0) {
+        slot = col;
+        break;
+      }
+    }
+    slot ??=
+      rows.reduce((max, row) => Math.max(max, row.sort_order ?? 0), 0) + 1;
+  }
 
   const slug = trimmed.toLowerCase().replace(/\s+/g, "_");
 
@@ -246,7 +275,7 @@ export async function createMatrixWord(questionId: string, optionText: string) {
     question_id: questionId,
     option_text: trimmed,
     option_value: slug,
-    sort_order: nextSort,
+    sort_order: slot,
     is_active: true,
   });
 

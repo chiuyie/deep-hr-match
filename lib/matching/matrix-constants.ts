@@ -35,10 +35,7 @@ export function matchingFactorLabel(factorNumber: number): string {
 }
 
 /** Placeholder factor names — numbered factors only. */
-export const PLACEHOLDER_FACTOR_NAMES = Array.from(
-  { length: MATRIX_FACTOR_COUNT },
-  (_, index) => matchingFactorLabel(index + 1)
-) as readonly [
+export const PLACEHOLDER_FACTOR_NAMES = [
   "Matching Factor 1",
   "Matching Factor 2",
   "Matching Factor 3",
@@ -46,7 +43,7 @@ export const PLACEHOLDER_FACTOR_NAMES = Array.from(
   "Matching Factor 5",
   "Matching Factor 6",
   "Matching Factor 7",
-];
+] as const;
 
 /** Placeholder words for each word level (7 per level). */
 export const PLACEHOLDER_WORDS = [

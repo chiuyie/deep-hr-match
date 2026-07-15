@@ -1,6 +1,8 @@
 /** Proprietary matching framework — always display as 7^7 */
 export const FRAMEWORK = "7^7";
 export const FRAMEWORK_MATCHING_LANGUAGE = `${FRAMEWORK} Matching Language`;
+export const FRAMEWORK_MATCHING_LANGUAGE_FORM = `${FRAMEWORK} Matching Language Form`;
+export const FRAMEWORK_MATCHING_LANGUAGE_FORM_EDITOR = `${FRAMEWORK_MATCHING_LANGUAGE_FORM} Editor`;
 
 /** Brand palette from the Deep HR Match logo */
 export const BRAND_COLORS = {

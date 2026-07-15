@@ -10,6 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { employerProfileSchema, jobSchema } from "@/lib/validations/schemas";
+import { extractCustomFields, stripCustomEntries } from "@/lib/form-fields/parse-custom";
 import {
   formStateToJobPayload,
   parseJobFormState,
@@ -39,12 +40,14 @@ export async function saveEmployerProfile(formData: FormData): Promise<void> {
   const user = await requireRole("employer");
   const supabase = await createClient();
 
-  const parsed = employerProfileSchema.safeParse(Object.fromEntries(formData));
+  const parsed = employerProfileSchema.safeParse(stripCustomEntries(Object.fromEntries(formData)));
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message);
+
+  const custom_fields = extractCustomFields(formData);
 
   const { error } = await supabase
     .from("employer_profiles")
-    .update(parsed.data)
+    .update({ ...parsed.data, custom_fields })
     .eq("user_id", user.id);
 
   if (error) throw new Error(error.message);
