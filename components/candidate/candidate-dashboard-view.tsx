@@ -47,7 +47,7 @@ function getStatusStyles(status: string, isReady: boolean) {
   if (isReady) {
     return "border-emerald-200 bg-emerald-50 text-emerald-800";
   }
-  if (status === "submitted") {
+  if (status === "incomplete") {
     return "border-amber-200 bg-amber-50 text-amber-800";
   }
   return "border-slate-200 bg-slate-50 text-slate-700";

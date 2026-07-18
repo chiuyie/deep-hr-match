@@ -11,7 +11,7 @@ import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { UnlockedCandidateCard } from "@/components/employer/unlocked-candidate-card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { getUnlockedCandidateDetails } from "@/lib/auth/unlock";
+import { getUnlockedCandidateDetailsBatch } from "@/lib/auth/unlock";
 
 export default async function JobUnlockedPage({
   params,
@@ -47,19 +47,20 @@ export default async function JobUnlockedPage({
     .eq("job_id", jobId)
     .order("unlocked_at", { ascending: false });
 
-  const unlockedDetails = [];
-  for (const u of unlocks ?? []) {
-    try {
-      const details = await getUnlockedCandidateDetails(
-        employer!.id,
-        jobId,
-        u.candidate_id
-      );
-      unlockedDetails.push({ ...details, unlocked_at: u.unlocked_at });
-    } catch {
-      // skip if access denied
-    }
-  }
+  const unlockOrder = unlocks ?? [];
+  const details = await getUnlockedCandidateDetailsBatch(
+    employer!.id,
+    jobId,
+    unlockOrder.map((unlock) => unlock.candidate_id)
+  );
+  const detailsMap = new Map(details.map((item) => [item.candidateId, item]));
+  const unlockedDetails = unlockOrder
+    .map((unlock) => {
+      const detail = detailsMap.get(unlock.candidate_id);
+      if (!detail) return null;
+      return { ...detail, unlocked_at: unlock.unlocked_at };
+    })
+    .filter(Boolean);
 
   return (
     <>
@@ -105,6 +106,7 @@ export default async function JobUnlockedPage({
           {unlockedDetails.map(({ profile, cvDownloadUrl, matchResult, unlocked_at }) => (
             <UnlockedCandidateCard
               key={profile?.id}
+              candidateId={profile?.id}
               fullName={profile?.full_name}
               email={profile?.email}
               phone={profile?.phone}
@@ -114,6 +116,7 @@ export default async function JobUnlockedPage({
               isPlaceholder={matchResult?.is_placeholder}
               unlockedAt={unlocked_at}
               cvDownloadUrl={cvDownloadUrl}
+              jobId={jobId}
             />
           ))}
         </div>

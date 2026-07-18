@@ -1,5 +1,6 @@
 export type FormFieldAudience = "candidate" | "employer";
 export type FormFieldGroup = "profile" | "job";
+export type EmployerDisclosureMode = "always_visible" | "candidate_optional" | "admin_removed";
 export type FormFieldType =
   | "text"
   | "email"
@@ -23,6 +24,7 @@ export interface FormFieldDefinition {
   is_required: boolean;
   is_active: boolean;
   is_custom: boolean;
+  employer_disclosure_mode: EmployerDisclosureMode;
   sort_order: number;
 }
 

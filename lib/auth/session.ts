@@ -1,16 +1,37 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { User, UserRole } from "@/types/database";
 
-export async function getAuthUser() {
+async function loadCandidateProfile(userId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("candidate_profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+  return data;
+}
+
+async function loadEmployerProfile(userId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("employer_profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+  return data;
+}
+
+export const getAuthUser = cache(async function getAuthUser() {
   const supabase = await createClient();
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
   return authUser;
-}
+});
 
-export async function getCurrentUser(): Promise<User | null> {
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<User | null> {
   const supabase = await createClient();
   const authUser = await getAuthUser();
   if (!authUser) return null;
@@ -22,7 +43,7 @@ export async function getCurrentUser(): Promise<User | null> {
     .single();
 
   return data as User | null;
-}
+});
 
 export async function requireAuth() {
   const user = await getCurrentUser();
@@ -51,29 +72,17 @@ export function getDashboardPath(role: UserRole): string {
   }
 }
 
-export async function getCandidateProfile(userId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("candidate_profiles")
-    .select("*")
-    .eq("user_id", userId)
-    .single();
-  return data;
-}
+export const getCandidateProfile = cache(async function getCandidateProfile(userId: string) {
+  return loadCandidateProfile(userId);
+});
 
-export async function getEmployerProfile(userId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("employer_profiles")
-    .select("*")
-    .eq("user_id", userId)
-    .single();
-  return data;
-}
+export const getEmployerProfile = cache(async function getEmployerProfile(userId: string) {
+  return loadEmployerProfile(userId);
+});
 
 export async function ensureCandidateProfile(userId: string) {
   const supabase = await createClient();
-  const existing = await getCandidateProfile(userId);
+  const existing = await loadCandidateProfile(userId);
   if (existing) return existing;
 
   const user = await supabase.from("users").select("email").eq("id", userId).single();
@@ -89,7 +98,7 @@ export async function ensureCandidateProfile(userId: string) {
 
 export async function ensureEmployerProfile(userId: string) {
   const supabase = await createClient();
-  const existing = await getEmployerProfile(userId);
+  const existing = await loadEmployerProfile(userId);
   if (existing) return existing;
 
   const { data, error } = await supabase

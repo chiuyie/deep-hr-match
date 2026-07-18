@@ -86,6 +86,9 @@ export const formFieldSchema = z.object({
   is_required: z.boolean().default(false),
   is_active: z.boolean().default(true),
   is_custom: z.boolean().default(false),
+  employer_disclosure_mode: z
+    .enum(["always_visible", "candidate_optional", "admin_removed"])
+    .default("candidate_optional"),
   sort_order: z.coerce.number().default(0),
 });
 

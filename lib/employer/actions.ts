@@ -262,6 +262,10 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
 
   const amount = UNLOCK_PRICE_CENTS * candidateIds.length;
   const stripe = getStripe();
+  const successPath =
+    candidateIds.length === 1
+      ? `/employer/jobs/${jobId}/unlocked/${candidateIds[0]}?session_id={CHECKOUT_SESSION_ID}`
+      : `/employer/jobs/${jobId}/unlocked?session_id={CHECKOUT_SESSION_ID}`;
 
   const { data: payment, error: paymentError } = await supabase
     .from("payments")
@@ -301,9 +305,9 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
       payment_id: payment.id,
       employer_id: employerId,
       job_id: jobId,
-       candidate_ids: candidateIds.join(","),
+      candidate_ids: candidateIds.join(","),
     },
-    success_url: `${getAppUrl()}/employer/jobs/${jobId}/unlocked?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${getAppUrl()}${successPath}`,
     cancel_url: `${getAppUrl()}/employer/jobs/${jobId}/matching`,
   });
 

@@ -120,7 +120,11 @@ export function MatchingResultsTable({
                   <p className="mt-1 break-words text-sm text-slate-500">
                     {row.skills_overview.slice(0, 3).join(", ") || "—"}
                   </p>
-                  {!row.is_unlocked && (
+                  {row.is_unlocked ? (
+                    <Button variant="outline" size="sm" className="mt-4 rounded-lg" asChild>
+                      <Link href={`/employer/jobs/${jobId}/unlocked/${row.id}`}>View profile</Link>
+                    </Button>
+                  ) : (
                     <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-slate-700">
                       <Checkbox
                         checked={selected.includes(row.id)}
@@ -145,6 +149,7 @@ export function MatchingResultsTable({
                     <TableHead>Education</TableHead>
                     <TableHead>Skills Overview</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -188,6 +193,17 @@ export function MatchingResultsTable({
                           <Badge variant="secondary" className="gap-1">
                             <Lock className="h-3 w-3" /> Locked
                           </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.is_unlocked ? (
+                          <Button variant="outline" size="sm" className="rounded-lg" asChild>
+                            <Link href={`/employer/jobs/${jobId}/unlocked/${row.id}`}>
+                              View profile
+                            </Link>
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-slate-400">Unlock required</span>
                         )}
                       </TableCell>
                     </TableRow>

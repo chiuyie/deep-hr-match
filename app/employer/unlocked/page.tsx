@@ -3,7 +3,7 @@ import { Users } from "lucide-react";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { getUnlockedCandidateDetails } from "@/lib/auth/unlock";
+import { getUnlockedCandidateDetailsBatch } from "@/lib/auth/unlock";
 
 export default async function EmployerUnlockedPage() {
   const user = await requireRole("employer");
@@ -21,26 +21,29 @@ export default async function EmployerUnlockedPage() {
     .eq("employer_id", employer?.id ?? "")
     .order("unlocked_at", { ascending: false });
 
-  const items = [];
-  for (const u of unlocks ?? []) {
-    let name = "Candidate";
-    try {
-      const d = await getUnlockedCandidateDetails(
-        employer!.id,
-        u.job_id,
-        u.candidate_id
-      );
-      name = d.profile?.full_name ?? name;
-    } catch {
-      /* skip */
-    }
-    items.push({
-      id: u.id,
-      name,
-      jobTitle: (u.jobs as { title: string } | null)?.title ?? "Job",
-      jobId: u.job_id,
-    });
-  }
+  const unlockRows = unlocks ?? [];
+  const jobIds = Array.from(new Set(unlockRows.map((unlock) => unlock.job_id)));
+  const detailGroups = await Promise.all(
+    jobIds.map(async (jobId) => {
+      const jobCandidateIds = unlockRows
+        .filter((unlock) => unlock.job_id === jobId)
+        .map((unlock) => unlock.candidate_id);
+      const details = await getUnlockedCandidateDetailsBatch(employer!.id, jobId, jobCandidateIds);
+      return details.map((detail) => [`${jobId}:${detail.candidateId}`, detail] as const);
+    })
+  );
+  const detailMap = new Map(detailGroups.flat());
+
+  const items = unlockRows.map((unlock) => {
+    const detail = detailMap.get(`${unlock.job_id}:${unlock.candidate_id}`);
+    return {
+      id: unlock.id,
+      candidateId: unlock.candidate_id,
+      name: detail?.profile?.full_name ?? "Candidate",
+      jobTitle: (unlock.jobs as { title: string } | null)?.title ?? "Job",
+      jobId: unlock.job_id,
+    };
+  });
 
   return (
     <EmployerPageSection
@@ -63,7 +66,7 @@ export default async function EmployerUnlockedPage() {
           {items.map((item) => (
             <Link
               key={item.id}
-              href={`/employer/jobs/${item.jobId}/unlocked`}
+              href={`/employer/jobs/${item.jobId}/unlocked/${item.candidateId}`}
               className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50/50 px-5 py-4 transition-all hover:border-slate-200 hover:bg-white hover:shadow-md"
             >
               <div>

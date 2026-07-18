@@ -1,8 +1,9 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { assertSupabaseConfigured, getSupabaseEnv } from "@/lib/supabase/env";
 
-export async function createClient() {
+export const createClient = cache(async function createClient() {
   assertSupabaseConfigured();
 
   const { url, anonKey } = getSupabaseEnv();
@@ -28,9 +29,9 @@ export async function createClient() {
       },
     }
   );
-}
+});
 
-export async function createServiceClient() {
+export const createServiceClient = cache(async function createServiceClient() {
   assertSupabaseConfigured();
 
   const { url } = getSupabaseEnv();
@@ -44,4 +45,4 @@ export async function createServiceClient() {
 
   const { createClient } = await import("@supabase/supabase-js");
   return createClient(url!, serviceRoleKey);
-}
+});

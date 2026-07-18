@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Briefcase, MapPin, Pencil } from "lucide-react";
+import { JobMatchPreview } from "@/components/employer/job-match-preview";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +10,7 @@ import {
   EmployerPageSection,
 } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
-import { requireRole } from "@/lib/auth/session";
+import { anonymizeCandidateId, requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
   canEditJob,
@@ -21,7 +22,9 @@ import {
   countNewReadyCandidatesSince,
   getSnapshotGeneratedAt,
 } from "@/lib/matching/snapshot";
+import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
 import { formatDate } from "@/lib/utils/profile";
+import type { AnonymousCandidateMatch } from "@/types/database";
 
 export default async function JobViewPage({
   params,
@@ -90,6 +93,36 @@ export default async function JobViewPage({
 
   const editable = canEditJob(lifecycle);
   const lockReason = editBlockedReason(lifecycle);
+  const unlockedIds = await getUnlockedCandidateIds(employer!.id, id);
+
+  const { data: topMatches } = lifecycle.hasMatches
+    ? await supabase
+        .from("match_results")
+        .select(
+          "candidate_id, ranking_position, overall_score, is_placeholder, candidate_profiles(years_of_experience, highest_education, skills)"
+        )
+        .eq("job_id", id)
+        .order("ranking_position")
+        .limit(3)
+    : { data: [] };
+
+  const previewMatches: AnonymousCandidateMatch[] = (topMatches ?? []).map((row) => {
+    const candidate = Array.isArray(row.candidate_profiles)
+      ? row.candidate_profiles[0]
+      : row.candidate_profiles;
+
+    return {
+      id: row.candidate_id,
+      anonymous_id: anonymizeCandidateId(row.candidate_id),
+      ranking_position: row.ranking_position,
+      overall_score: Number(row.overall_score),
+      is_placeholder: Boolean(row.is_placeholder),
+      years_of_experience: candidate?.years_of_experience ?? null,
+      highest_education: candidate?.highest_education ?? null,
+      skills_overview: candidate?.skills ?? [],
+      is_unlocked: unlockedIds.includes(row.candidate_id),
+    };
+  });
 
   return (
     <>
@@ -165,6 +198,10 @@ export default async function JobViewPage({
           </div>
         )}
       </EmployerPageSection>
+
+      <div className="mt-6">
+        <JobMatchPreview jobId={id} results={previewMatches} />
+      </div>
     </>
   );
 }

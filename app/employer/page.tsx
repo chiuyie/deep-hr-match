@@ -68,22 +68,21 @@ export default async function EmployerDashboard() {
     .single();
 
   const employerId = profile?.id;
-
-  const { count: totalJobs } = await supabase
-    .from("jobs")
-    .select("*", { count: "exact", head: true })
-    .eq("employer_id", employerId ?? "");
-
-  const { count: unlockCount } = await supabase
-    .from("unlocks")
-    .select("*", { count: "exact", head: true })
-    .eq("employer_id", employerId ?? "");
-
-  const { data: payments } = await supabase
-    .from("payments")
-    .select("amount")
-    .eq("employer_id", employerId ?? "")
-    .eq("status", "paid");
+  const [{ count: totalJobs }, { count: unlockCount }, { data: payments }] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("employer_id", employerId ?? ""),
+    supabase
+      .from("unlocks")
+      .select("*", { count: "exact", head: true })
+      .eq("employer_id", employerId ?? ""),
+    supabase
+      .from("payments")
+      .select("amount")
+      .eq("employer_id", employerId ?? "")
+      .eq("status", "paid"),
+  ]);
 
   const totalSpent = payments?.reduce((sum, p) => sum + p.amount, 0) ?? 0;
   const displayName = user.name?.split(" ")[0] || profile?.contact_person_name?.split(" ")[0];

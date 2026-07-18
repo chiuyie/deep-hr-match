@@ -15,6 +15,7 @@ export function makeFormField(
     is_required: overrides.is_required ?? false,
     is_active: overrides.is_active ?? true,
     is_custom: overrides.is_custom ?? false,
+    employer_disclosure_mode: overrides.employer_disclosure_mode ?? "candidate_optional",
     sort_order: overrides.sort_order ?? 1,
   };
 }
