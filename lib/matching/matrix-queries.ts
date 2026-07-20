@@ -1,3 +1,10 @@
+/**
+ * PostgREST embed for matrix_categories → questions → options.
+ * After migration 009, disambiguate options FK (question_id vs parent_option_id).
+ */
+export const MATRIX_CATEGORY_TREE_SELECT =
+  "*, matrix_questions(*, matrix_options!matrix_options_question_id_fkey(*))";
+
 /** Single matrix tree in the product UI (Level 1–3 grid). Extra DB categories are ignored. */
 export function pickPrimaryMatrixCategory<T extends { sort_order: number; is_active?: boolean }>(
   categories: T[]
