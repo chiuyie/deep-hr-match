@@ -64,7 +64,8 @@ export default async function AdminUnlocksPage() {
               </TableCell>
               <TableCell className="whitespace-normal align-top">
                 {sessionId ? <AdminMonoId value={sessionId} /> : "—"}
-              </TableCell>              <TableCell className="text-slate-500">{formatDate(unlock.unlocked_at)}</TableCell>
+              </TableCell>
+              <TableCell className="text-slate-500">{formatDate(unlock.unlocked_at)}</TableCell>
             </TableRow>
           );
         })}
