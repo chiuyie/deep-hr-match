@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv, isSupabaseConfigured } from "@/lib/supabase/env";
+import { resolveAuthUser } from "@/lib/supabase/resolve-auth-user";
 
 function signInPathForRoute(pathname: string): string {
   if (pathname.startsWith("/admin")) return "/auth/admin/sign-in";
@@ -41,9 +42,7 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await resolveAuthUser(supabase);
 
   const isProtectedRoute =
     pathname.startsWith("/candidate") ||

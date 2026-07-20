@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAuthUser } from "@/lib/supabase/resolve-auth-user";
 import type { User, UserRole } from "@/types/database";
 
 async function loadCandidateProfile(userId: string) {
@@ -25,10 +26,7 @@ async function loadEmployerProfile(userId: string) {
 
 export const getAuthUser = cache(async function getAuthUser() {
   const supabase = await createClient();
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
-  return authUser;
+  return resolveAuthUser(supabase);
 });
 
 export const getCurrentUser = cache(async function getCurrentUser(): Promise<User | null> {
