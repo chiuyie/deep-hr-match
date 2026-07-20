@@ -30,6 +30,8 @@ import {
   UNLOCK_PRICE_CENTS,
 } from "@/lib/matching/engine";
 import { triggerMatchRun } from "@/lib/matching/trigger";
+import { fulfillUnlockPayment } from "@/lib/payments/fulfill-unlock";
+import { isMockPayments } from "@/lib/payments/mode";
 import { getStripe, getAppUrl } from "@/lib/stripe/client";
 
 async function getEmployerId(userId: string) {
@@ -277,11 +279,10 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
   }
 
   const amount = UNLOCK_PRICE_CENTS * candidateIds.length;
-  const stripe = getStripe();
   const successPath =
     candidateIds.length === 1
-      ? `/employer/jobs/${jobId}/unlocked/${candidateIds[0]}?session_id={CHECKOUT_SESSION_ID}`
-      : `/employer/jobs/${jobId}/unlocked?session_id={CHECKOUT_SESSION_ID}`;
+      ? `/employer/jobs/${jobId}/unlocked/${candidateIds[0]}`
+      : `/employer/jobs/${jobId}/unlocked`;
 
   const { data: payment, error: paymentError } = await supabase
     .from("payments")
@@ -301,6 +302,28 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
     return { error: paymentError?.message ?? "Failed to create payment" };
   }
 
+  // Mock path: no Stripe — mark paid + create unlocks immediately (UAT / local smoke).
+  if (isMockPayments()) {
+    const sessionId = `mock_${payment.id}`;
+    const fulfilled = await fulfillUnlockPayment(supabase, {
+      paymentId: payment.id,
+      employerId,
+      jobId,
+      candidateIds,
+      sessionId,
+    });
+    if (fulfilled.error) {
+      return { error: fulfilled.error };
+    }
+    revalidatePath(`/employer/jobs/${jobId}/matching`);
+    revalidatePath(`/employer/jobs/${jobId}/unlocked`);
+    revalidatePath("/employer/unlocked");
+    revalidatePath("/admin/payments");
+    revalidatePath("/admin/unlocks");
+    redirect(`${successPath}?session_id=${encodeURIComponent(sessionId)}&mock=1`);
+  }
+
+  const stripe = getStripe();
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
@@ -323,7 +346,7 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
       job_id: jobId,
       candidate_ids: candidateIds.join(","),
     },
-    success_url: `${getAppUrl()}${successPath}`,
+    success_url: `${getAppUrl()}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${getAppUrl()}/employer/jobs/${jobId}/matching`,
   });
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { fulfillUnlockPayment } from "@/lib/payments/fulfill-unlock";
 import { getStripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -32,27 +33,16 @@ export async function POST(request: NextRequest) {
 
     if (paymentId && employerId && jobId && candidateIds.length) {
       const supabase = await createServiceClient();
-
-      await supabase
-        .from("payments")
-        .update({
-          status: "paid",
-          paid_at: new Date().toISOString(),
-          stripe_session_id: session.id,
-        })
-        .eq("id", paymentId);
-
-      const unlockRecords = candidateIds.map((candidateId) => ({
-        employer_id: employerId,
-        job_id: jobId,
-        candidate_id: candidateId,
-        payment_id: paymentId,
-      }));
-
-      await supabase.from("unlocks").upsert(unlockRecords, {
-        onConflict: "employer_id,job_id,candidate_id",
-        ignoreDuplicates: true,
+      const result = await fulfillUnlockPayment(supabase, {
+        paymentId,
+        employerId,
+        jobId,
+        candidateIds,
+        sessionId: session.id,
       });
+      if (result.error) {
+        return NextResponse.json({ error: result.error }, { status: 500 });
+      }
     }
   }
 

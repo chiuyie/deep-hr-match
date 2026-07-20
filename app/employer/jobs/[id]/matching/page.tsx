@@ -18,6 +18,7 @@ import {
 } from "@/lib/employer/job-rules";
 import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
 import { MATCH_DISPLAY_LIMIT } from "@/lib/matching/engine";
+import { isMockPayments } from "@/lib/payments/mode";
 import {
   countNewReadyCandidatesSince,
   getSnapshotGeneratedAt,
@@ -189,6 +190,7 @@ export default async function JobMatchingPage({
         results={results}
         displayLimit={MATCH_DISPLAY_LIMIT}
         lastMatchedAt={lastMatchedAt}
+        mockPayments={isMockPayments()}
       />
     </>
   );

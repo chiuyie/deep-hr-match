@@ -4,8 +4,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
   Check,
-  Eye,
-  EyeOff,
   Pencil,
   Plus,
   Trash2,
@@ -31,7 +29,6 @@ import {
   deleteMatrixOption,
   deleteMatrixQuestion,
   saveMatrixOption,
-  toggleMatrixItem,
 } from "@/lib/admin/actions";
 import { cn } from "@/lib/utils";
 
@@ -248,50 +245,19 @@ function FactorSpreadsheet({
             Edit cells like Excel. Click <strong>Edit</strong> then <strong>Save</strong> on each
             change.
           </p>
-          <div className="flex flex-wrap items-center gap-2">
-            {rootQuestions.length === 0 && canAddRootLevel && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-xs"
-                disabled={pending}
-                onClick={onAddRootWordLevel}
-              >
-                <Plus className="mr-1 h-3 w-3" />
-                Add Level 1 words
-              </Button>
-            )}
+          {rootQuestions.length === 0 && canAddRootLevel && (
             <Button
               size="sm"
               variant="outline"
+              className="h-8 text-xs"
               disabled={pending}
-              onClick={() =>
-                onRunAction(
-                  () =>
-                    toggleMatrixItem("matrix_categories", category.id, !category.is_active),
-                  category.is_active ? "Form hidden from users" : "Form shown to users"
-                )
-              }
+              onClick={onAddRootWordLevel}
             >
-              {category.is_active ? (
-                <>
-                  <EyeOff className="mr-1.5 h-3.5 w-3.5" />
-                  Hide from forms
-                </>
-              ) : (
-                <>
-                  <Eye className="mr-1.5 h-3.5 w-3.5" />
-                  Show on forms
-                </>
-              )}
+              <Plus className="mr-1 h-3 w-3" />
+              Add Level 1 words
             </Button>
-          </div>
+          )}
         </div>
-        {!category.is_active && (
-          <p className="text-sm text-amber-700">
-            Hidden — candidates and employers will not see this form.
-          </p>
-        )}
       </CardHeader>
 
       <CardContent className="p-3 sm:p-4">

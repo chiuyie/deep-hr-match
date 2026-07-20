@@ -1,6 +1,18 @@
 # Payments
 
-Deep HR Match uses **Stripe Checkout** (test mode) for candidate profile unlocks.
+Deep HR Match supports two unlock payment modes via `PAYMENTS_MODE`:
+
+| Mode | When | Behavior |
+|------|------|----------|
+| **`mock`** (default) | Local / UAT smoke | Unlock instantly — creates `payments` (paid) + `unlocks` with no Stripe |
+| **`stripe`** | Real Checkout | Stripe Checkout + webhook at `/api/stripe/webhook` |
+
+Set in `.env.local` / Vercel:
+
+```bash
+PAYMENTS_MODE=mock    # default if unset
+# PAYMENTS_MODE=stripe
+```
 
 ## Business Model
 
@@ -8,7 +20,7 @@ Deep HR Match uses **Stripe Checkout** (test mode) for candidate profile unlocks
 |--------|------|
 | Job posting | Free |
 | Matching generation / refresh | Free (top-25 snapshot) |
-| Unlock candidate profile | **$49.00 USD** per candidate |
+| Unlock candidate profile | **$49.00 USD** per candidate (recorded even in mock mode) |
 
 Constants in `lib/matching/engine.ts`:
 
@@ -17,7 +29,23 @@ UNLOCK_PRICE_CENTS = 4900
 UNLOCK_CURRENCY = "usd"
 ```
 
-## Checkout Flow
+## Mock unlock flow
+
+```
+Employer selects candidates on matching page
+        ↓
+createUnlockCheckout(jobId, candidateIds[])
+        ↓
+INSERT payments (status: pending)
+        ↓
+fulfillUnlockPayment() → paid + unlocks rows
+        ↓
+Redirect to /employer/jobs/{jobId}/unlocked…?mock=1
+```
+
+Shared fulfill helper: `lib/payments/fulfill-unlock.ts` (also used by the Stripe webhook).
+
+## Stripe checkout flow
 
 ```
 Employer selects candidates on matching page
@@ -34,8 +62,7 @@ Payment succeeds
         ↓
 POST /api/stripe/webhook (checkout.session.completed)
         ↓
-UPDATE payments → paid
-INSERT unlocks (one per candidate)
+fulfillUnlockPayment() → paid + unlocks
         ↓
 Redirect to /employer/jobs/{jobId}/unlocked?session_id=...
 ```

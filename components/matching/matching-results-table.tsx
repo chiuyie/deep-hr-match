@@ -25,6 +25,7 @@ interface MatchingResultsTableProps {
   results: AnonymousCandidateMatch[];
   displayLimit?: number;
   lastMatchedAt?: string | null;
+  mockPayments?: boolean;
 }
 
 export function MatchingResultsTable({
@@ -32,6 +33,7 @@ export function MatchingResultsTable({
   results,
   displayLimit,
   lastMatchedAt,
+  mockPayments = false,
 }: MatchingResultsTableProps) {
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,8 +48,11 @@ export function MatchingResultsTable({
 
   async function handleUnlock() {
     setLoading(true);
-    await createUnlockCheckout(jobId, selected);
-    setLoading(false);
+    try {
+      await createUnlockCheckout(jobId, selected);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -56,6 +61,14 @@ export function MatchingResultsTable({
         All scores shown are <strong>DEMO / Placeholder</strong> only. Final matching
         algorithm pending confirmation.
       </div>
+
+      {mockPayments ? (
+        <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-950 shadow-sm">
+          <strong>Mock payments</strong> are on — unlock creates a paid payment + unlock rows
+          instantly (no Stripe). Set <code className="rounded bg-sky-100 px-1">PAYMENTS_MODE=stripe</code>{" "}
+          when you are ready for real Checkout.
+        </div>
+      ) : null}
 
       <EmployerPageSection
         title="Ranked Candidates"
@@ -73,7 +86,9 @@ export function MatchingResultsTable({
               disabled={loading}
               onClick={handleUnlock}
             >
-              Unlock {selected.length} ({formatCurrency(total)})
+              {mockPayments
+                ? `Unlock ${selected.length} (mock)`
+                : `Unlock ${selected.length} (${formatCurrency(total)})`}
             </Button>
           ) : undefined
         }
@@ -215,8 +230,10 @@ export function MatchingResultsTable({
             {displayLimit && results.length > 0 && (
               <p className="mt-4 text-xs text-slate-500">
                 Showing top {results.length} match{results.length === 1 ? "" : "es"}
-                {lastMatchedAt ? " from snapshot" : ""}. Matching generation is free; unlock
-                profiles for {formatCurrency(UNLOCK_PRICE_CENTS)} each.
+                {lastMatchedAt ? " from snapshot" : ""}. Matching generation is free
+                {mockPayments
+                  ? "; unlocks use mock payments (no Stripe charge)."
+                  : `; unlock profiles for ${formatCurrency(UNLOCK_PRICE_CENTS)} each.`}
               </p>
             )}
           </>
