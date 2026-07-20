@@ -82,14 +82,20 @@ function employerJobFields(): DefaultFormFieldInput[] {
   push("job-identification", "job_title", "Job Title", { is_required: true });
   push("job-identification", "job_id", "Job ID");
   push("job-identification", "created_by_representative", "Created By Representative");
-  push("job-description", "job_description", "Job Description", { field_type: "textarea", is_required: true });
+  push("job-identification", "job_description", "Job Description", { field_type: "textarea", is_required: true });
   push("job-details", "working_hours", "Working Hours");
   push("job-details", "team_size", "Team Size");
   push("job-details", "importance_level", "Importance Level");
   push("job-details", "travel_needs", "Travel Needs");
   push("job-details", "reporting_to", "Reporting To");
   push("job-details", "additional_notes", "Additional Notes", { field_type: "textarea" });
-  push("benefits-package", "benefits_package", "Benefits Package", { field_type: "checkbox" });
+  push("compensation", "desired_minimum_salary", "Minimum Salary Budget (SGD)", {
+    field_type: "number",
+  });
+  push("compensation", "desired_maximum_salary", "Maximum Salary Budget (SGD)", {
+    field_type: "number",
+  });
+  push("compensation", "benefits_package", "Benefits Package", { field_type: "checkbox" });
 
   for (const field of JOB_ELIMINATION_FIELDS) {
     push("basic-information", field.name, field.label, {

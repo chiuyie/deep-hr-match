@@ -45,7 +45,7 @@ export const employerProfileSchema = z.object({
 
 export const jobSchema = z.object({
   job_title: z.string().min(1, "Job title is required"),
-  job_description: z.string().optional(),
+  job_description: z.string().min(1, "Job description is required"),
 });
 
 export const matrixCategorySchema = z.object({

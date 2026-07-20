@@ -11,6 +11,7 @@ interface JobFormSectionProps {
   gradient: string;
   children: ReactNode;
   className?: string;
+  hideHeader?: boolean;
 }
 
 export function JobFormSection({
@@ -21,6 +22,7 @@ export function JobFormSection({
   gradient,
   children,
   className,
+  hideHeader,
 }: JobFormSectionProps) {
   return (
     <div
@@ -30,13 +32,15 @@ export function JobFormSection({
         className
       )}
     >
-      <div className="mb-8 flex items-start gap-4">
-        <div className={cn("rounded-xl bg-gradient-to-br p-3 shadow-lg", gradient)}>{icon}</div>
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-          {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+      {!hideHeader && (
+        <div className="mb-8 flex items-start gap-4">
+          <div className={cn("rounded-xl bg-gradient-to-br p-3 shadow-lg", gradient)}>{icon}</div>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
+            {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+          </div>
         </div>
-      </div>
+      )}
       {children}
     </div>
   );
@@ -49,6 +53,11 @@ interface JobTextFieldProps {
   placeholder?: string;
   required?: boolean;
   icon?: ReactNode;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  type?: "text" | "tel" | "url" | "email";
+  maxLength?: number;
+  pattern?: string;
+  hint?: string;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -59,6 +68,11 @@ export function JobTextField({
   placeholder,
   required,
   icon,
+  inputMode,
+  type = "text",
+  maxLength,
+  pattern,
+  hint,
   onChange,
 }: JobTextFieldProps) {
   return (
@@ -74,12 +88,15 @@ export function JobTextField({
           </div>
         )}
         <input
-          type="text"
+          type={type}
           id={name}
           name={name}
           value={value ?? ""}
           placeholder={placeholder}
           required={required}
+          inputMode={inputMode}
+          maxLength={maxLength}
+          pattern={pattern}
           onChange={onChange}
           className={cn(
             "mt-1 block w-full rounded-xl border border-slate-200 bg-white py-2.5 shadow-sm placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm",
@@ -87,7 +104,31 @@ export function JobTextField({
           )}
         />
       </div>
+      {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
     </div>
+  );
+}
+
+export function JobMoneyField({
+  label,
+  name,
+  value,
+  placeholder,
+  hint,
+  onChange,
+}: Omit<JobTextFieldProps, "icon" | "type" | "inputMode">) {
+  return (
+    <JobTextField
+      label={label}
+      name={name}
+      value={value}
+      placeholder={placeholder}
+      hint={hint ?? "Numbers only — monthly amount in SGD."}
+      inputMode="numeric"
+      pattern="[0-9]*"
+      maxLength={8}
+      onChange={onChange}
+    />
   );
 }
 
@@ -161,9 +202,11 @@ export function JobSelectField({
         onChange={onChange}
         className="mt-1 block w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm"
       >
-        <option value="" disabled>
-          {placeholder}
-        </option>
+        {!value && (
+          <option value="" disabled>
+            {placeholder}
+          </option>
+        )}
         {options.map((option) => (
           <option key={option} value={option}>
             {option}
@@ -203,6 +246,59 @@ export function JobYesNoField({ label, name, value, icon, onChange }: JobYesNoFi
               />
               <span className="text-sm text-slate-600 transition-colors group-hover:text-slate-800">
                 {option === "true" ? "Yes" : "No"}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface JobFaqFieldProps {
+  label: string;
+  name: string;
+  value?: boolean;
+  icon?: ReactNode;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+export function JobFaqField({ label, name, value, icon, onChange }: JobFaqFieldProps) {
+  const selected =
+    value === true ? "true" : value === false ? "false" : "unspecified";
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 transition-all duration-200 hover:shadow-md">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          {icon && <div className="text-slate-400">{icon}</div>}
+          <span id={`${name}-label`} className="text-sm font-semibold text-slate-700">
+            {label}
+          </span>
+        </div>
+        <div
+          className="flex flex-wrap items-center gap-3"
+          role="radiogroup"
+          aria-labelledby={`${name}-label`}
+        >
+          {(
+            [
+              { value: "unspecified", label: "Not specified" },
+              { value: "true", label: "Yes" },
+              { value: "false", label: "No" },
+            ] as const
+          ).map((option) => (
+            <label key={option.value} className="group flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name={name}
+                value={option.value}
+                checked={selected === option.value}
+                onChange={onChange}
+                className="h-4 w-4 cursor-pointer rounded-full border-slate-300 text-primary focus:ring-primary"
+              />
+              <span className="text-sm text-slate-600 transition-colors group-hover:text-slate-800">
+                {option.label}
               </span>
             </label>
           ))}

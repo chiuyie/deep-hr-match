@@ -89,8 +89,11 @@ describe("employerProfileSchema", () => {
 });
 
 describe("jobSchema", () => {
-  it("requires job title", () => {
+  it("requires job title and description", () => {
     expect(jobSchema.safeParse({ job_title: "" }).success).toBe(false);
-    expect(jobSchema.safeParse({ job_title: "Engineer" }).success).toBe(true);
+    expect(jobSchema.safeParse({ job_title: "Engineer" }).success).toBe(false);
+    expect(
+      jobSchema.safeParse({ job_title: "Engineer", job_description: "Build features" }).success
+    ).toBe(true);
   });
 });

@@ -1,5 +1,6 @@
 import type { Job, JobStatus } from "@/types/database";
 import { parseCommaList } from "@/lib/utils/profile";
+import { buildSalaryRangeLabel } from "@/lib/utils/job-form-input";
 
 export function flattenMultilevelOptions(data: unknown): string[] {
   const results: string[] = [];
@@ -176,6 +177,11 @@ export function formStateToJobPayload(state: JobFormState) {
       ? statusValue
       : "active";
   delete form_data.status;
+
+  const salaryRange = buildSalaryRangeLabel(rest);
+  if (salaryRange) {
+    legacyColumns.salary_range = salaryRange;
+  }
 
   return {
     title: String(job_title ?? "").trim(),

@@ -1,85 +1,192 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import {
-  Briefcase,
-  Car,
-  ClipboardList,
-  Clock,
-  FileText,
-  Gift,
-  Heart,
-  HelpCircle,
-  Loader2,
-  MapPin,
-  Plane,
-  Shield,
-  Sparkles,
-  Star,
-  User,
-  Users,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { JobCreationSectionNav } from "./job-creation-section-nav";
 import { JobCreationStepNav } from "./job-creation-step-nav";
+import { JobCreationProgressHeader } from "./job-creation-progress-header";
+import { JobCreationFormSectionBody } from "./job-creation-form-sections";
+import { groupPreferredFields, getPreferredCategoryGuidance, JOB_FORM_SECTIONS } from "@/lib/constants/job-form";
 import {
-  JobFormSection,
-  JobSearchSelectField,
-  JobSelectField,
-  JobTextField,
-  JobTextareaField,
-  JobYesNoField,
-} from "./job-form-fields";
+  clearJobCreationDraft,
+  isEditingExistingJob,
+  mergeJobFormInitialValues,
+  readJobCreationDraft,
+  writeJobCreationDraft,
+} from "@/lib/utils/job-form-defaults";
 import {
-  groupPreferredFields,
-  JOB_BACKGROUND_QUESTIONS,
-  JOB_BENEFIT_OPTIONS,
-  JOB_ELIMINATION_FIELDS,
-} from "@/lib/constants/job-form";
-import jobFormDomains from "@/lib/constants/job-form-data/domains.json";
-import jobFormFunctions from "@/lib/constants/job-form-data/functions.json";
-import jobFormRoles from "@/lib/constants/job-form-data/roles.json";
-import jobFormStructuralSkills from "@/lib/constants/job-form-data/structural-skills.json";
-import { flattenMultilevelOptions, type JobFormState } from "@/lib/utils/job-form";
+  findSectionIndexForField,
+  getJobFormSectionsProgress,
+  getPreferredCategoryFieldKeys,
+  getSectionFillStats,
+  validateJobFormForSubmit,
+  validateJobFormSection,
+} from "@/lib/utils/job-form-progress";
+import {
+  isJobIntegerField,
+  isJobMoneyField,
+  sanitizeIntegerInput,
+  sanitizeJobReferenceInput,
+  sanitizeMoneyInput,
+} from "@/lib/utils/job-form-input";
+import type { JobFormState } from "@/lib/utils/job-form";
 import { cn } from "@/lib/utils";
-
-const multilevelOptions = {
-  roles: flattenMultilevelOptions(jobFormRoles),
-  domains: flattenMultilevelOptions(jobFormDomains),
-  functions: flattenMultilevelOptions(jobFormFunctions),
-  structuralSkills: flattenMultilevelOptions(jobFormStructuralSkills),
-};
 
 interface JobCreationFormProps {
   initialValues?: JobFormState;
   submitLabel?: string;
   action: (formData: FormData) => Promise<void>;
+  persistDraft?: boolean;
+}
+
+function scrollDashboardToTop() {
+  const scrollContainer = document.getElementById("dashboard-main");
+  if (scrollContainer) {
+    scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+  } else {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 }
 
 export function JobCreationForm({
   initialValues = {},
   submitLabel = "Save Job",
   action,
+  persistDraft = true,
 }: JobCreationFormProps) {
-  const [values, setValues] = useState<JobFormState>(initialValues);
-  const [pending, startTransition] = useTransition();
+  const editingExisting = isEditingExistingJob(initialValues);
   const preferredGroups = useMemo(() => groupPreferredFields(), []);
+  const preferredCategoryCount = preferredGroups.length;
+
+  const [values, setValues] = useState<JobFormState>(() => {
+    const base = mergeJobFormInitialValues(initialValues);
+    if (persistDraft && !editingExisting) {
+      const draft = readJobCreationDraft();
+      if (draft) return mergeJobFormInitialValues({ ...base, ...draft });
+    }
+    return base;
+  });
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [preferredCategoryIndex, setPreferredCategoryIndex] = useState(0);
+  const [visitedThroughIndex, setVisitedThroughIndex] = useState(0);
+  const [sectionError, setSectionError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const dirtyRef = useRef(false);
+
+  const sectionCount = JOB_FORM_SECTIONS.length;
+  const currentSection = JOB_FORM_SECTIONS[currentSectionIndex];
+  const isPreferredSection = currentSection.id === "preferred-selection-by-the-employer";
+  const isFirstSection = currentSectionIndex === 0 && preferredCategoryIndex === 0;
+  const isLastPreferredCategory =
+    isPreferredSection && preferredCategoryIndex >= preferredCategoryCount - 1;
+  const isLastSection = currentSectionIndex === sectionCount - 1 && isLastPreferredCategory;
+
+  const sectionsProgress = useMemo(
+    () => getJobFormSectionsProgress(values, visitedThroughIndex),
+    [values, visitedThroughIndex]
+  );
+
+  const sectionFieldKeys = useMemo(() => {
+    if (isPreferredSection && preferredGroups[preferredCategoryIndex]) {
+      return getPreferredCategoryFieldKeys(preferredGroups[preferredCategoryIndex][0]);
+    }
+    return undefined;
+  }, [isPreferredSection, preferredCategoryIndex, preferredGroups]);
+
+  const sectionStats = useMemo(
+    () => getSectionFillStats(values, currentSection.id, sectionFieldKeys),
+    [values, currentSection.id, sectionFieldKeys]
+  );
+
+  const markDirty = () => {
+    dirtyRef.current = true;
+    setIsDirty(true);
+  };
+
+  const goToSection = useCallback(
+    (index: number, preferredIndex = 0) => {
+      const next = Math.max(0, Math.min(sectionCount - 1, index));
+      setCurrentSectionIndex(next);
+      setPreferredCategoryIndex(
+        JOB_FORM_SECTIONS[next].id === "preferred-selection-by-the-employer"
+          ? Math.max(0, Math.min(preferredCategoryCount - 1, preferredIndex))
+          : 0
+      );
+      setSectionError(null);
+      scrollDashboardToTop();
+    },
+    [preferredCategoryCount, sectionCount]
+  );
+
+  useEffect(() => {
+    setVisitedThroughIndex((prev) => Math.max(prev, currentSectionIndex));
+  }, [currentSectionIndex]);
+
+  useEffect(() => {
+    if (!persistDraft || editingExisting) return;
+    const timer = window.setTimeout(() => {
+      writeJobCreationDraft(values);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [values, persistDraft, editingExisting]);
+
+  useEffect(() => {
+    if (!persistDraft || editingExisting) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirtyRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [persistDraft, editingExisting]);
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
+    markDirty();
     const { name, value, type } = event.target;
+    setSectionError(null);
+
+    if (name.startsWith("faq_") && type === "radio") {
+      setValues((current) => {
+        const next = { ...current };
+        if (value === "unspecified") {
+          delete next[name];
+        } else {
+          next[name] = value === "true";
+        }
+        return next;
+      });
+      return;
+    }
+
     setValues((current) => ({
       ...current,
-      [name]: type === "radio" ? value === "true" : value,
+      [name]:
+        type === "radio"
+          ? value === "true"
+          : name === "job_id"
+            ? sanitizeJobReferenceInput(value)
+            : isJobMoneyField(name)
+              ? sanitizeMoneyInput(value)
+              : isJobIntegerField(name)
+                ? sanitizeIntegerInput(value)
+                : value,
     }));
   };
 
   const handleSearchChange = (event: { target: { name: string; value: string } }) => {
+    markDirty();
     const { name, value } = event.target;
+    setSectionError(null);
     setValues((current) => ({ ...current, [name]: value }));
   };
 
   const toggleBenefit = (benefit: string) => {
+    markDirty();
+    setSectionError(null);
     setValues((current) => {
       const selected = Array.isArray(current.benefits_package) ? current.benefits_package : [];
       const next = selected.includes(benefit)
@@ -89,331 +196,204 @@ export function JobCreationForm({
     });
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-
+  const buildFormData = (form: HTMLFormElement) => {
+    const formData = new FormData(form);
     for (const [key, value] of Object.entries(values)) {
       if (key === "benefits_package" && Array.isArray(value)) {
+        formData.delete("benefits_package");
         value.forEach((benefit) => formData.append("benefits_package", benefit));
         continue;
       }
-
       if (typeof value === "boolean") {
         formData.set(key, String(value));
       } else if (typeof value === "string") {
         formData.set(key, value);
       }
     }
+    return formData;
+  };
 
+  const focusField = (fieldName?: string) => {
+    if (!fieldName) return;
+    const element =
+      document.getElementById(fieldName) ??
+      document.querySelector<HTMLElement>(`[name="${fieldName}"]`);
+    element?.focus();
+    element?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const handleNext = () => {
+    const validation = validateJobFormSection(values, currentSection.id);
+    if (validation.ok === false) {
+      setSectionError(validation.message);
+      focusField(validation.focusField);
+      return;
+    }
+
+    if (isPreferredSection && !isLastPreferredCategory) {
+      setPreferredCategoryIndex((index) => index + 1);
+      setSectionError(null);
+      scrollDashboardToTop();
+      return;
+    }
+
+    goToSection(currentSectionIndex + 1);
+  };
+
+  const handleBack = () => {
+    if (isPreferredSection && preferredCategoryIndex > 0) {
+      setPreferredCategoryIndex((index) => index - 1);
+      setSectionError(null);
+      scrollDashboardToTop();
+      return;
+    }
+    goToSection(currentSectionIndex - 1);
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const validation = validateJobFormForSubmit(values);
+    if (validation.ok === false) {
+      setSectionError(validation.message);
+      goToSection(findSectionIndexForField(validation.focusField));
+      queueMicrotask(() => focusField(validation.focusField));
+      return;
+    }
+
+    const formData = buildFormData(event.currentTarget);
     startTransition(async () => {
       await action(formData);
+      if (persistDraft && !editingExisting) {
+        clearJobCreationDraft();
+      }
+      dirtyRef.current = false;
+      setIsDirty(false);
     });
   };
 
-  const selectedBenefits = Array.isArray(values.benefits_package) ? values.benefits_package : [];
+  const preferredPartLabel =
+    isPreferredSection && preferredGroups[preferredCategoryIndex]
+      ? (() => {
+          const category = preferredGroups[preferredCategoryIndex][0];
+          const guidance = getPreferredCategoryGuidance(category);
+          return `${guidance?.shortTitle ?? category} (${preferredCategoryIndex + 1}/${preferredCategoryCount})`;
+        })()
+      : undefined;
 
   return (
     <>
-      <JobCreationStepNav currentStep="job" />
+      <JobCreationStepNav
+        currentStep="job"
+        jobFormProgress={sectionsProgress.percent}
+        warnBeforeLeave={isDirty && persistDraft && !editingExisting}
+      />
+
+      {persistDraft && !editingExisting && (
+        <p className="mb-4 text-xs text-slate-500">
+          Your answers are saved automatically on this device while you work.
+        </p>
+      )}
 
       <div className="flex flex-col lg:flex-row lg:gap-x-8">
-        <aside className="mb-8 lg:mb-0 lg:w-80 lg:shrink-0">
-          <div className="sticky top-0 z-10">
-            <JobCreationSectionNav />
+        <aside className="mb-6 lg:mb-0 lg:w-80 lg:shrink-0">
+          <div className="lg:sticky lg:top-24">
+            <JobCreationSectionNav
+              currentSectionIndex={currentSectionIndex}
+              visitedThroughIndex={visitedThroughIndex}
+              values={values}
+              onSectionSelect={(index) => goToSection(index, 0)}
+            />
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 lg:pl-4">
+        <main className="min-w-0 flex-1 lg:pl-2">
+          <JobCreationProgressHeader
+            sectionIndex={currentSectionIndex}
+            sectionFillPercent={sectionStats.percent}
+            sectionFilled={sectionStats.filled}
+            sectionTotal={sectionStats.total}
+            sectionsCompleted={sectionsProgress.completed}
+            sectionCount={sectionsProgress.total}
+            preferredPartLabel={preferredPartLabel}
+          />
+
           <form onSubmit={handleSubmit} className="space-y-0">
-              <JobFormSection
-                id="job-identification"
-                title="Job Identification"
-                description="Basic reference and setup details for this specific role"
-                gradient="from-cyan-500 to-cyan-600"
-                icon={<Briefcase className="h-6 w-6 text-white" />}
-              >
-                <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <JobTextField
-                      label="Job Title"
-                      name="job_title"
-                      placeholder="Enter job title"
-                      value={String(values.job_title ?? "")}
-                      required
-                      icon={<Briefcase className="h-5 w-5 text-slate-400" />}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <JobTextField
-                    label="Job ID (Reference Number)"
-                    name="job_id"
-                    placeholder="e.g. JOB-101"
-                    value={String(values.job_id ?? "")}
-                    icon={<FileText className="h-5 w-5 text-slate-400" />}
-                    onChange={handleChange}
-                  />
-                  <JobTextField
-                    label="Representative Name"
-                    name="created_by_representative"
-                    placeholder="Who created this posting?"
-                    value={String(values.created_by_representative ?? "")}
-                    icon={<User className="h-5 w-5 text-slate-400" />}
-                    onChange={handleChange}
-                  />
-                </div>
-              </JobFormSection>
+            <div
+              key={`${currentSection.id}-${preferredCategoryIndex}`}
+              className="animate-in fade-in slide-in-from-right-4 duration-300"
+            >
+              <JobCreationFormSectionBody
+                sectionId={currentSection.id}
+                values={values}
+                preferredCategoryIndex={preferredCategoryIndex}
+                onChange={handleChange}
+                onSearchChange={handleSearchChange}
+                onToggleBenefit={toggleBenefit}
+              />
+            </div>
 
-              <JobFormSection
-                id="job-description"
-                title="Job Description Overview"
-                description="Provide the job description details."
-                gradient="from-blue-500 to-blue-600"
-                icon={<FileText className="h-6 w-6 text-white" />}
+            {sectionError && (
+              <div
+                role="alert"
+                className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
               >
-                <JobTextareaField
-                  label="What does the job description entail?"
-                  name="job_description"
-                  placeholder="Enter job description"
-                  value={String(values.job_description ?? "")}
-                  required
-                  onChange={handleChange}
-                />
-              </JobFormSection>
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{sectionError}</span>
+              </div>
+            )}
 
-              <JobFormSection
-                id="job-details"
-                title="Job Details"
-                description="Core details about the specific job position"
-                gradient="from-indigo-500 to-indigo-600"
-                icon={<Briefcase className="h-6 w-6 text-white" />}
-              >
-                <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-                  <JobTextField
-                    label="How long are the working hours?"
-                    name="working_hours"
-                    placeholder="e.g., 9am - 5pm"
-                    value={String(values.working_hours ?? "")}
-                    icon={<Clock className="h-5 w-5 text-slate-400" />}
-                    onChange={handleChange}
-                  />
-                  <JobTextField
-                    label="What is the team size?"
-                    name="team_size"
-                    placeholder="Enter team size"
-                    value={String(values.team_size ?? "")}
-                    icon={<Users className="h-5 w-5 text-slate-400" />}
-                    onChange={handleChange}
-                  />
-                  <JobTextField
-                    label="What is the importance level of this role?"
-                    name="importance_level"
-                    placeholder="e.g., High, Medium, Low"
-                    value={String(values.importance_level ?? "")}
-                    icon={<Star className="h-5 w-5 text-slate-400" />}
-                    onChange={handleChange}
-                  />
-                  <JobTextField
-                    label="Is there travel required? If so, how often?"
-                    name="travel_needs"
-                    placeholder="e.g., Occasional, Frequent, None"
-                    value={String(values.travel_needs ?? "")}
-                    icon={<Plane className="h-5 w-5 text-slate-400" />}
-                    onChange={handleChange}
-                  />
-                  <div className="md:col-span-2">
-                    <JobTextField
-                      label="Title of the person you report to"
-                      name="reporting_to"
-                      placeholder="Enter reporting manager"
-                      value={String(values.reporting_to ?? "")}
-                      icon={<User className="h-5 w-5 text-slate-400" />}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <JobTextareaField
-                      label="Information"
-                      name="additional_notes"
-                      placeholder="Enter any additional information or notes"
-                      value={String(values.additional_notes ?? "")}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-              </JobFormSection>
-
-              <JobFormSection
-                id="benefits-package"
-                title="Benefits Package"
-                description="Select the benefits included with this role"
-                gradient="from-emerald-500 to-emerald-600"
-                icon={<Gift className="h-6 w-6 text-white" />}
-              >
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                  {JOB_BENEFIT_OPTIONS.map((benefit) => {
-                    const selected = selectedBenefits.includes(benefit);
-                    return (
-                      <label
-                        key={benefit}
-                        className={cn(
-                          "flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-all duration-200",
-                          selected
-                            ? "border-emerald-500 bg-emerald-50"
-                            : "border-slate-200 bg-white hover:border-emerald-200"
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={() => toggleBenefit(benefit)}
-                          className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <span
-                          className={cn(
-                            "text-sm font-medium",
-                            selected ? "text-emerald-700" : "text-slate-600"
-                          )}
-                        >
-                          {benefit}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </JobFormSection>
-
-              <JobFormSection
-                id="basic-information"
-                title="Basic Information"
-                description="Elimination fields will eliminate candidates - if a candidate doesn't have the criteria, the candidate will not be shown to the employer"
-                gradient="from-purple-500 to-purple-600"
-                icon={<ClipboardList className="h-6 w-6 text-white" />}
-              >
-                <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-                  {JOB_ELIMINATION_FIELDS.map((field) => (
-                    <JobSelectField
-                      key={field.name}
-                      label={field.label}
-                      name={field.name}
-                      placeholder={field.placeholder}
-                      options={field.options}
-                      value={String(values[field.name] ?? "")}
-                      onChange={handleChange}
-                    />
-                  ))}
-                  <div className="md:col-span-2">
-                    <JobTextareaField
-                      label="What are the language needs?"
-                      name="language_needs"
-                      placeholder="Enter language needs (e.g., English, Mandarin, Malay)"
-                      value={String(values.language_needs ?? "")}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-              </JobFormSection>
-
-              <JobFormSection
-                id="background-information-questions"
-                title="Background Information Questions"
-                description="Common yes/no questions about work preferences"
-                gradient="from-green-500 to-green-600"
-                icon={<HelpCircle className="h-6 w-6 text-white" />}
-              >
-                <div className="grid grid-cols-1 gap-4">
-                  {JOB_BACKGROUND_QUESTIONS.map((question) => (
-                    <JobYesNoField
-                      key={question.name}
-                      label={question.label}
-                      name={question.name}
-                      value={
-                        typeof values[question.name] === "boolean"
-                          ? (values[question.name] as boolean)
-                          : undefined
-                      }
-                      icon={
-                        question.name === "faq_work_life_balance" ? (
-                          <Heart className="h-5 w-5" />
-                        ) : question.name.includes("driving") || question.name.includes("car") ? (
-                          <Car className="h-5 w-5" />
-                        ) : question.name.includes("overtime") ? (
-                          <Clock className="h-5 w-5" />
-                        ) : question.name.includes("disability") ? (
-                          <Heart className="h-5 w-5" />
-                        ) : question.name.includes("relocate") ? (
-                          <MapPin className="h-5 w-5" />
-                        ) : (
-                          <Shield className="h-5 w-5" />
-                        )
-                      }
-                      onChange={handleChange}
-                    />
-                  ))}
-                </div>
-              </JobFormSection>
-
-              <JobFormSection
-                id="preferred-selection-by-the-employer"
-                title="Preferred Selection by the Employer"
-                description="Historical experience and current background information that will be used to score candidates, 3 points for each match with employer's preference."
-                gradient="from-amber-500 to-amber-600"
-                icon={<Sparkles className="h-6 w-6 text-white" />}
-                className="mb-8"
-              >
-                <div className="space-y-8">
-                  {preferredGroups.map(([category, fields]) => (
-                    <div key={category}>
-                      <h3 className="mb-4 border-b-2 border-slate-200 pb-3 text-lg font-semibold text-slate-700">
-                        {category}
-                      </h3>
-                      <div className="space-y-4">
-                        {fields.map((field) =>
-                          field.type === "multilevel" && field.multilevelKey ? (
-                            <JobSearchSelectField
-                              key={field.name}
-                              label={field.label}
-                              name={field.name}
-                              value={String(values[field.name] ?? "")}
-                              options={multilevelOptions[field.multilevelKey]}
-                              onChange={handleSearchChange}
-                            />
-                          ) : (
-                            <JobTextField
-                              key={field.name}
-                              label={field.label}
-                              name={field.name}
-                              value={String(values[field.name] ?? "")}
-                              placeholder="Enter your answer"
-                              onChange={handleChange}
-                            />
-                          )
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </JobFormSection>
-
-              <div className="sticky bottom-0 z-10 -mx-2 mt-2 border-t border-slate-200 bg-gradient-to-b from-slate-50/90 to-white/95 px-2 py-4 backdrop-blur-sm sm:-mx-0 sm:px-0">
-                <div className="flex justify-end">
+            <div className="sticky bottom-0 z-10 -mx-2 mt-6 border-t border-slate-200 bg-gradient-to-b from-slate-50/95 to-white/95 px-2 py-4 backdrop-blur-sm sm:-mx-0 sm:px-0">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-center text-xs text-slate-500 sm:text-left">
+                  {isLastSection
+                    ? "Review your answers, then save. You can still jump to earlier steps."
+                    : isPreferredSection && !isLastPreferredCategory
+                      ? "Continue through each preference group, or skip empty fields."
+                      : "Required fields are marked with * · Other steps are optional."}
+                </p>
+                <div className="flex flex-wrap justify-end gap-2">
                   <button
-                    type="submit"
-                    disabled={pending}
-                    className="rounded-xl bg-gradient-to-r from-primary to-primary/80 px-8 py-3 font-bold text-primary-foreground shadow-lg transition-all duration-200 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {pending ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Saving...
-                      </span>
-                    ) : (
-                      submitLabel
+                    type="button"
+                    onClick={handleBack}
+                    disabled={isFirstSection || pending}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
                     )}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Back
                   </button>
+
+                  {!isLastSection ? (
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      disabled={pending}
+                      className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-primary to-primary/80 px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-lg transition hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    >
+                      Continue
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={pending}
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/80 px-8 py-2.5 text-sm font-bold text-primary-foreground shadow-lg transition hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {pending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        submitLabel
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
-            </form>
+            </div>
+          </form>
         </main>
       </div>
     </>

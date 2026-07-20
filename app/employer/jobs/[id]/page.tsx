@@ -88,6 +88,7 @@ export default async function EditJobPage({
         initialValues={jobRecordToFormState(job)}
         submitLabel="Save Job"
         action={updateJob}
+        persistDraft={false}
       />
     </>
   );

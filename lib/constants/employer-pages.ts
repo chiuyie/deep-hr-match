@@ -38,7 +38,7 @@ export function getEmployerPageMeta(pathname: string): EmployerPageMeta {
   if (pathname === "/employer/jobs/new") {
     return {
       title: "Post a Job",
-      description: "Create a new role and start matching",
+      description: "Complete each step to publish a new role and start matching",
       contentClassName: wideContentClassName,
     };
   }

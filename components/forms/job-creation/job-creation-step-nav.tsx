@@ -21,13 +21,33 @@ const steps = [
   },
 ] as const;
 
-export function JobCreationStepNav({ currentStep }: { currentStep: "profile" | "job" }) {
+export function JobCreationStepNav({
+  currentStep,
+  jobFormProgress,
+  warnBeforeLeave = false,
+}: {
+  currentStep: "profile" | "job";
+  jobFormProgress?: number;
+  warnBeforeLeave?: boolean;
+}) {
   const currentIndex = steps.findIndex((step) => step.id === currentStep);
-  const progress = Math.min(100, Math.max(0, (currentIndex / (steps.length - 1)) * 100));
+  const macroProgress = Math.min(100, Math.max(0, (currentIndex / (steps.length - 1)) * 100));
+  const progress =
+    currentStep === "job" && jobFormProgress !== undefined ? jobFormProgress : macroProgress;
+
+  const confirmLeave = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!warnBeforeLeave) return;
+    const leave = window.confirm(
+      "You have unsaved job form answers on this device. Leave this page anyway?"
+    );
+    if (!leave) {
+      event.preventDefault();
+    }
+  };
 
   return (
-    <div className="sticky top-0 z-40 border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white backdrop-blur-sm supports-[backdrop-filter]:bg-white/90">
-      <div className="mx-auto max-w-5xl px-4 py-2 sm:px-6">
+    <div className="sticky top-0 z-40 -mx-4 mb-6 border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white px-4 backdrop-blur-sm supports-[backdrop-filter]:bg-white/90 sm:-mx-6 sm:px-6">
+      <div className="mx-auto max-w-7xl py-2">
         <div className="relative">
           <div className="absolute left-0 right-0 top-[14.5px] px-[75px]" style={{ zIndex: 0 }}>
             <div className="relative h-[3px] w-full rounded-full bg-slate-200">
@@ -48,6 +68,7 @@ export function JobCreationStepNav({ currentStep }: { currentStep: "profile" | "
                 <Link
                   key={step.id}
                   href={step.href}
+                  onClick={step.id === "profile" && currentStep === "job" ? confirmLeave : undefined}
                   className="flex w-[150px] flex-col items-center"
                   style={{ flex: "0 0 auto" }}
                 >
@@ -58,8 +79,10 @@ export function JobCreationStepNav({ currentStep }: { currentStep: "profile" | "
                     <div
                       className={cn(
                         "relative z-20 flex h-8 w-8 items-center justify-center rounded-full border-[3px] transition-all duration-300",
-                        completed && "border-green-400 bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-200",
-                        active && "scale-110 border-primary/60 bg-gradient-to-br from-primary to-primary/80 shadow-xl shadow-primary/20",
+                        completed &&
+                          "border-green-400 bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-200",
+                        active &&
+                          "scale-110 border-primary/60 bg-gradient-to-br from-primary to-primary/80 shadow-xl shadow-primary/20",
                         upcoming && "border-slate-300 bg-white shadow-sm"
                       )}
                     >
@@ -75,7 +98,11 @@ export function JobCreationStepNav({ currentStep }: { currentStep: "profile" | "
                     </div>
                   </div>
                   <p className="mt-3 text-center text-sm font-semibold text-slate-800">{step.label}</p>
-                  <p className="mt-1 text-center text-xs text-slate-500">{step.description}</p>
+                  <p className="mt-1 text-center text-xs text-slate-500">
+                    {active && currentStep === "job" && jobFormProgress !== undefined
+                      ? `${jobFormProgress}% of posting steps done`
+                      : step.description}
+                  </p>
                 </Link>
               );
             })}
