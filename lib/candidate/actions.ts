@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
-import { candidateProfileSchema } from "@/lib/validations/schemas";
 import { extractCustomFields, stripCustomEntries } from "@/lib/form-fields/parse-custom";
+import { buildDynamicProfileSchema, validateRequiredCustomFields } from "@/lib/form-fields/validate-dynamic";
+import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
 import {
   calculateProfileCompletion,
   parseCommaList,
@@ -48,13 +49,18 @@ export async function saveCandidateProfile(formData: FormData, submit = false): 
   const user = await requireRole("candidate");
   const supabase = await createClient();
 
+  await ensureFormFieldsReady();
+  const fields = await loadFormFields({ audience: "candidate", formGroup: "profile" });
+  const schema = buildDynamicProfileSchema(fields);
   const raw = stripCustomEntries(Object.fromEntries(formData.entries()));
-  const parsed = candidateProfileSchema.safeParse(raw);
+  const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message);
   }
 
   const custom_fields = extractCustomFields(formData);
+  const customCheck = validateRequiredCustomFields(fields, custom_fields);
+  if (customCheck.ok === false) throw new Error(customCheck.message);
   const payload = buildProfilePayload({ ...parsed.data, custom_fields }, submit);
 
   const { error } = await supabase

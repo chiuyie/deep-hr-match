@@ -11,6 +11,7 @@ import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveJob } from "@/lib/employer/actions";
 import { canEditJob } from "@/lib/employer/job-rules";
 import { jobRecordToFormState } from "@/lib/utils/job-form";
+import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
 
 export default async function EditJobPage({
   params,
@@ -61,6 +62,9 @@ export default async function EditJobPage({
     redirect(`/employer/jobs/${id}/view`);
   }
 
+  await ensureFormFieldsReady();
+  const jobFields = await loadFormFields({ audience: "employer", formGroup: "job" });
+
   async function updateJob(formData: FormData) {
     "use server";
     await saveJob(formData, id);
@@ -89,6 +93,7 @@ export default async function EditJobPage({
         submitLabel="Save Job"
         action={updateJob}
         persistDraft={false}
+        jobFields={jobFields}
       />
     </>
   );

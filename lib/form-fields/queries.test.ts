@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  ensureFormFieldsReady,
   ensureFormFieldsSeeded,
   getProfileFieldKeys,
   loadComparisonFormFields,
@@ -83,6 +84,36 @@ describe("form field queries", () => {
 
     await ensureFormFieldsSeeded();
     expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("inserts missing default keys when table already has rows", async () => {
+    const insert = vi.fn(async () => ({ error: null }));
+    let selectCall = 0;
+    mockFrom.mockImplementation(() => {
+      selectCall += 1;
+      if (selectCall === 1) {
+        return {
+          select: vi.fn((_cols?: string, opts?: { count?: string; head?: boolean }) => {
+            if (opts?.head) return Promise.resolve({ count: 5, data: null, error: null });
+            return createAwaitableChain({ data: [] });
+          }),
+        };
+      }
+      if (selectCall === 2) {
+        return createAwaitableChain({
+          data: [{ audience: "candidate", form_group: "profile", field_key: "full_name" }],
+        });
+      }
+      return { insert };
+    });
+
+    await ensureFormFieldsReady();
+    expect(insert).toHaveBeenCalledTimes(1);
+    const payload = (insert.mock.calls as unknown[][])[0]?.[0] as unknown[];
+    expect(Array.isArray(payload)).toBe(true);
+    expect((payload as { field_key: string }[]).every((row) => row.field_key !== "full_name")).toBe(
+      true
+    );
   });
 
   it("loads active fields filtered by audience and form group", async () => {

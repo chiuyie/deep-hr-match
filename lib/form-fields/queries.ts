@@ -12,6 +12,18 @@ function groupBySection(fields: FormFieldDefinition[]): FormFieldSectionGroup[] 
   return groupFormFieldsBySection(fields);
 }
 
+function defaultRow(field: ReturnType<typeof getDefaultFormFields>[number]) {
+  return {
+    ...field,
+    field_type: field.field_type ?? "text",
+    is_required: field.is_required ?? false,
+    is_active: true,
+    is_custom: false,
+    employer_disclosure_mode: "candidate_optional" as const,
+    placeholder: field.placeholder ?? null,
+  };
+}
+
 export async function ensureFormFieldsSeeded() {
   const supabase = await createClient();
   const { count } = await supabase
@@ -20,17 +32,33 @@ export async function ensureFormFieldsSeeded() {
 
   if (count && count > 0) return;
 
-  const defaults = getDefaultFormFields().map((field) => ({
-    ...field,
-    field_type: field.field_type ?? "text",
-    is_required: field.is_required ?? false,
-    is_active: true,
-    is_custom: false,
-    employer_disclosure_mode: "candidate_optional" as const,
-    placeholder: field.placeholder ?? null,
-  }));
-
+  const defaults = getDefaultFormFields().map(defaultRow);
   await supabase.from("form_fields").insert(defaults);
+}
+
+/** Ensures defaults exist and inserts any new default keys added in code (without overwriting admin edits). */
+export async function ensureFormFieldsReady() {
+  await ensureFormFieldsSeeded();
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("form_fields")
+    .select("audience, form_group, field_key");
+
+  const existingKeys = new Set(
+    (existing ?? []).map((row) => `${row.audience}:${row.form_group}:${row.field_key}`)
+  );
+
+  const missing = getDefaultFormFields()
+    .filter(
+      (field) =>
+        !existingKeys.has(`${field.audience}:${field.form_group}:${field.field_key}`)
+    )
+    .map(defaultRow);
+
+  if (missing.length > 0) {
+    await supabase.from("form_fields").insert(missing);
+  }
 }
 
 export async function loadFormFields(options?: {

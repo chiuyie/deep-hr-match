@@ -80,6 +80,11 @@ export function parseJobFormState(formData: FormData): JobFormState {
 
     if (typeof value !== "string") continue;
 
+    if (key.startsWith("custom_")) {
+      state[key.slice("custom_".length)] = value;
+      continue;
+    }
+
     if (key.startsWith("faq_")) {
       if (value === "true") state[key] = true;
       else if (value === "false") state[key] = false;

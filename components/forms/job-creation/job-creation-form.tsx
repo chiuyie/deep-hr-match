@@ -30,6 +30,8 @@ import {
   sanitizeMoneyInput,
 } from "@/lib/utils/job-form-input";
 import type { JobFormState } from "@/lib/utils/job-form";
+import { buildJobFieldMetaMap } from "@/lib/form-fields/job-field-meta";
+import type { FormFieldDefinition } from "@/lib/form-fields/types";
 import { cn } from "@/lib/utils";
 
 interface JobCreationFormProps {
@@ -37,6 +39,7 @@ interface JobCreationFormProps {
   submitLabel?: string;
   action: (formData: FormData) => Promise<void>;
   persistDraft?: boolean;
+  jobFields?: FormFieldDefinition[];
 }
 
 function scrollDashboardToTop() {
@@ -53,7 +56,13 @@ export function JobCreationForm({
   submitLabel = "Save Job",
   action,
   persistDraft = true,
+  jobFields = [],
 }: JobCreationFormProps) {
+  const fieldMeta = useMemo(() => buildJobFieldMetaMap(jobFields), [jobFields]);
+  const customFieldKeys = useMemo(
+    () => new Set(jobFields.filter((f) => f.is_custom).map((f) => f.field_key)),
+    [jobFields]
+  );
   const editingExisting = isEditingExistingJob(initialValues);
   const preferredGroups = useMemo(() => groupPreferredFields(), []);
   const preferredCategoryCount = preferredGroups.length;
@@ -83,8 +92,8 @@ export function JobCreationForm({
   const isLastSection = currentSectionIndex === sectionCount - 1 && isLastPreferredCategory;
 
   const sectionsProgress = useMemo(
-    () => getJobFormSectionsProgress(values, visitedThroughIndex),
-    [values, visitedThroughIndex]
+    () => getJobFormSectionsProgress(values, visitedThroughIndex, fieldMeta),
+    [values, visitedThroughIndex, fieldMeta]
   );
 
   const sectionFieldKeys = useMemo(() => {
@@ -162,19 +171,22 @@ export function JobCreationForm({
       return;
     }
 
-    setValues((current) => ({
-      ...current,
-      [name]:
-        type === "radio"
-          ? value === "true"
-          : name === "job_id"
-            ? sanitizeJobReferenceInput(value)
-            : isJobMoneyField(name)
-              ? sanitizeMoneyInput(value)
-              : isJobIntegerField(name)
-                ? sanitizeIntegerInput(value)
-                : value,
-    }));
+    setValues((current) => {
+      const storageKey = name.startsWith("custom_") ? name.slice("custom_".length) : name;
+      return {
+        ...current,
+        [storageKey]:
+          type === "radio"
+            ? value === "true"
+            : storageKey === "job_id"
+              ? sanitizeJobReferenceInput(value)
+              : isJobMoneyField(storageKey)
+                ? sanitizeMoneyInput(value)
+                : isJobIntegerField(storageKey)
+                  ? sanitizeIntegerInput(value)
+                  : value,
+      };
+    });
   };
 
   const handleSearchChange = (event: { target: { name: string; value: string } }) => {
@@ -207,7 +219,8 @@ export function JobCreationForm({
       if (typeof value === "boolean") {
         formData.set(key, String(value));
       } else if (typeof value === "string") {
-        formData.set(key, value);
+        const formKey = customFieldKeys.has(key) ? `custom_${key}` : key;
+        formData.set(formKey, value);
       }
     }
     return formData;
@@ -223,7 +236,7 @@ export function JobCreationForm({
   };
 
   const handleNext = () => {
-    const validation = validateJobFormSection(values, currentSection.id);
+    const validation = validateJobFormSection(values, currentSection.id, fieldMeta);
     if (validation.ok === false) {
       setSectionError(validation.message);
       focusField(validation.focusField);
@@ -252,7 +265,7 @@ export function JobCreationForm({
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const validation = validateJobFormForSubmit(values);
+    const validation = validateJobFormForSubmit(values, fieldMeta);
     if (validation.ok === false) {
       setSectionError(validation.message);
       goToSection(findSectionIndexForField(validation.focusField));
@@ -326,6 +339,8 @@ export function JobCreationForm({
                 sectionId={currentSection.id}
                 values={values}
                 preferredCategoryIndex={preferredCategoryIndex}
+                fieldMeta={fieldMeta}
+                jobFields={jobFields}
                 onChange={handleChange}
                 onSearchChange={handleSearchChange}
                 onToggleBenefit={toggleBenefit}

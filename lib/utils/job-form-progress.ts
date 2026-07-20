@@ -5,6 +5,8 @@ import {
   JOB_FORM_SECTIONS,
   JOB_PREFERRED_FIELDS,
 } from "@/lib/constants/job-form";
+import type { JobFieldMetaMap } from "@/lib/form-fields/job-field-meta";
+import { jobFieldRequired, isJobFieldVisible } from "@/lib/form-fields/job-field-meta";
 import type { JobFormState } from "@/lib/utils/job-form";
 import {
   buildSalaryRangeLabel,
@@ -75,22 +77,31 @@ export function isSectionComplete(
   values: JobFormState,
   sectionId: JobFormSectionId,
   sectionIndex: number,
-  visitedThroughIndex: number
+  visitedThroughIndex: number,
+  fieldMeta?: JobFieldMetaMap
 ): boolean {
   if (sectionId === "job-identification") {
-    return (
-      isJobFormValueFilled(values.job_title) && isJobFormValueFilled(values.job_description)
-    );
+    const titleOk =
+      !jobFieldRequired(fieldMeta, "job_title", true) ||
+      isJobFormValueFilled(values.job_title);
+    const descriptionOk =
+      !jobFieldRequired(fieldMeta, "job_description", true) ||
+      isJobFormValueFilled(values.job_description);
+    return titleOk && descriptionOk;
   }
 
   if (sectionId === "background-information-questions") {
-    return JOB_BACKGROUND_QUESTIONS.every((question) => typeof values[question.name] === "boolean");
+    const questions = fieldMeta
+      ? JOB_BACKGROUND_QUESTIONS.filter((q) => isJobFieldVisible(fieldMeta, q.name))
+      : JOB_BACKGROUND_QUESTIONS;
+    return questions.every((question) => typeof values[question.name] === "boolean");
   }
 
   if (sectionId === "basic-information") {
-    return JOB_ELIMINATION_FIELDS.every((field) =>
-      isJobFormValueFilled(values[field.name])
-    );
+    const fields = fieldMeta
+      ? JOB_ELIMINATION_FIELDS.filter((field) => isJobFieldVisible(fieldMeta, field.name))
+      : JOB_ELIMINATION_FIELDS;
+    return fields.every((field) => isJobFormValueFilled(values[field.name]));
   }
 
   if (OPTIONAL_SECTION_IDS.has(sectionId)) {
@@ -111,11 +122,12 @@ export function isSectionComplete(
 
 export function getJobFormSectionsProgress(
   values: JobFormState,
-  visitedThroughIndex: number
+  visitedThroughIndex: number,
+  fieldMeta?: JobFieldMetaMap
 ) {
   const total = JOB_FORM_SECTIONS.length;
   const completed = JOB_FORM_SECTIONS.filter((section, index) =>
-    isSectionComplete(values, section.id, index, visitedThroughIndex)
+    isSectionComplete(values, section.id, index, visitedThroughIndex, fieldMeta)
   ).length;
   return {
     completed,
@@ -155,17 +167,24 @@ export type SectionValidationResult =
 
 export function validateJobFormSection(
   values: JobFormState,
-  sectionId: JobFormSectionId
+  sectionId: JobFormSectionId,
+  fieldMeta?: JobFieldMetaMap
 ): SectionValidationResult {
   if (sectionId === "job-identification") {
-    if (!isJobFormValueFilled(values.job_title)) {
+    if (
+      jobFieldRequired(fieldMeta, "job_title", true) &&
+      !isJobFormValueFilled(values.job_title)
+    ) {
       return {
         ok: false,
         message: "Job title is required before you continue.",
         focusField: "job_title",
       };
     }
-    if (!isJobFormValueFilled(values.job_description)) {
+    if (
+      jobFieldRequired(fieldMeta, "job_description", true) &&
+      !isJobFormValueFilled(values.job_description)
+    ) {
       return {
         ok: false,
         message: "Please add a job description before you continue.",
@@ -175,9 +194,10 @@ export function validateJobFormSection(
   }
 
   if (sectionId === "background-information-questions") {
-    const missing = JOB_BACKGROUND_QUESTIONS.find(
-      (question) => typeof values[question.name] !== "boolean"
-    );
+    const questions = fieldMeta
+      ? JOB_BACKGROUND_QUESTIONS.filter((question) => isJobFieldVisible(fieldMeta, question.name))
+      : JOB_BACKGROUND_QUESTIONS;
+    const missing = questions.find((question) => typeof values[question.name] !== "boolean");
     if (missing) {
       return {
         ok: false,
@@ -197,7 +217,10 @@ export function validateJobFormSection(
   return { ok: true };
 }
 
-export function validateJobFormForSubmit(values: JobFormState): SectionValidationResult {
+export function validateJobFormForSubmit(
+  values: JobFormState,
+  fieldMeta?: JobFieldMetaMap
+): SectionValidationResult {
   for (const section of JOB_FORM_SECTIONS) {
     if (
       section.id === "compensation" ||
@@ -206,7 +229,7 @@ export function validateJobFormForSubmit(values: JobFormState): SectionValidatio
     ) {
       continue;
     }
-    const result = validateJobFormSection(values, section.id);
+    const result = validateJobFormSection(values, section.id, fieldMeta);
     if (result.ok === false) return result;
   }
   return { ok: true };

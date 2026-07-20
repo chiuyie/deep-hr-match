@@ -41,6 +41,15 @@ import jobFormRoles from "@/lib/constants/job-form-data/roles.json";
 import jobFormStructuralSkills from "@/lib/constants/job-form-data/structural-skills.json";
 import { flattenMultilevelOptions, type JobFormState } from "@/lib/utils/job-form";
 import type { JobFormSectionId } from "@/lib/utils/job-form-progress";
+import type { FormFieldDefinition } from "@/lib/form-fields/types";
+import type { JobFieldMetaMap } from "@/lib/form-fields/job-field-meta";
+import {
+  customJobFieldsForSection,
+  isJobFieldVisible,
+  jobFieldLabel,
+  jobFieldRequired,
+} from "@/lib/form-fields/job-field-meta";
+import { JobCustomFieldsBlock } from "./job-custom-fields";
 
 const multilevelOptions = {
   roles: flattenMultilevelOptions(jobFormRoles),
@@ -53,6 +62,8 @@ export interface JobCreationFormSectionBodyProps {
   sectionId: JobFormSectionId;
   values: JobFormState;
   preferredCategoryIndex?: number;
+  fieldMeta?: JobFieldMetaMap;
+  jobFields?: FormFieldDefinition[];
   onChange: (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => void;
@@ -64,6 +75,8 @@ export function JobCreationFormSectionBody({
   sectionId,
   values,
   preferredCategoryIndex = 0,
+  fieldMeta,
+  jobFields = [],
   onChange,
   onSearchChange,
   onToggleBenefit,
@@ -71,6 +84,7 @@ export function JobCreationFormSectionBody({
   const preferredGroups = useMemo(() => groupPreferredFields(), []);
   const selectedBenefits = Array.isArray(values.benefits_package) ? values.benefits_package : [];
   const preferredCategory = preferredGroups[preferredCategoryIndex];
+  const customForSection = customJobFieldsForSection(jobFields, sectionId);
 
   switch (sectionId) {
     case "job-identification":
@@ -85,46 +99,56 @@ export function JobCreationFormSectionBody({
           hideHeader
         >
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-            <div className="md:col-span-2">
+            {isJobFieldVisible(fieldMeta, "job_title") && (
+              <div className="md:col-span-2">
+                <JobTextField
+                  label={jobFieldLabel(fieldMeta, "job_title", "Job title")}
+                  name="job_title"
+                  placeholder="e.g. Senior Software Engineer"
+                  value={String(values.job_title ?? "")}
+                  required={jobFieldRequired(fieldMeta, "job_title", true)}
+                  icon={<Briefcase className="h-5 w-5 text-slate-400" />}
+                  onChange={onChange}
+                />
+              </div>
+            )}
+            {isJobFieldVisible(fieldMeta, "job_id") && (
               <JobTextField
-                label="Job title"
-                name="job_title"
-                placeholder="e.g. Senior Software Engineer"
-                value={String(values.job_title ?? "")}
-                required
-                icon={<Briefcase className="h-5 w-5 text-slate-400" />}
+                label={jobFieldLabel(fieldMeta, "job_id", "Job reference ID")}
+                name="job_id"
+                placeholder="Auto-generated — edit if needed"
+                value={String(values.job_id ?? "")}
+                icon={<FileText className="h-5 w-5 text-slate-400" />}
+                maxLength={32}
+                hint="Letters, numbers, and hyphens only."
                 onChange={onChange}
               />
-            </div>
-            <JobTextField
-              label="Job reference ID"
-              name="job_id"
-              placeholder="Auto-generated — edit if needed"
-              value={String(values.job_id ?? "")}
-              icon={<FileText className="h-5 w-5 text-slate-400" />}
-              maxLength={32}
-              hint="Letters, numbers, and hyphens only."
-              onChange={onChange}
-            />
-            <JobTextField
-              label="Representative name"
-              name="created_by_representative"
-              placeholder="Who created this posting?"
-              value={String(values.created_by_representative ?? "")}
-              icon={<User className="h-5 w-5 text-slate-400" />}
-              onChange={onChange}
-            />
-            <div className="md:col-span-2">
-              <JobTextareaField
-                label="Job description"
-                name="job_description"
-                placeholder="Summarise responsibilities, team, and what success looks like"
-                value={String(values.job_description ?? "")}
-                required
+            )}
+            {isJobFieldVisible(fieldMeta, "created_by_representative") && (
+              <JobTextField
+                label={jobFieldLabel(fieldMeta, "created_by_representative", "Representative name")}
+                name="created_by_representative"
+                placeholder="Who created this posting?"
+                value={String(values.created_by_representative ?? "")}
+                required={jobFieldRequired(fieldMeta, "created_by_representative")}
+                icon={<User className="h-5 w-5 text-slate-400" />}
                 onChange={onChange}
               />
-            </div>
+            )}
+            {isJobFieldVisible(fieldMeta, "job_description") && (
+              <div className="md:col-span-2">
+                <JobTextareaField
+                  label={jobFieldLabel(fieldMeta, "job_description", "Job description")}
+                  name="job_description"
+                  placeholder="Summarise responsibilities, team, and what success looks like"
+                  value={String(values.job_description ?? "")}
+                  required={jobFieldRequired(fieldMeta, "job_description", true)}
+                  onChange={onChange}
+                />
+              </div>
+            )}
           </div>
+          <JobCustomFieldsBlock fields={customForSection} values={values} onChange={onChange} />
         </JobFormSection>
       );
 
@@ -140,62 +164,84 @@ export function JobCreationFormSectionBody({
           hideHeader
         >
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-            <JobTextField
-              label="Working hours"
-              name="working_hours"
-              placeholder="e.g. 9am – 5pm"
-              value={String(values.working_hours ?? "")}
-              icon={<Clock className="h-5 w-5 text-slate-400" />}
-              onChange={onChange}
-            />
-            <JobTextField
-              label="Team size"
-              name="team_size"
-              placeholder="e.g. 8"
-              value={String(values.team_size ?? "")}
-              icon={<Users className="h-5 w-5 text-slate-400" />}
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={4}
-              hint="Whole number only."
-              onChange={onChange}
-            />
-            <JobSelectField
-              label="Importance of this role"
-              name="importance_level"
-              placeholder="Select level"
-              options={JOB_IMPORTANCE_LEVEL_OPTIONS}
-              value={String(values.importance_level ?? "")}
-              onChange={onChange}
-            />
-            <JobTextField
-              label="Travel requirements"
-              name="travel_needs"
-              placeholder="e.g. None, occasional, frequent"
-              value={String(values.travel_needs ?? "")}
-              icon={<Plane className="h-5 w-5 text-slate-400" />}
-              onChange={onChange}
-            />
-            <div className="md:col-span-2">
+            {isJobFieldVisible(fieldMeta, "working_hours") && (
               <JobTextField
-                label="Reports to (job title)"
-                name="reporting_to"
-                placeholder="e.g. Engineering Manager"
-                value={String(values.reporting_to ?? "")}
-                icon={<User className="h-5 w-5 text-slate-400" />}
+                label={jobFieldLabel(fieldMeta, "working_hours", "Working hours")}
+                name="working_hours"
+                placeholder="e.g. 9am – 5pm"
+                value={String(values.working_hours ?? "")}
+                required={jobFieldRequired(fieldMeta, "working_hours")}
+                icon={<Clock className="h-5 w-5 text-slate-400" />}
                 onChange={onChange}
               />
-            </div>
-            <div className="md:col-span-2">
-              <JobTextareaField
-                label="Additional notes for recruiters (optional)"
-                name="additional_notes"
-                placeholder="Anything else candidates should know"
-                value={String(values.additional_notes ?? "")}
+            )}
+            {isJobFieldVisible(fieldMeta, "team_size") && (
+              <JobTextField
+                label={jobFieldLabel(fieldMeta, "team_size", "Team size")}
+                name="team_size"
+                placeholder="e.g. 8"
+                value={String(values.team_size ?? "")}
+                required={jobFieldRequired(fieldMeta, "team_size")}
+                icon={<Users className="h-5 w-5 text-slate-400" />}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                hint="Whole number only."
                 onChange={onChange}
               />
-            </div>
+            )}
+            {isJobFieldVisible(fieldMeta, "importance_level") && (
+              <JobSelectField
+                label={jobFieldLabel(fieldMeta, "importance_level", "Importance of this role")}
+                name="importance_level"
+                placeholder="Select level"
+                options={JOB_IMPORTANCE_LEVEL_OPTIONS}
+                value={String(values.importance_level ?? "")}
+                onChange={onChange}
+              />
+            )}
+            {isJobFieldVisible(fieldMeta, "travel_needs") && (
+              <JobTextField
+                label={jobFieldLabel(fieldMeta, "travel_needs", "Travel requirements")}
+                name="travel_needs"
+                placeholder="e.g. None, occasional, frequent"
+                value={String(values.travel_needs ?? "")}
+                required={jobFieldRequired(fieldMeta, "travel_needs")}
+                icon={<Plane className="h-5 w-5 text-slate-400" />}
+                onChange={onChange}
+              />
+            )}
+            {isJobFieldVisible(fieldMeta, "reporting_to") && (
+              <div className="md:col-span-2">
+                <JobTextField
+                  label={jobFieldLabel(fieldMeta, "reporting_to", "Reports to (job title)")}
+                  name="reporting_to"
+                  placeholder="e.g. Engineering Manager"
+                  value={String(values.reporting_to ?? "")}
+                  required={jobFieldRequired(fieldMeta, "reporting_to")}
+                  icon={<User className="h-5 w-5 text-slate-400" />}
+                  onChange={onChange}
+                />
+              </div>
+            )}
+            {isJobFieldVisible(fieldMeta, "additional_notes") && (
+              <div className="md:col-span-2">
+                <JobTextareaField
+                  label={jobFieldLabel(
+                    fieldMeta,
+                    "additional_notes",
+                    "Additional notes for recruiters (optional)"
+                  )}
+                  name="additional_notes"
+                  placeholder="Anything else candidates should know"
+                  value={String(values.additional_notes ?? "")}
+                  required={jobFieldRequired(fieldMeta, "additional_notes")}
+                  onChange={onChange}
+                />
+              </div>
+            )}
           </div>
+          <JobCustomFieldsBlock fields={customForSection} values={values} onChange={onChange} />
         </JobFormSection>
       );
 
@@ -216,50 +262,69 @@ export function JobCreationFormSectionBody({
             from the ranking step later.
           </p>
           <div className="mb-8 grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-            <JobMoneyField
-              label="Budget range — minimum (SGD / month)"
-              name="desired_minimum_salary"
-              placeholder="e.g. 5000"
-              value={String(values.desired_minimum_salary ?? "")}
-              onChange={onChange}
-            />
-            <JobMoneyField
-              label="Budget range — maximum (SGD / month)"
-              name="desired_maximum_salary"
-              placeholder="e.g. 8000"
-              value={String(values.desired_maximum_salary ?? "")}
-              onChange={onChange}
-            />
+            {isJobFieldVisible(fieldMeta, "desired_minimum_salary") && (
+              <JobMoneyField
+                label={jobFieldLabel(
+                  fieldMeta,
+                  "desired_minimum_salary",
+                  "Budget range — minimum (SGD / month)"
+                )}
+                name="desired_minimum_salary"
+                placeholder="e.g. 5000"
+                value={String(values.desired_minimum_salary ?? "")}
+                onChange={onChange}
+              />
+            )}
+            {isJobFieldVisible(fieldMeta, "desired_maximum_salary") && (
+              <JobMoneyField
+                label={jobFieldLabel(
+                  fieldMeta,
+                  "desired_maximum_salary",
+                  "Budget range — maximum (SGD / month)"
+                )}
+                name="desired_maximum_salary"
+                placeholder="e.g. 8000"
+                value={String(values.desired_maximum_salary ?? "")}
+                onChange={onChange}
+              />
+            )}
           </div>
-          <h3 className="mb-3 text-sm font-semibold text-slate-800">Benefits included</h3>
-          <p className="mb-4 text-sm text-slate-500">Select all that apply, or leave empty.</p>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {JOB_BENEFIT_OPTIONS.map((benefit) => {
-              const selected = selectedBenefits.includes(benefit);
-              return (
-                <label
-                  key={benefit}
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-all duration-200 ${
-                    selected
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-slate-200 bg-white hover:border-emerald-200"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected}
-                    onChange={() => onToggleBenefit(benefit)}
-                    className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span
-                    className={`text-sm font-medium ${selected ? "text-emerald-700" : "text-slate-600"}`}
-                  >
-                    {benefit}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
+          {isJobFieldVisible(fieldMeta, "benefits_package") && (
+            <>
+              <h3 className="mb-3 text-sm font-semibold text-slate-800">
+                {jobFieldLabel(fieldMeta, "benefits_package", "Benefits included")}
+              </h3>
+              <p className="mb-4 text-sm text-slate-500">Select all that apply, or leave empty.</p>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                {JOB_BENEFIT_OPTIONS.map((benefit) => {
+                  const selected = selectedBenefits.includes(benefit);
+                  return (
+                    <label
+                      key={benefit}
+                      className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-all duration-200 ${
+                        selected
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-slate-200 bg-white hover:border-emerald-200"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => onToggleBenefit(benefit)}
+                        className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span
+                        className={`text-sm font-medium ${selected ? "text-emerald-700" : "text-slate-600"}`}
+                      >
+                        {benefit}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </>
+          )}
+          <JobCustomFieldsBlock fields={customForSection} values={values} onChange={onChange} />
         </JobFormSection>
       );
 
@@ -283,27 +348,33 @@ export function JobCreationFormSectionBody({
             </p>
           </div>
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-            {JOB_ELIMINATION_FIELDS.map((field) => (
-              <JobSelectField
-                key={field.name}
-                label={field.label}
-                name={field.name}
-                placeholder={field.placeholder}
-                options={field.options}
-                value={String(values[field.name] ?? "")}
-                onChange={onChange}
-              />
-            ))}
-            <div className="md:col-span-2">
-              <JobTextareaField
-                label="Language requirements (optional)"
-                name="language_needs"
-                placeholder="e.g. English, Mandarin"
-                value={String(values.language_needs ?? "")}
-                onChange={onChange}
-              />
-            </div>
+            {JOB_ELIMINATION_FIELDS.map((field) =>
+              isJobFieldVisible(fieldMeta, field.name) ? (
+                <JobSelectField
+                  key={field.name}
+                  label={jobFieldLabel(fieldMeta, field.name, field.label)}
+                  name={field.name}
+                  placeholder={field.placeholder}
+                  options={field.options}
+                  value={String(values[field.name] ?? "")}
+                  onChange={onChange}
+                />
+              ) : null
+            )}
+            {isJobFieldVisible(fieldMeta, "language_needs") && (
+              <div className="md:col-span-2">
+                <JobTextareaField
+                  label={jobFieldLabel(fieldMeta, "language_needs", "Language requirements (optional)")}
+                  name="language_needs"
+                  placeholder="e.g. English, Mandarin"
+                  value={String(values.language_needs ?? "")}
+                  required={jobFieldRequired(fieldMeta, "language_needs")}
+                  onChange={onChange}
+                />
+              </div>
+            )}
           </div>
+          <JobCustomFieldsBlock fields={customForSection} values={values} onChange={onChange} />
         </JobFormSection>
       );
 
@@ -322,35 +393,38 @@ export function JobCreationFormSectionBody({
             Answer each question so matching can score candidates accurately.
           </p>
           <div className="grid grid-cols-1 gap-4">
-            {JOB_BACKGROUND_QUESTIONS.map((question) => (
-              <JobFaqField
-                key={question.name}
-                label={question.label}
-                name={question.name}
-                value={
-                  typeof values[question.name] === "boolean"
-                    ? (values[question.name] as boolean)
-                    : undefined
-                }
-                icon={
-                  question.name === "faq_work_life_balance" ? (
-                    <Heart className="h-5 w-5" />
-                  ) : question.name.includes("driving") || question.name.includes("car") ? (
-                    <Car className="h-5 w-5" />
-                  ) : question.name.includes("overtime") ? (
-                    <Clock className="h-5 w-5" />
-                  ) : question.name.includes("disability") ? (
-                    <Heart className="h-5 w-5" />
-                  ) : question.name.includes("relocate") ? (
-                    <MapPin className="h-5 w-5" />
-                  ) : (
-                    <Shield className="h-5 w-5" />
-                  )
-                }
-                onChange={onChange}
-              />
-            ))}
+            {JOB_BACKGROUND_QUESTIONS.map((question) =>
+              isJobFieldVisible(fieldMeta, question.name) ? (
+                <JobFaqField
+                  key={question.name}
+                  label={jobFieldLabel(fieldMeta, question.name, question.label)}
+                  name={question.name}
+                  value={
+                    typeof values[question.name] === "boolean"
+                      ? (values[question.name] as boolean)
+                      : undefined
+                  }
+                  icon={
+                    question.name === "faq_work_life_balance" ? (
+                      <Heart className="h-5 w-5" />
+                    ) : question.name.includes("driving") || question.name.includes("car") ? (
+                      <Car className="h-5 w-5" />
+                    ) : question.name.includes("overtime") ? (
+                      <Clock className="h-5 w-5" />
+                    ) : question.name.includes("disability") ? (
+                      <Heart className="h-5 w-5" />
+                    ) : question.name.includes("relocate") ? (
+                      <MapPin className="h-5 w-5" />
+                    ) : (
+                      <Shield className="h-5 w-5" />
+                    )
+                  }
+                  onChange={onChange}
+                />
+              ) : null
+            )}
           </div>
+          <JobCustomFieldsBlock fields={customForSection} values={values} onChange={onChange} />
         </JobFormSection>
       );
 
@@ -385,27 +459,30 @@ export function JobCreationFormSectionBody({
           </div>
           <div className="space-y-4">
             {preferredCategory[1].map((field) =>
-              field.type === "multilevel" && field.multilevelKey ? (
-                <JobSearchSelectField
-                  key={field.name}
-                  label={field.label}
-                  name={field.name}
-                  value={String(values[field.name] ?? "")}
-                  options={multilevelOptions[field.multilevelKey]}
-                  onChange={onSearchChange}
-                />
-              ) : (
-                <JobTextField
-                  key={field.name}
-                  label={field.label}
-                  name={field.name}
-                  value={String(values[field.name] ?? "")}
-                  placeholder={field.placeholder ?? "Optional"}
-                  onChange={onChange}
-                />
-              )
+              isJobFieldVisible(fieldMeta, field.name) ? (
+                field.type === "multilevel" && field.multilevelKey ? (
+                  <JobSearchSelectField
+                    key={field.name}
+                    label={jobFieldLabel(fieldMeta, field.name, field.label)}
+                    name={field.name}
+                    value={String(values[field.name] ?? "")}
+                    options={multilevelOptions[field.multilevelKey]}
+                    onChange={onSearchChange}
+                  />
+                ) : (
+                  <JobTextField
+                    key={field.name}
+                    label={jobFieldLabel(fieldMeta, field.name, field.label)}
+                    name={field.name}
+                    value={String(values[field.name] ?? "")}
+                    placeholder={field.placeholder ?? "Optional"}
+                    onChange={onChange}
+                  />
+                )
+              ) : null
             )}
           </div>
+          <JobCustomFieldsBlock fields={customForSection} values={values} onChange={onChange} />
         </JobFormSection>
         );
       }

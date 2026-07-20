@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DynamicProfileFields } from "@/components/forms/dynamic-profile-fields";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { loadFormFields, ensureFormFieldsSeeded } from "@/lib/form-fields/queries";
+import { loadFormFields, ensureFormFieldsReady } from "@/lib/form-fields/queries";
 import { saveDraft, submitProfile } from "./actions";
 import { Sparkles, CircleAlert } from "lucide-react";
 
@@ -18,7 +18,7 @@ export default async function CandidateProfilePage({
   const supabase = await createClient();
   const params = await searchParams;
 
-  await ensureFormFieldsSeeded();
+  await ensureFormFieldsReady();
   const fields = await loadFormFields({ audience: "candidate", formGroup: "profile" });
 
   const { data: profile } = await supabase

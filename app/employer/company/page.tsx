@@ -6,14 +6,14 @@ import {
 } from "@/components/employer/employer-ui";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { loadFormFields, ensureFormFieldsSeeded } from "@/lib/form-fields/queries";
+import { loadFormFields, ensureFormFieldsReady } from "@/lib/form-fields/queries";
 import { saveEmployerProfile } from "@/lib/employer/actions";
 
 export default async function EmployerCompanyPage() {
   const user = await requireRole("employer");
   const supabase = await createClient();
 
-  await ensureFormFieldsSeeded();
+  await ensureFormFieldsReady();
   const fields = await loadFormFields({ audience: "employer", formGroup: "profile" });
 
   const { data: profile } = await supabase

@@ -9,7 +9,12 @@ import {
 } from "@/lib/employer/job-rules";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
-import { employerProfileSchema, jobSchema } from "@/lib/validations/schemas";
+import {
+  buildDynamicProfileSchema,
+  validateJobStateAgainstFormFields,
+  validateRequiredCustomFields,
+} from "@/lib/form-fields/validate-dynamic";
+import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
 import { extractCustomFields, stripCustomEntries } from "@/lib/form-fields/parse-custom";
 import {
   formStateToJobPayload,
@@ -40,10 +45,15 @@ export async function saveEmployerProfile(formData: FormData): Promise<void> {
   const user = await requireRole("employer");
   const supabase = await createClient();
 
-  const parsed = employerProfileSchema.safeParse(stripCustomEntries(Object.fromEntries(formData)));
+  await ensureFormFieldsReady();
+  const fields = await loadFormFields({ audience: "employer", formGroup: "profile" });
+  const schema = buildDynamicProfileSchema(fields);
+  const parsed = schema.safeParse(stripCustomEntries(Object.fromEntries(formData)));
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message);
 
   const custom_fields = extractCustomFields(formData);
+  const customCheck = validateRequiredCustomFields(fields, custom_fields);
+  if (customCheck.ok === false) throw new Error(customCheck.message);
 
   const { error } = await supabase
     .from("employer_profiles")
@@ -60,10 +70,14 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
   const employerId = await getEmployerId(user.id);
   if (!employerId) throw new Error("Company profile not found");
 
+  await ensureFormFieldsReady();
+  const fields = await loadFormFields({ audience: "employer", formGroup: "job" });
+
   const formState = parseJobFormState(formData);
-  const parsed = jobSchema.safeParse(formState);
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message);
+  const customFromForm = extractCustomFields(formData);
+  const fieldValidation = validateJobStateAgainstFormFields(formState, fields, customFromForm);
+  if (fieldValidation.ok === false) {
+    throw new Error(fieldValidation.message);
   }
 
   const jobPayload = formStateToJobPayload(formState);
@@ -79,6 +93,7 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
     required_skills: jobPayload.required_skills,
     preferred_skills: jobPayload.preferred_skills,
     status: jobPayload.status,
+    form_data: jobPayload.form_data,
     employer_id: employerId,
   };
 
