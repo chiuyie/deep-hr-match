@@ -20,6 +20,7 @@ import {
   formStateToJobPayload,
   parseJobFormState,
 } from "@/lib/utils/job-form";
+import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
 import {
   filterSharedMatrixCategories,
   validateMatrixSubmission,
@@ -184,7 +185,7 @@ export async function saveJobMatrixAnswers(
   if (submit) {
     const { data: categories } = await supabase
       .from("matrix_categories")
-      .select("*, matrix_questions(*, matrix_options(*))")
+      .select(MATRIX_CATEGORY_TREE_SELECT)
       .eq("is_active", true)
       .order("sort_order");
 

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveCandidateMatrixAnswers } from "@/lib/candidate/actions";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
+import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
 import { CheckCircle2 } from "lucide-react";
 
 export default async function CandidateMatrixPage({
@@ -25,7 +26,7 @@ export default async function CandidateMatrixPage({
 
   const { data: categories } = await supabase
     .from("matrix_categories")
-    .select("*, matrix_questions(*, matrix_options(*))")
+    .select(MATRIX_CATEGORY_TREE_SELECT)
     .eq("is_active", true)
     .order("sort_order");
 

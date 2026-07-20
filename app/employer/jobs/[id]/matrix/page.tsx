@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveJobMatrixAnswers } from "@/lib/employer/actions";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
+import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
 
 export default async function JobMatrixPage({
   params,
@@ -35,7 +36,7 @@ export default async function JobMatrixPage({
 
   const { data: categories } = await supabase
     .from("matrix_categories")
-    .select("*, matrix_questions(*, matrix_options(*))")
+    .select(MATRIX_CATEGORY_TREE_SELECT)
     .eq("is_active", true)
     .order("sort_order");
 
