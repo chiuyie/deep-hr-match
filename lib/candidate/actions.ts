@@ -12,7 +12,7 @@ import {
   parseCommaList,
 } from "@/lib/utils/profile";
 import { fetchCandidateOnboardingState } from "@/lib/candidate/onboarding";
-import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
+import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategories } from "@/lib/matching/matrix-queries";
 import {
   filterSharedMatrixCategories,
   validateMatrixSubmission,
@@ -142,7 +142,7 @@ export async function saveCandidateMatrixAnswers(
     );
 
     const validationError = validateMatrixSubmission(
-      filterSharedMatrixCategories(categories ?? []),
+      pickPrimaryMatrixCategories(filterSharedMatrixCategories(categories ?? [])),
       answerMap
     );
     if (validationError) return { error: validationError };

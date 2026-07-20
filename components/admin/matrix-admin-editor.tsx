@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   Check,
   Eye,
@@ -16,10 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FRAMEWORK_MATCHING_LANGUAGE_FORM_EDITOR } from "@/lib/constants/branding";
 import {
-  MATRIX_FACTOR_COUNT,
   MATRIX_LEVELS_PER_FACTOR,
   MATRIX_MAX_LEVEL,
   MATRIX_WORDS_PER_LEVEL,
@@ -32,7 +30,6 @@ import {
   createMatrixWord,
   deleteMatrixOption,
   deleteMatrixQuestion,
-  saveMatrixCategory,
   saveMatrixOption,
   toggleMatrixItem,
 } from "@/lib/admin/actions";
@@ -69,7 +66,7 @@ export type MatrixAdminCategory = {
 };
 
 interface MatrixAdminEditorProps {
-  categories: MatrixAdminCategory[];
+  category: MatrixAdminCategory | null;
 }
 
 const SPREADSHEET_CELL =
@@ -94,18 +91,6 @@ function getWordsInColumn(question: MatrixAdminQuestion, colIndex: number): Matr
   return sortByOrder(question.matrix_options ?? []).filter(
     (option) => columnFromSortOrder(option.sort_order) === column
   );
-}
-
-function buildCategoryFormData(
-  category: MatrixAdminCategory,
-  overrides: Partial<{ name: string; description: string | null }> = {}
-) {
-  const formData = new FormData();
-  formData.set("name", overrides.name ?? category.name);
-  formData.set("description", overrides.description ?? category.description ?? "");
-  formData.set("sort_order", String(category.sort_order));
-  formData.set("is_active", String(category.is_active));
-  return formData;
 }
 
 function buildOptionFormData(
@@ -138,20 +123,9 @@ function getSubLevelQuestion(category: MatrixAdminCategory, parentOptionId: stri
   return getQuestions(category).find((q) => q.parent_option_id === parentOptionId);
 }
 
-export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
+export function MatrixAdminEditor({ category }: MatrixAdminEditorProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const sortedCategories = useMemo(
-    () => sortByOrder(categories).slice(0, MATRIX_FACTOR_COUNT),
-    [categories]
-  );
-  const [activeFactor, setActiveFactor] = useState(sortedCategories[0]?.id ?? "");
-
-  useEffect(() => {
-    if (!sortedCategories.some((c) => c.id === activeFactor)) {
-      setActiveFactor(sortedCategories[0]?.id ?? "");
-    }
-  }, [sortedCategories, activeFactor]);
 
   function refresh() {
     startTransition(() => router.refresh());
@@ -173,32 +147,32 @@ export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
   }
 
   async function ensureWordLevelForFactor(
-    category: MatrixAdminCategory,
+    cat: MatrixAdminCategory,
     questionIndex: number
   ): Promise<{ error?: string; success?: boolean }> {
-    let current = getRootQuestions(category).length;
+    let current = getRootQuestions(cat).length;
     while (current <= questionIndex) {
-      const result = await createMatrixSubLevel(category.id);
+      const result = await createMatrixSubLevel(cat.id);
       if (result.error) return result;
       current += 1;
     }
     return { success: true };
   }
 
-  function addRootWordLevel(category: MatrixAdminCategory) {
-    const nextIndex = getRootQuestions(category).length;
+  function addRootWordLevel(cat: MatrixAdminCategory) {
+    const nextIndex = getRootQuestions(cat).length;
     if (nextIndex >= MATRIX_LEVELS_PER_FACTOR) {
       toast.info(`Maximum depth is Level ${MATRIX_MAX_LEVEL}.`);
       return;
     }
     const nextLabel = matrixWordLevelLabel(nextIndex);
     runAction(
-      () => ensureWordLevelForFactor(category, nextIndex),
+      () => ensureWordLevelForFactor(cat, nextIndex),
       `${nextLabel} added — fill all 7 columns (each cell is one field; text can be multiple words).`
     );
   }
 
-  function removeLevel(category: MatrixAdminCategory, questionId: string, levelIndex: number) {
+  function removeLevel(cat: MatrixAdminCategory, questionId: string, levelIndex: number) {
     const label = matrixWordLevelLabel(levelIndex);
     if (!window.confirm(`Remove ${label} and all its words? This cannot be undone.`)) return;
     runAction(() => deleteMatrixQuestion(questionId), `${label} removed`);
@@ -212,7 +186,6 @@ export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
             {FRAMEWORK_MATCHING_LANGUAGE_FORM_EDITOR}
           </h2>
           <p className="text-sm text-muted-foreground">
-            <strong className="text-slate-700">Factor</strong> is the tab title.{" "}
             <strong className="text-slate-700">Level 1–3</strong> each have{" "}
             <strong className="text-slate-700">7 columns</strong> — one field per column (labels can
             be phrases). Optional <strong className="text-slate-700">description / question</strong>{" "}
@@ -222,45 +195,26 @@ export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
         </CardContent>
       </Card>
 
-      {sortedCategories.length === 0 ? (
+      {!category ? (
         <Card className="border-dashed border-slate-300">
           <CardContent className="py-14 text-center">
-            <p className="font-medium text-slate-700">No factors found.</p>
+            <p className="font-medium text-slate-700">No matrix configured.</p>
             <p className="mt-2 text-sm text-muted-foreground">
               Run <code className="rounded bg-slate-100 px-1">npm run seed-matrix-77</code> to load
-              the 7 default factors.
+              the placeholder form.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <Tabs value={activeFactor} onValueChange={setActiveFactor} className="gap-4">
-          <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-xl bg-slate-100 p-1">
-            {sortedCategories.map((category, index) => (
-              <TabsTrigger
-                key={category.id}
-                value={category.id}
-                className="rounded-lg px-3 py-2 text-sm data-active:bg-white data-active:shadow-sm"
-              >
-                {category.name.trim() || `Factor ${index + 1}`}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {sortedCategories.map((category, index) => (
-            <TabsContent key={category.id} value={category.id} className="mt-0">
-              <FactorSpreadsheet
-                category={category}
-                factorNumber={index + 1}
-                pending={pending}
-                onRunAction={runAction}
-                onAddRootWordLevel={() => addRootWordLevel(category)}
-                onRemoveLevel={(questionId, levelIndex) =>
-                  removeLevel(category, questionId, levelIndex)
-                }
-              />
-            </TabsContent>
-          ))}
-        </Tabs>
+        <FactorSpreadsheet
+          category={category}
+          pending={pending}
+          onRunAction={runAction}
+          onAddRootWordLevel={() => addRootWordLevel(category)}
+          onRemoveLevel={(questionId, levelIndex) =>
+            removeLevel(category, questionId, levelIndex)
+          }
+        />
       )}
     </div>
   );
@@ -268,14 +222,12 @@ export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
 
 function FactorSpreadsheet({
   category,
-  factorNumber,
   pending,
   onRunAction,
   onAddRootWordLevel,
   onRemoveLevel,
 }: {
   category: MatrixAdminCategory;
-  factorNumber: number;
   pending: boolean;
   onRunAction: (
     action: () => Promise<{ error?: string; success?: boolean }>,
@@ -292,37 +244,51 @@ function FactorSpreadsheet({
       <CardHeader className="gap-3 border-b border-slate-100 bg-slate-50/50 py-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-slate-600">
-            Factor {factorNumber} — edit cells like Excel. Click <strong>Edit</strong> then{" "}
-            <strong>Save</strong> on each change.
+            Edit cells like Excel. Click <strong>Edit</strong> then <strong>Save</strong> on each
+            change.
           </p>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={pending}
-            onClick={() =>
-              onRunAction(
-                () =>
-                  toggleMatrixItem("matrix_categories", category.id, !category.is_active),
-                category.is_active ? "Factor hidden from forms" : "Factor shown on forms"
-              )
-            }
-          >
-            {category.is_active ? (
-              <>
-                <EyeOff className="mr-1.5 h-3.5 w-3.5" />
-                Hide from forms
-              </>
-            ) : (
-              <>
-                <Eye className="mr-1.5 h-3.5 w-3.5" />
-                Show on forms
-              </>
+          <div className="flex flex-wrap items-center gap-2">
+            {rootQuestions.length === 0 && canAddRootLevel && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                disabled={pending}
+                onClick={onAddRootWordLevel}
+              >
+                <Plus className="mr-1 h-3 w-3" />
+                Add Level 1 words
+              </Button>
             )}
-          </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={() =>
+                onRunAction(
+                  () =>
+                    toggleMatrixItem("matrix_categories", category.id, !category.is_active),
+                  category.is_active ? "Form hidden from users" : "Form shown to users"
+                )
+              }
+            >
+              {category.is_active ? (
+                <>
+                  <EyeOff className="mr-1.5 h-3.5 w-3.5" />
+                  Hide from forms
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-1.5 h-3.5 w-3.5" />
+                  Show on forms
+                </>
+              )}
+            </Button>
+          </div>
         </div>
         {!category.is_active && (
           <p className="text-sm text-amber-700">
-            Hidden — candidates and employers will not see this factor.
+            Hidden — candidates and employers will not see this form.
           </p>
         )}
       </CardHeader>
@@ -344,39 +310,6 @@ function FactorSpreadsheet({
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className={SPREADSHEET_LABEL}>
-                  <span>Factor</span>
-                </td>
-                <td colSpan={MATRIX_WORDS_PER_LEVEL} className={cn(SPREADSHEET_CELL, "text-center")}>
-                  <EditableFactorName
-                    category={category}
-                    factorNumber={factorNumber}
-                    pending={pending}
-                    centered
-                    onSave={(name) =>
-                      onRunAction(
-                        () =>
-                          saveMatrixCategory(buildCategoryFormData(category, { name }), category.id),
-                        "Factor name saved"
-                      )
-                    }
-                  />
-                  {rootQuestions.length === 0 && canAddRootLevel && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-2 h-7 text-xs"
-                      disabled={pending}
-                      onClick={onAddRootWordLevel}
-                    >
-                      <Plus className="mr-1 h-3 w-3" />
-                      Add Level 1 words
-                    </Button>
-                  )}
-                </td>
-              </tr>
-
               {rootQuestions.map((question, levelIndex) => {
                 const levelNumber = matrixWordLevelNumber(levelIndex);
                 return (
@@ -814,109 +747,6 @@ function AddWordInColumn({
           Cancel
         </Button>
       </div>
-    </div>
-  );
-}
-
-function EditableFactorName({
-  category,
-  factorNumber,
-  pending,
-  centered,
-  onSave,
-}: {
-  category: MatrixAdminCategory;
-  factorNumber: number;
-  pending: boolean;
-  centered?: boolean;
-  onSave: (name: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(category.name);
-
-  useEffect(() => {
-    setName(category.name);
-  }, [category.name]);
-
-  function cancel() {
-    setName(category.name);
-    setEditing(false);
-  }
-
-  function save() {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      toast.error("Factor name cannot be empty.");
-      return;
-    }
-    if (trimmed === category.name) {
-      setEditing(false);
-      return;
-    }
-    onSave(trimmed);
-    setEditing(false);
-  }
-
-  if (!editing) {
-    return (
-      <div
-        className={cn(
-          "flex flex-wrap items-center gap-2",
-          centered && "justify-center"
-        )}
-      >
-        <p className="text-sm font-semibold text-slate-800">
-          {category.name || `Factor ${factorNumber}`}
-        </p>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="h-7 px-2 text-xs"
-          disabled={pending}
-          onClick={() => setEditing(true)}
-        >
-          <Pencil className="mr-1 h-3 w-3" />
-          Edit
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        "flex flex-wrap items-center gap-2",
-        centered && "justify-center"
-      )}
-    >
-      <Input
-        value={name}
-        disabled={pending}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") save();
-          if (e.key === "Escape") cancel();
-        }}
-        className="h-8 max-w-sm text-sm font-semibold"
-        aria-label={`Factor ${factorNumber} name`}
-        autoFocus
-      />
-      <Button type="button" size="sm" className="h-7 px-2 text-xs" disabled={pending} onClick={save}>
-        <Check className="mr-1 h-3 w-3" />
-        Save
-      </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 text-xs"
-        disabled={pending}
-        onClick={cancel}
-      >
-        <X className="mr-1 h-3 w-3" />
-        Cancel
-      </Button>
     </div>
   );
 }

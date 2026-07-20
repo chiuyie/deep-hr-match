@@ -20,7 +20,7 @@ import {
   formStateToJobPayload,
   parseJobFormState,
 } from "@/lib/utils/job-form";
-import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
+import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategories } from "@/lib/matching/matrix-queries";
 import {
   filterSharedMatrixCategories,
   validateMatrixSubmission,
@@ -197,7 +197,7 @@ export async function saveJobMatrixAnswers(
     );
 
     const validationError = validateMatrixSubmission(
-      filterSharedMatrixCategories(categories ?? []),
+      pickPrimaryMatrixCategories(filterSharedMatrixCategories(categories ?? [])),
       answerMap
     );
     if (validationError) return { error: validationError };

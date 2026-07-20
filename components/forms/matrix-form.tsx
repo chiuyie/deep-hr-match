@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { getApplicableMatrixQuestions } from "@/lib/matching/matrix-tree";
 import { validateMatrixSubmission } from "@/lib/matching/matrix-form";
+import { pickPrimaryMatrixCategories } from "@/lib/matching/matrix-queries";
 import { cn } from "@/lib/utils";
 import { Grid3X3 } from "lucide-react";
 import type { MatrixCategory, MatrixQuestion, MatrixOption } from "@/types/database";
@@ -77,15 +77,14 @@ export function MatrixForm({
   headerIcon = <Grid3X3 className="h-6 w-6" />,
 }: MatrixFormProps) {
   const router = useRouter();
-  const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState(existingAnswers);
   const [saving, setSaving] = useState(false);
 
-  const activeCategories = categories.filter((c) => c.is_active);
-  const current = activeCategories[step];
-  const progress = activeCategories.length
-    ? ((step + 1) / activeCategories.length) * 100
-    : 0;
+  const activeCategories = useMemo(
+    () => pickPrimaryMatrixCategories(categories.filter((c) => c.is_active)),
+    [categories]
+  );
+  const current = activeCategories[0];
 
   function setAnswer(
     questionId: string,
@@ -157,7 +156,7 @@ export function MatrixForm({
     }
   }
 
-  if (!activeCategories.length) {
+  if (!activeCategories.length || !current) {
     return (
       <EmployerPageSection
         title={targetLabel}
@@ -177,18 +176,8 @@ export function MatrixForm({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-slate-800">{targetLabel}</h2>
-          <span className="text-sm text-slate-500">
-            Factor {step + 1} of {activeCategories.length}
-          </span>
-        </div>
-        <Progress value={progress} className="h-2" />
-      </div>
-
       <EmployerPageSection
-        title={current.name}
+        title={targetLabel}
         description={current.description ?? undefined}
         icon={headerIcon}
         gradient="from-purple-500 to-purple-600"
@@ -238,23 +227,9 @@ export function MatrixForm({
       </EmployerPageSection>
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          className="rounded-lg"
-          disabled={step === 0}
-          onClick={() => setStep((s) => s - 1)}
-        >
-          Previous factor
+        <Button className="rounded-lg" disabled={saving} onClick={() => handleSave(true)}>
+          {saving ? "Submitting…" : "Submit & continue"}
         </Button>
-        {step < activeCategories.length - 1 ? (
-          <Button className="rounded-lg" onClick={() => setStep((s) => s + 1)}>
-            Next factor
-          </Button>
-        ) : (
-          <Button className="rounded-lg" disabled={saving} onClick={() => handleSave(true)}>
-            {saving ? "Submitting…" : "Submit & continue"}
-          </Button>
-        )}
         <Button
           variant="secondary"
           className="rounded-lg"

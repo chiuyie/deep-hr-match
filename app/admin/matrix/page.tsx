@@ -1,5 +1,5 @@
 import { MatrixAdminEditor, type MatrixAdminCategory } from "@/components/admin/matrix-admin-editor";
-import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
+import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategory } from "@/lib/matching/matrix-queries";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminMatrixPage() {
@@ -22,5 +22,7 @@ export default async function AdminMatrixPage() {
     })),
   }));
 
-  return <MatrixAdminEditor categories={sorted} />;
+  const primary = pickPrimaryMatrixCategory(sorted);
+
+  return <MatrixAdminEditor category={primary ?? null} />;
 }
