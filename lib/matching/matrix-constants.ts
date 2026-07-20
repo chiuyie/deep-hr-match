@@ -44,20 +44,40 @@ export const PLACEHOLDER_FACTOR_NAMES = [
   "Matching Factor 7",
 ] as const;
 
-/** Placeholder words for each word level (7 per level). */
-export const PLACEHOLDER_WORDS = [
-  "word1",
-  "word2",
-  "word3",
-  "word4",
-  "word5",
-  "word6",
-  "word7",
-] as const;
-
-export function placeholderWordLabel(wordNumber: number): string {
-  return `word${wordNumber}`;
+/** Column (1–7) from option sort_order in the spreadsheet layout. */
+export function matrixOptionColumn(sortOrder: number): number {
+  return ((sortOrder - 1) % MATRIX_WORDS_PER_LEVEL) + 1;
 }
+
+/** Root grid row labels: Level 1 → factor1…factor7; Level 2 → Level1Word1…; Level 3 → Level2Word1… */
+export function placeholderRootWordLabel(levelIndex: number, column: number): string {
+  if (levelIndex <= 0) return `factor${column}`;
+  return `Level${levelIndex}Word${column}`;
+}
+
+/** Branch labels under a word at root level row `parentLevelIndex`, column `parentColumn`. */
+export function placeholderSubLevelWordLabel(
+  parentLevelIndex: number,
+  parentColumn: number,
+  wordIndex: number
+): string {
+  return `Level${parentLevelIndex + 1}SubLevel${parentColumn}Word${wordIndex}`;
+}
+
+/** @deprecated Use placeholderRootWordLabel or placeholderSubLevelWordLabel */
+export function placeholderWordLabel(wordNumber: number): string {
+  return `factor${wordNumber}`;
+}
+
+export const PLACEHOLDER_WORDS = [
+  "factor1",
+  "factor2",
+  "factor3",
+  "factor4",
+  "factor5",
+  "factor6",
+  "factor7",
+] as const;
 
 export function wordLevelQuestionText(factorNumber: number, questionIndex: number): string {
   const level = matrixWordLevelNumber(questionIndex);

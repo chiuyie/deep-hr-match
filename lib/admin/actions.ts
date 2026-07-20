@@ -6,8 +6,10 @@ import { requireRole } from "@/lib/auth/session";
 import {
   MATRIX_LEVELS_PER_FACTOR,
   MATRIX_WORDS_PER_LEVEL,
+  matrixOptionColumn,
   matchingFactorLabel,
-  placeholderWordLabel,
+  placeholderRootWordLabel,
+  placeholderSubLevelWordLabel,
   wordLevelQuestionText,
 } from "@/lib/matching/matrix-constants";
 import {
@@ -26,6 +28,47 @@ function revalidateMatrixPages() {
   for (const path of MATRIX_PATHS) {
     revalidatePath(path, "layout");
   }
+}
+
+async function resolveRootWordLevelIndex(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  questionId: string,
+  categoryId: string
+): Promise<number> {
+  let currentQuestionId = questionId;
+
+  for (let depth = 0; depth < 24; depth += 1) {
+    const { data: question } = await supabase
+      .from("matrix_questions")
+      .select("id, parent_option_id")
+      .eq("id", currentQuestionId)
+      .single();
+
+    if (!question) return 0;
+
+    if (!question.parent_option_id) {
+      const { data: roots } = await supabase
+        .from("matrix_questions")
+        .select("id, sort_order")
+        .eq("category_id", categoryId)
+        .is("parent_option_id", null)
+        .order("sort_order");
+
+      const index = (roots ?? []).findIndex((row) => row.id === question.id);
+      return index >= 0 ? index : 0;
+    }
+
+    const { data: parentOption } = await supabase
+      .from("matrix_options")
+      .select("question_id")
+      .eq("id", question.parent_option_id)
+      .single();
+
+    if (!parentOption?.question_id) return 0;
+    currentQuestionId = parentOption.question_id;
+  }
+
+  return 0;
 }
 
 export async function saveMatrixCategory(formData: FormData, id?: string) {
@@ -218,12 +261,13 @@ export async function createMatrixSubLevel(categoryId: string) {
   }
 
   const options = Array.from({ length: MATRIX_WORDS_PER_LEVEL }, (_, index) => {
-    const word = placeholderWordLabel(index + 1);
+    const column = index + 1;
+    const word = placeholderRootWordLabel(nextQuestionIndex, column);
     return {
       question_id: question.id,
       option_text: word,
       option_value: word,
-      sort_order: index + 1,
+      sort_order: column,
       is_active: true,
     };
   });
@@ -305,7 +349,7 @@ export async function createMatrixSubLevelForWord(parentOptionId: string) {
 
   const { data: parentOption, error: parentError } = await supabase
     .from("matrix_options")
-    .select("id, option_text, question_id")
+    .select("id, option_text, question_id, sort_order")
     .eq("id", parentOptionId)
     .single();
 
@@ -363,13 +407,21 @@ export async function createMatrixSubLevelForWord(parentOptionId: string) {
     return { error: questionError?.message ?? "Failed to create sub-level" };
   }
 
+  const parentColumn = matrixOptionColumn(parentOption.sort_order ?? 1);
+  const parentLevelIndex = await resolveRootWordLevelIndex(
+    supabase,
+    parentOption.question_id,
+    parentQuestion.category_id
+  );
+
   const options = Array.from({ length: MATRIX_WORDS_PER_LEVEL }, (_, index) => {
-    const word = placeholderWordLabel(index + 1);
+    const wordIndex = index + 1;
+    const word = placeholderSubLevelWordLabel(parentLevelIndex, parentColumn, wordIndex);
     return {
       question_id: question.id,
       option_text: word,
       option_value: word,
-      sort_order: index + 1,
+      sort_order: wordIndex,
       is_active: true,
     };
   });

@@ -24,9 +24,16 @@ const MATRIX_FACTOR_COUNT = 7;
 const MATRIX_WORDS_PER_LEVEL = 7;
 /** Word levels per factor (Level 1–3). Default 3. Set MATRIX_LEVELS=1 for minimal. */
 const LEVELS_PER_FACTOR = Number(process.env.MATRIX_LEVELS ?? "3");
+/** Sub-levels under each Level-1 column (factor1…factor7). Set MATRIX_SUB_LEVELS=0 to skip. */
+const SEED_SUB_LEVELS = process.env.MATRIX_SUB_LEVELS !== "0";
 
-function placeholderWord(wordNumber) {
-  return `word${wordNumber}`;
+function placeholderRootWordLabel(levelIndex, column) {
+  if (levelIndex <= 0) return `factor${column}`;
+  return `Level${levelIndex}Word${column}`;
+}
+
+function placeholderSubLevelWordLabel(parentLevelIndex, parentColumn, wordIndex) {
+  return `Level${parentLevelIndex + 1}SubLevel${parentColumn}Word${wordIndex}`;
 }
 
 function matchingFactorLabel(factorNumber) {
@@ -39,11 +46,7 @@ function matrixWordLevelNumber(questionIndex) {
 
 function wordLevelQuestionText(factorNumber, questionIndex) {
   const level = matrixWordLevelNumber(questionIndex);
-  return `[PLACEHOLDER] ${matchingFactorLabel(factorNumber)} — Level ${level}: choose one word`;
-}
-
-function sortOrderForColumnStack(column, stackIndex) {
-  return column + stackIndex * MATRIX_WORDS_PER_LEVEL;
+  return `[PLACEHOLDER] ${matchingFactorLabel(factorNumber)} — Level ${level}: choose one field`;
 }
 
 function fail(message) {
@@ -73,49 +76,38 @@ function questionId(factorIndex, levelIndex) {
   return `b1000000-0000-4000-8000-${tail}`;
 }
 
-function optionId(factorIndex, levelIndex, optionIndex) {
+function optionId(factorIndex, levelIndex, columnIndex) {
   const f = String(factorIndex + 1).padStart(2, "0");
   const l = String(levelIndex + 1).padStart(2, "0");
-  const o = String(optionIndex + 1).padStart(3, "0");
-  const tail = `${f}${l}${o}`.padEnd(12, "0");
+  const c = String(columnIndex + 1).padStart(2, "0");
+  const tail = `${f}${l}${c}`.padEnd(12, "0");
   return `c1000000-0000-4000-8000-${tail}`;
 }
 
-function buildOptionsForLevel(factorIndex, levelIndex, questionIdValue) {
-  const options = [];
+function subQuestionId(factorIndex, parentColumn) {
+  const n = factorIndex * 10 + parentColumn;
+  return `b2000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+}
 
-  if (levelIndex === 0) {
-    for (let col = 1; col <= MATRIX_WORDS_PER_LEVEL; col += 1) {
-      const word = placeholderWord(col);
-      options.push({
-        id: optionId(factorIndex, levelIndex, col - 1),
-        question_id: questionIdValue,
-        option_text: word,
-        option_value: word,
-        sort_order: col,
-        is_active: true,
-      });
-    }
-    return options;
-  }
+function subOptionId(factorIndex, parentColumn, wordIndex) {
+  const n = factorIndex * 100 + parentColumn * 10 + wordIndex;
+  return `c2000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+}
 
-  let optionIndex = 0;
-  for (let col = 1; col <= MATRIX_WORDS_PER_LEVEL; col += 1) {
-    for (let stack = 0; stack < MATRIX_WORDS_PER_LEVEL; stack += 1) {
-      const word = placeholderWord(stack + 1);
-      options.push({
-        id: optionId(factorIndex, levelIndex, optionIndex),
-        question_id: questionIdValue,
-        option_text: word,
-        option_value: word,
-        sort_order: sortOrderForColumnStack(col, stack),
-        is_active: true,
-      });
-      optionIndex += 1;
-    }
-  }
-
-  return options;
+function buildRootOptionsForLevel(factorIndex, levelIndex, questionIdValue) {
+  return Array.from({ length: MATRIX_WORDS_PER_LEVEL }, (_, columnIndex) => {
+    const column = columnIndex + 1;
+    const word = placeholderRootWordLabel(levelIndex, column);
+    return {
+      id: optionId(factorIndex, levelIndex, columnIndex),
+      question_id: questionIdValue,
+      option_text: word,
+      option_value: word,
+      sort_order: column,
+      is_active: true,
+      description: null,
+    };
+  });
 }
 
 async function insertInBatches(table, rows, batchSize = 400) {
@@ -131,16 +123,11 @@ async function main() {
     fail("MATRIX_LEVELS must be between 1 and 7");
   }
 
-  const optionsPerLevel =
-    LEVELS_PER_FACTOR === 1
-      ? MATRIX_WORDS_PER_LEVEL
-      : MATRIX_WORDS_PER_LEVEL + (LEVELS_PER_FACTOR - 1) * MATRIX_WORDS_PER_LEVEL * MATRIX_WORDS_PER_LEVEL;
-
   console.log(
-    `Seeding 7^7 placeholder: ${MATRIX_FACTOR_COUNT} factors × ${LEVELS_PER_FACTOR} word level(s)`
-  );
-  console.log(
-    `  Level 2: ${MATRIX_WORDS_PER_LEVEL} words (one per column); Levels 3+: ${MATRIX_WORDS_PER_LEVEL} stacked words × ${MATRIX_WORDS_PER_LEVEL} columns`
+    `Seeding matrix placeholder: ${MATRIX_FACTOR_COUNT} factors × ${LEVELS_PER_FACTOR} word level(s)` +
+      (SEED_SUB_LEVELS && LEVELS_PER_FACTOR >= 1
+        ? " + Level1SubLevel{col}Word{n} under each factor column"
+        : "")
   );
 
   const { error: deleteOptionsError } = await supabase
@@ -164,7 +151,7 @@ async function main() {
   const categories = Array.from({ length: MATRIX_FACTOR_COUNT }, (_, factorIndex) => ({
     id: categoryId(factorIndex),
     name: matchingFactorLabel(factorIndex + 1),
-    description: `7^7 matching factor ${factorIndex + 1} of ${MATRIX_FACTOR_COUNT}`,
+    description: `[PLACEHOLDER] 7^7 matching factor ${factorIndex + 1} of ${MATRIX_FACTOR_COUNT}`,
     sort_order: factorIndex + 1,
     is_active: true,
   }));
@@ -172,13 +159,15 @@ async function main() {
   const { error: catError } = await supabase.from("matrix_categories").insert(categories);
   if (catError) fail(catError.message);
 
-  const questions = [];
-  const options = [];
+  const rootQuestions = [];
+  const subQuestions = [];
+  const rootOptions = [];
+  const subOptions = [];
 
   for (let f = 0; f < MATRIX_FACTOR_COUNT; f += 1) {
     for (let l = 0; l < LEVELS_PER_FACTOR; l += 1) {
       const qid = questionId(f, l);
-      questions.push({
+      rootQuestions.push({
         id: qid,
         category_id: categoryId(f),
         question_text: wordLevelQuestionText(f + 1, l),
@@ -187,26 +176,66 @@ async function main() {
         sort_order: l + 1,
         is_required: true,
         is_active: true,
+        parent_option_id: null,
       });
 
-      options.push(...buildOptionsForLevel(f, l, qid));
+      rootOptions.push(...buildRootOptionsForLevel(f, l, qid));
+    }
+
+    if (SEED_SUB_LEVELS && LEVELS_PER_FACTOR >= 1) {
+      for (let col = 1; col <= MATRIX_WORDS_PER_LEVEL; col += 1) {
+        const parentOptionId = optionId(f, 0, col - 1);
+        const subQid = subQuestionId(f, col);
+        const parentWord = placeholderRootWordLabel(0, col);
+
+        subQuestions.push({
+          id: subQid,
+          category_id: categoryId(f),
+          question_text: `[PLACEHOLDER] Follow-up for “${parentWord}” — choose one field`,
+          question_type: "single_select",
+          target_role: "both",
+          sort_order: 100 + col,
+          is_required: true,
+          is_active: true,
+          parent_option_id: parentOptionId,
+        });
+
+        for (let w = 1; w <= MATRIX_WORDS_PER_LEVEL; w += 1) {
+          const word = placeholderSubLevelWordLabel(0, col, w);
+          subOptions.push({
+            id: subOptionId(f, col, w),
+            question_id: subQid,
+            option_text: word,
+            option_value: word,
+            sort_order: w,
+            is_active: true,
+            description: null,
+          });
+        }
+      }
     }
   }
 
-  await insertInBatches("matrix_questions", questions);
-  await insertInBatches("matrix_options", options);
+  await insertInBatches("matrix_questions", rootQuestions);
+  await insertInBatches("matrix_options", rootOptions);
+  await insertInBatches("matrix_questions", subQuestions);
+  await insertInBatches("matrix_options", subOptions);
 
-  const totalOptions = options.length;
-  const perFactor = totalOptions / MATRIX_FACTOR_COUNT;
+  const questions = [...rootQuestions, ...subQuestions];
+  const options = [...rootOptions, ...subOptions];
 
   console.log("");
   console.log("Done:");
-  console.log(`  ${categories.length} factors (Level 1 names)`);
-  console.log(`  ${questions.length} word levels (${questions.length / MATRIX_FACTOR_COUNT} per factor)`);
-  console.log(`  ${totalOptions} words (${perFactor} per factor, ~${optionsPerLevel} avg per level)`);
+  console.log(`  ${categories.length} factors (tab titles)`);
+  console.log(`  ${questions.length} questions`);
+  console.log(`  ${options.length} field labels`);
   console.log("");
-  console.log("Open /admin/matrix to review the spreadsheet layout.");
-  console.log("Re-complete employer job matrix and candidate matrix forms after seeding.");
+  console.log("Level 1 columns: factor1 … factor7");
+  console.log("Level 2 columns: Level1Word1 … Level1Word7 (when MATRIX_LEVELS≥2)");
+  console.log("Level 3 columns: Level2Word1 … Level2Word7 (when MATRIX_LEVELS≥3)");
+  console.log("Sub-levels: Level1SubLevel{col}Word1 … Word7 under each factor column");
+  console.log("");
+  console.log("Open /admin/matrix to review. Re-complete job and candidate matrix forms after seeding.");
 }
 
 main().catch((err) => {
