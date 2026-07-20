@@ -10,13 +10,14 @@ describe("matrix placeholder labels", () => {
     expect(placeholderRootWordLabel(0, 7)).toBe("factor7");
   });
 
-  it("names deeper root rows LevelNWordM", () => {
-    expect(placeholderRootWordLabel(1, 3)).toBe("Level1Word3");
-    expect(placeholderRootWordLabel(2, 5)).toBe("Level2Word5");
+  it("names deeper root rows LevelNWordM (Level 2+)", () => {
+    expect(placeholderRootWordLabel(1, 3)).toBe("Level2Word3");
+    expect(placeholderRootWordLabel(2, 5)).toBe("Level3Word5");
+    expect(placeholderRootWordLabel(6, 1)).toBe("Level7Word1");
   });
 
-  it("names sub-level branches", () => {
-    expect(placeholderSubLevelWordLabel(0, 1, 2)).toBe("Level1SubLevel1Word2");
-    expect(placeholderSubLevelWordLabel(1, 4, 7)).toBe("Level2SubLevel4Word7");
+  it("names sub-level branches under Level 2+", () => {
+    expect(placeholderSubLevelWordLabel(2, 1, 2)).toBe("Level2SubLevel1Word2");
+    expect(placeholderSubLevelWordLabel(3, 2, 7)).toBe("Level3SubLevel2Word7");
   });
 });

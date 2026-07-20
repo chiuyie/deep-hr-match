@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Check,
   Eye,
@@ -186,11 +186,12 @@ export function MatrixAdminEditor({ category }: MatrixAdminEditorProps) {
             {FRAMEWORK_MATCHING_LANGUAGE_FORM_EDITOR}
           </h2>
           <p className="text-sm text-muted-foreground">
-            <strong className="text-slate-700">Level 1–3</strong> each have{" "}
-            <strong className="text-slate-700">7 columns</strong> — one field per column (labels can
-            be phrases). Optional <strong className="text-slate-700">description / question</strong>{" "}
-            per field. Any word can branch into a <strong className="text-slate-700">sub-level</strong>{" "}
-            with up to 7 follow-up words.
+            <strong className="text-slate-700">Level 1</strong> is{" "}
+            <strong className="text-slate-700">factor1–factor7</strong>.{" "}
+            <strong className="text-slate-700">Levels 2–{MATRIX_MAX_LEVEL}</strong> are{" "}
+            <strong className="text-slate-700">LevelNWord1–7</strong>. From Level 2 onward, any
+            word can add a <strong className="text-slate-700">sub-level</strong> (
+            LevelNSubLevel1Word1–7). Optional description / question per field.
           </p>
         </CardContent>
       </Card>
@@ -336,6 +337,7 @@ function FactorSpreadsheet({
                           category={category}
                           question={question}
                           colIndex={colIndex}
+                          levelIndex={levelIndex}
                           pending={pending}
                           inactive={!question.is_active || !category.is_active}
                           onRunAction={onRunAction}
@@ -373,6 +375,7 @@ function SpreadsheetColumnCell({
   category,
   question,
   colIndex,
+  levelIndex,
   pending,
   inactive,
   onRunAction,
@@ -380,6 +383,7 @@ function SpreadsheetColumnCell({
   category: MatrixAdminCategory;
   question: MatrixAdminQuestion;
   colIndex: number;
+  levelIndex: number;
   pending: boolean;
   inactive: boolean;
   onRunAction: (
@@ -389,6 +393,7 @@ function SpreadsheetColumnCell({
 }) {
   const words = getWordsInColumn(question, colIndex);
   const column = colIndex + 1;
+  const canAddWord = levelIndex >= 1;
 
   return (
     <div className={cn("min-h-[4rem] space-y-1", inactive && "opacity-60")}>
@@ -416,22 +421,24 @@ function SpreadsheetColumnCell({
           onRunAction={onRunAction}
         />
       ))}
-      <AddWordInColumn
-        pending={pending}
-        onAdd={(text) =>
-          onRunAction(
-            () => createMatrixWord(question.id, text, column),
-            "Field added"
-          )
-        }
-      />
+      {canAddWord ? (
+        <AddWordInColumn
+          pending={pending}
+          onAdd={(text) =>
+            onRunAction(
+              () => createMatrixWord(question.id, text, column),
+              "Field added"
+            )
+          }
+        />
+      ) : null}
     </div>
   );
 }
 
 function SpreadsheetWordCell({
   category,
-  parentQuestion: _parentQuestion,
+  parentQuestion,
   word,
   pending,
   onSave,
@@ -453,6 +460,9 @@ function SpreadsheetWordCell({
   const [text, setText] = useState(word.option_text);
   const [description, setDescription] = useState(word.description ?? "");
   const subQuestion = getSubLevelQuestion(category, word.id);
+  const rootIndex = getRootQuestions(category).findIndex((q) => q.id === parentQuestion.id);
+  const canAddSubLevel =
+    Boolean(parentQuestion.parent_option_id) || rootIndex >= 1;
 
   useEffect(() => {
     setText(word.option_text);
@@ -514,7 +524,7 @@ function SpreadsheetWordCell({
             Del
           </Button>
         </div>
-        {!subQuestion && (
+        {!subQuestion && canAddSubLevel && (
           <Button
             type="button"
             size="sm"

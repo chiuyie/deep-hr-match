@@ -6,7 +6,6 @@ import { requireRole } from "@/lib/auth/session";
 import {
   MATRIX_LEVELS_PER_FACTOR,
   MATRIX_WORDS_PER_LEVEL,
-  matrixOptionColumn,
   matchingFactorLabel,
   placeholderRootWordLabel,
   placeholderSubLevelWordLabel,
@@ -30,6 +29,7 @@ function revalidateMatrixPages() {
   }
 }
 
+/** 0-based root row index (0 = Level 1 factors, 1 = Level 2 words, …). */
 async function resolveRootWordLevelIndex(
   supabase: Awaited<ReturnType<typeof createClient>>,
   questionId: string,
@@ -69,6 +69,37 @@ async function resolveRootWordLevelIndex(
   }
 
   return 0;
+}
+
+/** How many parent_option hops from this question up to a root row (0 = already root). */
+async function resolveBranchDepthFromRoot(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  questionId: string
+): Promise<number> {
+  let currentQuestionId = questionId;
+  let hops = 0;
+
+  for (let depth = 0; depth < 24; depth += 1) {
+    const { data: question } = await supabase
+      .from("matrix_questions")
+      .select("id, parent_option_id")
+      .eq("id", currentQuestionId)
+      .single();
+
+    if (!question?.parent_option_id) return hops;
+
+    hops += 1;
+    const { data: parentOption } = await supabase
+      .from("matrix_options")
+      .select("question_id")
+      .eq("id", question.parent_option_id)
+      .single();
+
+    if (!parentOption?.question_id) return hops;
+    currentQuestionId = parentOption.question_id;
+  }
+
+  return hops;
 }
 
 export async function saveMatrixCategory(formData: FormData, id?: string) {
@@ -367,6 +398,19 @@ export async function createMatrixSubLevelForWord(parentOptionId: string) {
     return { error: "Could not resolve matching factor for this word" };
   }
 
+  const parentLevelIndex = await resolveRootWordLevelIndex(
+    supabase,
+    parentOption.question_id,
+    parentQuestion.category_id
+  );
+
+  // Level 1 is factor1…factor7 only — sub-levels start at Level 2.
+  if (parentLevelIndex < 1) {
+    return {
+      error: "Sub-levels are only allowed under Level 2+ words (not under factor1–factor7).",
+    };
+  }
+
   const { data: existingChild } = await supabase
     .from("matrix_questions")
     .select("id")
@@ -376,6 +420,13 @@ export async function createMatrixSubLevelForWord(parentOptionId: string) {
   if (existingChild) {
     return { error: "This word already has a sub-level. Edit it below the word." };
   }
+
+  const branchDepth = await resolveBranchDepthFromRoot(
+    supabase,
+    parentOption.question_id
+  );
+  const subLevelDepth = branchDepth + 1;
+  const parentLevelNumber = parentLevelIndex + 1;
 
   const { data: siblings } = await supabase
     .from("matrix_questions")
@@ -407,16 +458,13 @@ export async function createMatrixSubLevelForWord(parentOptionId: string) {
     return { error: questionError?.message ?? "Failed to create sub-level" };
   }
 
-  const parentColumn = matrixOptionColumn(parentOption.sort_order ?? 1);
-  const parentLevelIndex = await resolveRootWordLevelIndex(
-    supabase,
-    parentOption.question_id,
-    parentQuestion.category_id
-  );
-
   const options = Array.from({ length: MATRIX_WORDS_PER_LEVEL }, (_, index) => {
     const wordIndex = index + 1;
-    const word = placeholderSubLevelWordLabel(parentLevelIndex, parentColumn, wordIndex);
+    const word = placeholderSubLevelWordLabel(
+      parentLevelNumber,
+      subLevelDepth,
+      wordIndex
+    );
     return {
       question_id: question.id,
       option_text: word,

@@ -7,10 +7,10 @@ export const MATRIX_FACTOR_LEVEL = 1;
 /** Word choices at each word level (Levels 2–7+). */
 export const MATRIX_WORDS_PER_LEVEL = 7;
 
-/** Word-selection rows per factor (Level 1–3 word grid). Optional sub-levels branch from individual words. */
-export const MATRIX_LEVELS_PER_FACTOR = 3;
+/** Root word rows in the spreadsheet (Level 1 = factor columns; up to 7 rows for full 7^7 depth). */
+export const MATRIX_LEVELS_PER_FACTOR = 7;
 
-/** Deepest numbered word row when all three layers exist. */
+/** Deepest numbered root word row when all layers exist. */
 export const MATRIX_MAX_LEVEL = MATRIX_LEVELS_PER_FACTOR;
 
 /** Total combination space at full depth: 7^7 paths through the word tree. */
@@ -49,19 +49,29 @@ export function matrixOptionColumn(sortOrder: number): number {
   return ((sortOrder - 1) % MATRIX_WORDS_PER_LEVEL) + 1;
 }
 
-/** Root grid row labels: Level 1 → factor1…factor7; Level 2 → Level1Word1…; Level 3 → Level2Word1… */
+/**
+ * Root grid row labels:
+ * Level 1 → factor1…factor7
+ * Level 2 → Level2Word1…Level2Word7
+ * Level N → LevelNWord1…LevelNWord7
+ */
 export function placeholderRootWordLabel(levelIndex: number, column: number): string {
   if (levelIndex <= 0) return `factor${column}`;
-  return `Level${levelIndex}Word${column}`;
+  return `Level${matrixWordLevelNumber(levelIndex)}Word${column}`;
 }
 
-/** Branch labels under a word at root level row `parentLevelIndex`, column `parentColumn`. */
+/**
+ * Branch labels under a Level 2+ word.
+ * `parentLevelNumber` is the display level (2–7).
+ * `subLevelDepth` is 1 for the first branch under that word, 2 for a nested branch, etc.
+ * Example: Level2SubLevel1Word1 … Level2SubLevel1Word7
+ */
 export function placeholderSubLevelWordLabel(
-  parentLevelIndex: number,
-  parentColumn: number,
+  parentLevelNumber: number,
+  subLevelDepth: number,
   wordIndex: number
 ): string {
-  return `Level${parentLevelIndex + 1}SubLevel${parentColumn}Word${wordIndex}`;
+  return `Level${parentLevelNumber}SubLevel${subLevelDepth}Word${wordIndex}`;
 }
 
 /** @deprecated Use placeholderRootWordLabel or placeholderSubLevelWordLabel */

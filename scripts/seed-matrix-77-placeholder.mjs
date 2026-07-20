@@ -22,18 +22,18 @@ if (existsSync(envPath)) {
 
 const MATRIX_FACTOR_COUNT = 7;
 const MATRIX_WORDS_PER_LEVEL = 7;
-/** Word levels per factor (Level 1–3). Default 3. Set MATRIX_LEVELS=1 for minimal. */
+/** Word levels (Level 1 = factors, then Level 2…N words). Default 3. Set MATRIX_LEVELS=1 for factors only. */
 const LEVELS_PER_FACTOR = Number(process.env.MATRIX_LEVELS ?? "3");
-/** Sub-levels under each Level-1 column (factor1…factor7). Set MATRIX_SUB_LEVELS=0 to skip. */
+/** Sub-levels under each Level-2 word. Set MATRIX_SUB_LEVELS=0 to skip. */
 const SEED_SUB_LEVELS = process.env.MATRIX_SUB_LEVELS !== "0";
 
 function placeholderRootWordLabel(levelIndex, column) {
   if (levelIndex <= 0) return `factor${column}`;
-  return `Level${levelIndex}Word${column}`;
+  return `Level${levelIndex + 1}Word${column}`;
 }
 
-function placeholderSubLevelWordLabel(parentLevelIndex, parentColumn, wordIndex) {
-  return `Level${parentLevelIndex + 1}SubLevel${parentColumn}Word${wordIndex}`;
+function placeholderSubLevelWordLabel(parentLevelNumber, subLevelDepth, wordIndex) {
+  return `Level${parentLevelNumber}SubLevel${subLevelDepth}Word${wordIndex}`;
 }
 
 function matchingFactorLabel(factorNumber) {
@@ -125,8 +125,8 @@ async function main() {
 
   console.log(
     `Seeding matrix placeholder: ${MATRIX_FACTOR_COUNT} factors × ${LEVELS_PER_FACTOR} word level(s)` +
-      (SEED_SUB_LEVELS && LEVELS_PER_FACTOR >= 1
-        ? " + Level1SubLevel{col}Word{n} under each factor column"
+      (SEED_SUB_LEVELS && LEVELS_PER_FACTOR >= 2
+        ? " + Level2SubLevel1Word{n} under each Level 2 column"
         : "")
   );
 
@@ -182,11 +182,12 @@ async function main() {
       rootOptions.push(...buildRootOptionsForLevel(f, l, qid));
     }
 
-    if (SEED_SUB_LEVELS && LEVELS_PER_FACTOR >= 1) {
+    // Sub-levels start at Level 2 (not under factor1–factor7).
+    if (SEED_SUB_LEVELS && LEVELS_PER_FACTOR >= 2) {
       for (let col = 1; col <= MATRIX_WORDS_PER_LEVEL; col += 1) {
-        const parentOptionId = optionId(f, 0, col - 1);
+        const parentOptionId = optionId(f, 1, col - 1);
         const subQid = subQuestionId(f, col);
-        const parentWord = placeholderRootWordLabel(0, col);
+        const parentWord = placeholderRootWordLabel(1, col);
 
         subQuestions.push({
           id: subQid,
@@ -201,7 +202,7 @@ async function main() {
         });
 
         for (let w = 1; w <= MATRIX_WORDS_PER_LEVEL; w += 1) {
-          const word = placeholderSubLevelWordLabel(0, col, w);
+          const word = placeholderSubLevelWordLabel(2, 1, w);
           subOptions.push({
             id: subOptionId(f, col, w),
             question_id: subQid,
@@ -231,9 +232,9 @@ async function main() {
   console.log(`  ${options.length} field labels`);
   console.log("");
   console.log("Level 1 columns: factor1 … factor7");
-  console.log("Level 2 columns: Level1Word1 … Level1Word7 (when MATRIX_LEVELS≥2)");
-  console.log("Level 3 columns: Level2Word1 … Level2Word7 (when MATRIX_LEVELS≥3)");
-  console.log("Sub-levels: Level1SubLevel{col}Word1 … Word7 under each factor column");
+  console.log("Level 2 columns: Level2Word1 … Level2Word7 (when MATRIX_LEVELS≥2)");
+  console.log("Level 3 columns: Level3Word1 … Level3Word7 (when MATRIX_LEVELS≥3)");
+  console.log("Sub-levels: Level2SubLevel1Word1 … Word7 under each Level 2 word (when MATRIX_LEVELS≥2)");
   console.log("");
   console.log("Open /admin/matrix to review. Re-complete job and candidate matrix forms after seeding.");
 }

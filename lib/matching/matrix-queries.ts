@@ -5,7 +5,7 @@
 export const MATRIX_CATEGORY_TREE_SELECT =
   "*, matrix_questions(*, matrix_options!matrix_options_question_id_fkey(*))";
 
-/** Single matrix tree in the product UI (Level 1–3 grid). Extra DB categories are ignored. */
+/** Single matrix tree in the product UI (root word grid). Extra DB categories are ignored. */
 export function pickPrimaryMatrixCategory<T extends { sort_order: number; is_active?: boolean }>(
   categories: T[]
 ): T | undefined {
