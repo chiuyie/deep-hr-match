@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import {
+  MATRIX_LEVELS_PER_FACTOR,
   MATRIX_WORDS_PER_LEVEL,
   matchingFactorLabel,
   placeholderWordLabel,
@@ -80,6 +81,10 @@ export async function saveMatrixQuestion(formData: FormData, id?: string) {
       raw.is_active === "on" ||
       raw.is_active === "true" ||
       raw.is_active === undefined,
+    parent_option_id:
+      typeof raw.parent_option_id === "string" && raw.parent_option_id.trim()
+        ? raw.parent_option_id
+        : null,
   });
 
   if (!parsed.success) {
@@ -121,6 +126,10 @@ export async function saveMatrixOption(formData: FormData, id?: string) {
       raw.is_active === "on" ||
       raw.is_active === "true" ||
       raw.is_active === undefined,
+    description:
+      typeof raw.description === "string" && raw.description.trim()
+        ? raw.description.trim()
+        : null,
   });
 
   if (!parsed.success) {
@@ -171,7 +180,7 @@ export async function createMatrixSubLevel(categoryId: string) {
 
   const { data: category, error: categoryError } = await supabase
     .from("matrix_categories")
-    .select("id, sort_order, matrix_questions(sort_order)")
+    .select("id, sort_order, matrix_questions(id, sort_order, parent_option_id)")
     .eq("id", categoryId)
     .single();
 
@@ -179,7 +188,12 @@ export async function createMatrixSubLevel(categoryId: string) {
     return { error: "Matching factor not found" };
   }
 
-  const existingLevels = category.matrix_questions ?? [];
+  const rootLevels = (category.matrix_questions ?? []).filter((q) => !q.parent_option_id);
+  if (rootLevels.length >= MATRIX_LEVELS_PER_FACTOR) {
+    return { error: `Maximum of ${MATRIX_LEVELS_PER_FACTOR} word levels per factor.` };
+  }
+
+  const existingLevels = rootLevels;
   const nextQuestionIndex = existingLevels.length;
   const nextSort =
     existingLevels.reduce((max, q) => Math.max(max, q.sort_order ?? 0), 0) + 1;
@@ -280,6 +294,92 @@ export async function createMatrixWord(
   });
 
   if (error) return { error: error.message };
+  revalidateMatrixPages();
+  return { success: true };
+}
+
+/** Branch a new word level under one parent word (up to 7 words in that branch). */
+export async function createMatrixSubLevelForWord(parentOptionId: string) {
+  await requireRole("admin");
+  const supabase = await createClient();
+
+  const { data: parentOption, error: parentError } = await supabase
+    .from("matrix_options")
+    .select("id, option_text, question_id")
+    .eq("id", parentOptionId)
+    .single();
+
+  if (parentError || !parentOption) {
+    return { error: "Parent word not found" };
+  }
+
+  const { data: parentQuestion } = await supabase
+    .from("matrix_questions")
+    .select("category_id, sort_order")
+    .eq("id", parentOption.question_id)
+    .single();
+
+  if (!parentQuestion?.category_id) {
+    return { error: "Could not resolve matching factor for this word" };
+  }
+
+  const { data: existingChild } = await supabase
+    .from("matrix_questions")
+    .select("id")
+    .eq("parent_option_id", parentOptionId)
+    .maybeSingle();
+
+  if (existingChild) {
+    return { error: "This word already has a sub-level. Edit it below the word." };
+  }
+
+  const { data: siblings } = await supabase
+    .from("matrix_questions")
+    .select("sort_order")
+    .eq("category_id", parentQuestion.category_id);
+
+  const nextSort =
+    (siblings ?? []).reduce((max, row) => Math.max(max, row.sort_order ?? 0), 0) + 1;
+
+  const prompt = parentOption.option_text.trim();
+  const { data: question, error: questionError } = await supabase
+    .from("matrix_questions")
+    .insert({
+      category_id: parentQuestion.category_id,
+      parent_option_id: parentOptionId,
+      question_text: prompt
+        ? `Follow-up for “${prompt}” — choose one word`
+        : "Choose one word",
+      question_type: "single_select",
+      target_role: "both",
+      sort_order: nextSort,
+      is_required: true,
+      is_active: true,
+    })
+    .select("id")
+    .single();
+
+  if (questionError || !question) {
+    return { error: questionError?.message ?? "Failed to create sub-level" };
+  }
+
+  const options = Array.from({ length: MATRIX_WORDS_PER_LEVEL }, (_, index) => {
+    const word = placeholderWordLabel(index + 1);
+    return {
+      question_id: question.id,
+      option_text: word,
+      option_value: word,
+      sort_order: index + 1,
+      is_active: true,
+    };
+  });
+
+  const { error: optionsError } = await supabase.from("matrix_options").insert(options);
+  if (optionsError) {
+    await supabase.from("matrix_questions").delete().eq("id", question.id);
+    return { error: optionsError.message };
+  }
+
   revalidateMatrixPages();
   return { success: true };
 }

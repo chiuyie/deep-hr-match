@@ -22,8 +22,8 @@ if (existsSync(envPath)) {
 
 const MATRIX_FACTOR_COUNT = 7;
 const MATRIX_WORDS_PER_LEVEL = 7;
-/** Word levels per factor (Level 2 … Level 8). Default 7 = full depth. Set MATRIX_LEVELS=1 for minimal. */
-const LEVELS_PER_FACTOR = Number(process.env.MATRIX_LEVELS ?? "7");
+/** Word levels per factor (Level 1–3). Default 3. Set MATRIX_LEVELS=1 for minimal. */
+const LEVELS_PER_FACTOR = Number(process.env.MATRIX_LEVELS ?? "3");
 
 function placeholderWord(wordNumber) {
   return `word${wordNumber}`;
@@ -34,7 +34,7 @@ function matchingFactorLabel(factorNumber) {
 }
 
 function matrixWordLevelNumber(questionIndex) {
-  return questionIndex + 2;
+  return questionIndex + 1;
 }
 
 function wordLevelQuestionText(factorNumber, questionIndex) {

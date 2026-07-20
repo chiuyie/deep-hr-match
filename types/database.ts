@@ -101,6 +101,7 @@ export interface MatrixQuestion {
   sort_order: number;
   is_required: boolean;
   is_active: boolean;
+  parent_option_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -112,6 +113,7 @@ export interface MatrixOption {
   option_value: string;
   sort_order: number;
   is_active: boolean;
+  description: string | null;
   created_at: string;
   updated_at: string;
 }

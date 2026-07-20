@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FRAMEWORK_MATCHING_LANGUAGE_FORM_EDITOR } from "@/lib/constants/branding";
 import {
@@ -27,6 +28,7 @@ import {
 } from "@/lib/matching/matrix-constants";
 import {
   createMatrixSubLevel,
+  createMatrixSubLevelForWord,
   createMatrixWord,
   deleteMatrixOption,
   deleteMatrixQuestion,
@@ -42,6 +44,7 @@ export type MatrixAdminOption = {
   option_value: string;
   sort_order: number;
   is_active: boolean;
+  description: string | null;
 };
 
 export type MatrixAdminQuestion = {
@@ -52,6 +55,7 @@ export type MatrixAdminQuestion = {
   sort_order: number;
   is_required: boolean;
   is_active: boolean;
+  parent_option_id: string | null;
   matrix_options: MatrixAdminOption[];
 };
 
@@ -107,7 +111,8 @@ function buildCategoryFormData(
 function buildOptionFormData(
   option: MatrixAdminOption,
   questionId: string,
-  optionText: string
+  optionText: string,
+  description?: string | null
 ) {
   const formData = new FormData();
   formData.set("question_id", questionId);
@@ -115,11 +120,22 @@ function buildOptionFormData(
   formData.set("option_value", slugify(optionText));
   formData.set("sort_order", String(option.sort_order));
   formData.set("is_active", String(option.is_active));
+  const desc =
+    description === undefined ? option.description ?? "" : description ?? "";
+  formData.set("description", desc);
   return formData;
 }
 
 function getQuestions(category: MatrixAdminCategory) {
   return sortByOrder(category.matrix_questions ?? []);
+}
+
+function getRootQuestions(category: MatrixAdminCategory) {
+  return getQuestions(category).filter((q) => !q.parent_option_id);
+}
+
+function getSubLevelQuestion(category: MatrixAdminCategory, parentOptionId: string) {
+  return getQuestions(category).find((q) => q.parent_option_id === parentOptionId);
 }
 
 export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
@@ -160,7 +176,7 @@ export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
     category: MatrixAdminCategory,
     questionIndex: number
   ): Promise<{ error?: string; success?: boolean }> {
-    let current = getQuestions(category).length;
+    let current = getRootQuestions(category).length;
     while (current <= questionIndex) {
       const result = await createMatrixSubLevel(category.id);
       if (result.error) return result;
@@ -169,8 +185,8 @@ export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
     return { success: true };
   }
 
-  function addSubLevel(category: MatrixAdminCategory) {
-    const nextIndex = getQuestions(category).length;
+  function addRootWordLevel(category: MatrixAdminCategory) {
+    const nextIndex = getRootQuestions(category).length;
     if (nextIndex >= MATRIX_LEVELS_PER_FACTOR) {
       toast.info(`Maximum depth is Level ${MATRIX_MAX_LEVEL}.`);
       return;
@@ -178,7 +194,7 @@ export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
     const nextLabel = matrixWordLevelLabel(nextIndex);
     runAction(
       () => ensureWordLevelForFactor(category, nextIndex),
-      `${nextLabel} added under that word — add sub-level words in the same column below.`
+      `${nextLabel} added — fill all 7 columns (each cell is one field; text can be multiple words).`
     );
   }
 
@@ -196,12 +212,12 @@ export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
             {FRAMEWORK_MATCHING_LANGUAGE_FORM_EDITOR}
           </h2>
           <p className="text-sm text-muted-foreground">
-            Same layout as your Excel sheet. <strong className="text-slate-700">Lvl 1</strong> is
-            the factor name only. From <strong className="text-slate-700">Lvl 2</strong> onward,
-            each row has <strong className="text-slate-700">7 columns</strong> — add multiple words
-            per column (stacked). Use <strong className="text-slate-700">Add sub-level</strong> on a
-            word to branch deeper in that same column (Lvl 3 under a Lvl 2 word, Lvl 4 under a Lvl
-            3 word, and so on).
+            <strong className="text-slate-700">Factor</strong> is the tab title.{" "}
+            <strong className="text-slate-700">Level 1–3</strong> each have{" "}
+            <strong className="text-slate-700">7 columns</strong> — one field per column (labels can
+            be phrases). Optional <strong className="text-slate-700">description / question</strong>{" "}
+            per field. Any word can branch into a <strong className="text-slate-700">sub-level</strong>{" "}
+            with up to 7 follow-up words.
           </p>
         </CardContent>
       </Card>
@@ -237,7 +253,7 @@ export function MatrixAdminEditor({ categories }: MatrixAdminEditorProps) {
                 factorNumber={index + 1}
                 pending={pending}
                 onRunAction={runAction}
-                onAddSubLevel={() => addSubLevel(category)}
+                onAddRootWordLevel={() => addRootWordLevel(category)}
                 onRemoveLevel={(questionId, levelIndex) =>
                   removeLevel(category, questionId, levelIndex)
                 }
@@ -255,7 +271,7 @@ function FactorSpreadsheet({
   factorNumber,
   pending,
   onRunAction,
-  onAddSubLevel,
+  onAddRootWordLevel,
   onRemoveLevel,
 }: {
   category: MatrixAdminCategory;
@@ -265,15 +281,11 @@ function FactorSpreadsheet({
     action: () => Promise<{ error?: string; success?: boolean }>,
     successMsg: string
   ) => void;
-  onAddSubLevel: () => void;
+  onAddRootWordLevel: () => void;
   onRemoveLevel: (questionId: string, levelIndex: number) => void;
 }) {
-  const questions = getQuestions(category);
-  const canAddSubLevel = questions.length < MATRIX_LEVELS_PER_FACTOR;
-  const nextLevelNumber =
-    questions.length > 0
-      ? matrixWordLevelNumber(questions.length - 1) + 1
-      : matrixWordLevelNumber(0);
+  const rootQuestions = getRootQuestions(category);
+  const canAddRootLevel = rootQuestions.length < MATRIX_LEVELS_PER_FACTOR;
 
   return (
     <Card className="border-slate-300 shadow-sm">
@@ -334,7 +346,7 @@ function FactorSpreadsheet({
             <tbody>
               <tr>
                 <td className={SPREADSHEET_LABEL}>
-                  <span>Lvl 1:</span>
+                  <span>Factor</span>
                 </td>
                 <td colSpan={MATRIX_WORDS_PER_LEVEL} className={cn(SPREADSHEET_CELL, "text-center")}>
                   <EditableFactorName
@@ -350,24 +362,23 @@ function FactorSpreadsheet({
                       )
                     }
                   />
-                  {questions.length === 0 && canAddSubLevel && (
+                  {rootQuestions.length === 0 && canAddRootLevel && (
                     <Button
                       size="sm"
                       variant="outline"
                       className="mt-2 h-7 text-xs"
                       disabled={pending}
-                      onClick={onAddSubLevel}
+                      onClick={onAddRootWordLevel}
                     >
                       <Plus className="mr-1 h-3 w-3" />
-                      Add sub-level (Lvl 2)
+                      Add Level 1 words
                     </Button>
                   )}
                 </td>
               </tr>
 
-              {questions.map((question, levelIndex) => {
+              {rootQuestions.map((question, levelIndex) => {
                 const levelNumber = matrixWordLevelNumber(levelIndex);
-                const isDeepestLevel = levelIndex === questions.length - 1;
                 return (
                   <tr key={question.id}>
                     <td className={SPREADSHEET_LABEL}>
@@ -389,14 +400,11 @@ function FactorSpreadsheet({
                     {Array.from({ length: MATRIX_WORDS_PER_LEVEL }, (_, colIndex) => (
                       <td key={colIndex} className={SPREADSHEET_CELL}>
                         <SpreadsheetColumnCell
+                          category={category}
                           question={question}
                           colIndex={colIndex}
                           pending={pending}
                           inactive={!question.is_active || !category.is_active}
-                          isDeepestLevel={isDeepestLevel}
-                          canAddSubLevel={canAddSubLevel}
-                          nextLevelNumber={nextLevelNumber}
-                          onAddSubLevel={onAddSubLevel}
                           onRunAction={onRunAction}
                         />
                       </td>
@@ -404,6 +412,22 @@ function FactorSpreadsheet({
                   </tr>
                 );
               })}
+              {canAddRootLevel && rootQuestions.length > 0 && (
+                <tr>
+                  <td colSpan={MATRIX_WORDS_PER_LEVEL + 1} className="border border-slate-400 p-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={pending}
+                      onClick={onAddRootWordLevel}
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add Level {rootQuestions.length + 1} row
+                    </Button>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -413,24 +437,18 @@ function FactorSpreadsheet({
 }
 
 function SpreadsheetColumnCell({
+  category,
   question,
   colIndex,
   pending,
   inactive,
-  isDeepestLevel,
-  canAddSubLevel,
-  nextLevelNumber,
-  onAddSubLevel,
   onRunAction,
 }: {
+  category: MatrixAdminCategory;
   question: MatrixAdminQuestion;
   colIndex: number;
   pending: boolean;
   inactive: boolean;
-  isDeepestLevel: boolean;
-  canAddSubLevel: boolean;
-  nextLevelNumber: number;
-  onAddSubLevel: () => void;
   onRunAction: (
     action: () => Promise<{ error?: string; success?: boolean }>,
     successMsg: string
@@ -441,29 +459,28 @@ function SpreadsheetColumnCell({
 
   return (
     <div className={cn("min-h-[4rem] space-y-1", inactive && "opacity-60")}>
-      {words.map((word, wordIndex) => (
+      {words.map((word) => (
         <SpreadsheetWordCell
           key={word.id}
+          category={category}
+          parentQuestion={question}
           word={word}
           pending={pending}
-          showAddSubLevel={
-            isDeepestLevel &&
-            canAddSubLevel &&
-            wordIndex === words.length - 1
-          }
-          nextLevelNumber={nextLevelNumber}
-          onAddSubLevel={onAddSubLevel}
-          onSave={(text) =>
+          onSave={(text, description) =>
             onRunAction(
               () =>
-                saveMatrixOption(buildOptionFormData(word, question.id, text), word.id),
-              "Word saved"
+                saveMatrixOption(
+                  buildOptionFormData(word, question.id, text, description),
+                  word.id
+                ),
+              "Field saved"
             )
           }
           onDelete={() => {
             if (!window.confirm(`Delete "${word.option_text}"?`)) return;
-            onRunAction(() => deleteMatrixOption(word.id), "Word deleted");
+            onRunAction(() => deleteMatrixOption(word.id), "Field deleted");
           }}
+          onRunAction={onRunAction}
         />
       ))}
       <AddWordInColumn
@@ -471,7 +488,7 @@ function SpreadsheetColumnCell({
         onAdd={(text) =>
           onRunAction(
             () => createMatrixWord(question.id, text, column),
-            "Word added"
+            "Field added"
           )
         }
       />
@@ -480,45 +497,54 @@ function SpreadsheetColumnCell({
 }
 
 function SpreadsheetWordCell({
+  category,
+  parentQuestion: _parentQuestion,
   word,
   pending,
-  showAddSubLevel,
-  nextLevelNumber,
-  onAddSubLevel,
   onSave,
   onDelete,
+  onRunAction,
 }: {
+  category: MatrixAdminCategory;
+  parentQuestion: MatrixAdminQuestion;
   word: MatrixAdminOption;
   pending: boolean;
-  showAddSubLevel?: boolean;
-  nextLevelNumber?: number;
-  onAddSubLevel?: () => void;
-  onSave: (text: string) => void;
+  onSave: (text: string, description: string | null) => void;
   onDelete: () => void;
+  onRunAction: (
+    action: () => Promise<{ error?: string; success?: boolean }>,
+    successMsg: string
+  ) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(word.option_text);
+  const [description, setDescription] = useState(word.description ?? "");
+  const subQuestion = getSubLevelQuestion(category, word.id);
 
   useEffect(() => {
     setText(word.option_text);
-  }, [word.option_text]);
+    setDescription(word.description ?? "");
+  }, [word.option_text, word.description]);
 
   function cancel() {
     setText(word.option_text);
+    setDescription(word.description ?? "");
     setEditing(false);
   }
 
   function save() {
     const trimmed = text.trim();
     if (!trimmed) {
-      toast.error("Word cannot be empty. Use Delete to remove it.");
+      toast.error("Field label cannot be empty. Use Delete to remove it.");
       return;
     }
-    if (trimmed === word.option_text) {
+    const descTrimmed = description.trim();
+    const nextDesc = descTrimmed.length ? descTrimmed : null;
+    if (trimmed === word.option_text && nextDesc === (word.description ?? null)) {
       setEditing(false);
       return;
     }
-    onSave(trimmed);
+    onSave(trimmed, nextDesc);
     setEditing(false);
   }
 
@@ -526,6 +552,11 @@ function SpreadsheetWordCell({
     return (
       <div className="rounded border border-slate-200 bg-slate-50/80 px-1.5 py-1">
         <p className="mb-1 break-words text-xs leading-snug text-slate-800">{word.option_text}</p>
+        {word.description?.trim() ? (
+          <p className="mb-1 break-words text-[10px] leading-snug text-slate-500">
+            {word.description}
+          </p>
+        ) : null}
         <div className="flex flex-wrap gap-1">
           <Button
             type="button"
@@ -550,19 +581,32 @@ function SpreadsheetWordCell({
             Del
           </Button>
         </div>
-        {showAddSubLevel && onAddSubLevel && (
+        {!subQuestion && (
           <Button
             type="button"
             size="sm"
             variant="outline"
             className="mt-1 h-6 w-full px-1 text-[9px] leading-tight text-indigo-700 hover:text-indigo-800"
             disabled={pending}
-            onClick={onAddSubLevel}
+            onClick={() =>
+              onRunAction(
+                () => createMatrixSubLevelForWord(word.id),
+                "Sub-level added under this field"
+              )
+            }
           >
             <Plus className="mr-0.5 h-2.5 w-2.5" />
-            Add sub-level (Lvl {nextLevelNumber})
+            Add sub-level (7 words)
           </Button>
         )}
+        {subQuestion ? (
+          <WordSubLevelPanel
+            category={category}
+            subQuestion={subQuestion}
+            pending={pending}
+            onRunAction={onRunAction}
+          />
+        ) : null}
       </div>
     );
   }
@@ -572,13 +616,21 @@ function SpreadsheetWordCell({
       <Input
         value={text}
         disabled={pending}
+        placeholder="Field label (can be a phrase)"
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") save();
+          if (e.key === "Enter" && !e.shiftKey) save();
           if (e.key === "Escape") cancel();
         }}
         className="mb-1 h-7 text-xs"
         autoFocus
+      />
+      <Textarea
+        value={description}
+        disabled={pending}
+        placeholder="Description / question (optional)"
+        onChange={(e) => setDescription(e.target.value)}
+        className="mb-1 min-h-[52px] text-[11px]"
       />
       <div className="flex gap-1">
         <Button
@@ -607,12 +659,89 @@ function SpreadsheetWordCell({
   );
 }
 
+function WordSubLevelPanel({
+  category,
+  subQuestion,
+  pending,
+  onRunAction,
+}: {
+  category: MatrixAdminCategory;
+  subQuestion: MatrixAdminQuestion;
+  pending: boolean;
+  onRunAction: (
+    action: () => Promise<{ error?: string; success?: boolean }>,
+    successMsg: string
+  ) => void;
+}) {
+  const words = sortByOrder(subQuestion.matrix_options ?? []);
+
+  return (
+    <div className="mt-2 rounded border border-indigo-200 bg-indigo-50/40 p-1.5">
+      <p className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-indigo-800">
+        Sub-level
+      </p>
+      <div className="space-y-1">
+        {words.map((word) => (
+          <SpreadsheetWordCell
+            key={word.id}
+            category={category}
+            parentQuestion={subQuestion}
+            word={word}
+            pending={pending}
+            onSave={(text, description) =>
+              onRunAction(
+                () =>
+                  saveMatrixOption(
+                    buildOptionFormData(word, subQuestion.id, text, description),
+                    word.id
+                  ),
+                "Sub-level field saved"
+              )
+            }
+            onDelete={() => {
+              if (!window.confirm(`Delete "${word.option_text}"?`)) return;
+              onRunAction(() => deleteMatrixOption(word.id), "Sub-level field deleted");
+            }}
+            onRunAction={onRunAction}
+          />
+        ))}
+        <AddWordInColumn
+          pending={pending}
+          placeholder="Sub-level field…"
+          onAdd={(text) =>
+            onRunAction(
+              () => createMatrixWord(subQuestion.id, text),
+              "Sub-level field added"
+            )
+          }
+        />
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="mt-1 h-6 w-full px-1 text-[9px] text-destructive hover:text-destructive"
+        disabled={pending}
+        onClick={() => {
+          if (!window.confirm("Remove entire sub-level for this word?")) return;
+          onRunAction(() => deleteMatrixQuestion(subQuestion.id), "Sub-level removed");
+        }}
+      >
+        <Trash2 className="mr-0.5 h-2.5 w-2.5" />
+        Remove sub-level
+      </Button>
+    </div>
+  );
+}
+
 function AddWordInColumn({
   pending,
   onAdd,
+  placeholder = "New field…",
 }: {
   pending: boolean;
   onAdd: (text: string) => void;
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -620,7 +749,7 @@ function AddWordInColumn({
   function add() {
     const trimmed = text.trim();
     if (!trimmed) {
-      toast.error("Type a word first.");
+      toast.error("Type a field label first.");
       return;
     }
     onAdd(trimmed);
@@ -649,7 +778,7 @@ function AddWordInColumn({
       <Input
         value={text}
         disabled={pending}
-        placeholder="New word…"
+        placeholder={placeholder}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") add();

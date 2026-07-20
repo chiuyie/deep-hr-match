@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { getApplicableMatrixQuestions } from "@/lib/matching/matrix-tree";
 import { validateMatrixSubmission } from "@/lib/matching/matrix-form";
 import { cn } from "@/lib/utils";
 import { Grid3X3 } from "lucide-react";
@@ -55,7 +56,12 @@ function WordChoiceGrid({
                 : "border-slate-200 bg-white text-slate-700 hover:border-primary/40 hover:bg-slate-50"
             )}
           >
-            {option.option_text}
+            <span className="block">{option.option_text}</span>
+            {option.description?.trim() ? (
+              <span className="mt-1 block text-xs font-normal text-slate-500">
+                {option.description}
+              </span>
+            ) : null}
           </button>
         );
       })}
@@ -85,8 +91,38 @@ export function MatrixForm({
     questionId: string,
     value: { option_id?: string; answer_text?: string }
   ) {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    setAnswers((prev) => {
+      const next = { ...prev, [questionId]: value };
+      if (value.option_id && current) {
+        const allQuestions = current.matrix_questions ?? [];
+        const toClear = new Set<string>();
+        const collectStale = (parentOptionId: string) => {
+          for (const q of allQuestions) {
+            if (q.parent_option_id === parentOptionId) {
+              toClear.add(q.id);
+              const childOption = prev[q.id]?.option_id;
+              if (childOption) collectStale(childOption);
+            }
+          }
+        };
+        const previousOption = prev[questionId]?.option_id;
+        if (previousOption && previousOption !== value.option_id) {
+          collectStale(previousOption);
+        }
+        for (const id of toClear) {
+          delete next[id];
+        }
+      }
+      return next;
+    });
   }
+
+  const visibleQuestions = current
+    ? getApplicableMatrixQuestions(
+        current.matrix_questions ?? [],
+        answers
+      ) as (MatrixQuestion & { matrix_options?: MatrixOption[] })[]
+    : [];
 
   async function handleSave(submit: boolean) {
     if (submit) {
@@ -158,14 +194,12 @@ export function MatrixForm({
         gradient="from-purple-500 to-purple-600"
       >
         <div className="space-y-8">
-          {current.matrix_questions
-            ?.filter((q) => q.is_active)
-            .sort((a, b) => a.sort_order - b.sort_order)
-            .map((question) => {
+          {visibleQuestions.map((question) => {
               const activeOptions = (question.matrix_options ?? []).filter((o) => o.is_active);
+              const depth = question.parent_option_id ? "ml-4 border-l-2 border-primary/20 pl-4" : "";
 
               return (
-                <div key={question.id} className="space-y-3">
+                <div key={question.id} className={cn("space-y-3", depth)}>
                   <Label className="text-base text-slate-800">
                     {question.question_text}
                     {question.is_required && <span className="text-destructive"> *</span>}

@@ -1,4 +1,5 @@
 import type { MatrixCategory, MatrixQuestion, MatrixOption } from "@/types/database";
+import { getApplicableMatrixQuestions } from "@/lib/matching/matrix-tree";
 
 export type MatrixCategoryWithQuestions = MatrixCategory & {
   matrix_questions: (MatrixQuestion & { matrix_options: MatrixOption[] })[];
@@ -29,7 +30,8 @@ export function validateMatrixSubmission(
   answers: Record<string, { option_id?: string; answer_text?: string }>
 ): string | null {
   for (const cat of categories.filter((c) => c.is_active)) {
-    for (const question of (cat.matrix_questions ?? []).filter((q) => q.is_active && q.is_required)) {
+    const applicable = getApplicableMatrixQuestions(cat.matrix_questions ?? [], answers);
+    for (const question of applicable.filter((q) => q.is_required)) {
       const answer = answers[question.id];
       if (question.question_type === "text" || question.question_type === "scale") {
         if (!answer?.answer_text?.trim()) {

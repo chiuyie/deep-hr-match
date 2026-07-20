@@ -7,12 +7,11 @@ export const MATRIX_FACTOR_LEVEL = 1;
 /** Word choices at each word level (Levels 2–7+). */
 export const MATRIX_WORDS_PER_LEVEL = 7;
 
-/** Word-selection depth per factor at full 7^7 (Level 2 through Level 8). */
-export const MATRIX_LEVELS_PER_FACTOR = 7;
+/** Word-selection rows per factor (Level 1–3 word grid). Optional sub-levels branch from individual words. */
+export const MATRIX_LEVELS_PER_FACTOR = 3;
 
-/** Deepest numbered level when all word layers exist (Level 1 + word depth). */
-export const MATRIX_MAX_LEVEL =
-  MATRIX_FACTOR_LEVEL + MATRIX_LEVELS_PER_FACTOR;
+/** Deepest numbered word row when all three layers exist. */
+export const MATRIX_MAX_LEVEL = MATRIX_LEVELS_PER_FACTOR;
 
 /** Total combination space at full depth: 7^7 paths through the word tree. */
 export const MATRIX_COMBINATION_SPACE = Math.pow(
@@ -20,9 +19,9 @@ export const MATRIX_COMBINATION_SPACE = Math.pow(
   MATRIX_LEVELS_PER_FACTOR
 );
 
-/** Map stored question index (0-based) to display level (Level 2 = first 7 words). */
+/** Map stored root question index (0-based) to display level (Level 1 = first 7 words). */
 export function matrixWordLevelNumber(questionIndex: number): number {
-  return questionIndex + MATRIX_FACTOR_LEVEL + 1;
+  return questionIndex + 1;
 }
 
 export function matrixWordLevelLabel(questionIndex: number): string {

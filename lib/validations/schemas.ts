@@ -63,6 +63,7 @@ export const matrixQuestionSchema = z.object({
   sort_order: z.coerce.number().default(0),
   is_required: z.boolean().default(true),
   is_active: z.boolean().default(true),
+  parent_option_id: z.string().uuid().optional().nullable(),
 });
 
 export const matrixOptionSchema = z.object({
@@ -71,6 +72,7 @@ export const matrixOptionSchema = z.object({
   option_value: z.string().min(1),
   sort_order: z.coerce.number().default(0),
   is_active: z.boolean().default(true),
+  description: z.string().optional().nullable(),
 });
 
 export const formFieldSchema = z.object({
