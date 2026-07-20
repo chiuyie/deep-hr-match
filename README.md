@@ -185,6 +185,9 @@ Use `npm run dev:turbo` for Turbopack (default `dev` uses webpack for stability)
 | `npm run create-admin` | Create/update bootstrap admin user |
 | `npm run seed-dummy-users` | Seed 5 demo employers + 5 demo candidates |
 | `npm run seed-employer-jobs` | Seed 5 demo jobs for an employer account |
+| `node --env-file=.env.local scripts/backfill-unlocks.mjs --dry-run` | Preview unlock rows derivable from paid payments |
+| `node --env-file=.env.local scripts/backfill-unlocks.mjs` | Backfill missing `unlocks` rows from paid payments |
+| `node --env-file=.env.local scripts/create-dummy-unlock.mjs <employer_id> <job_id> <candidate_id>` | Create one paid dummy unlock for testing unlocked-profile/CV flow |
 
 ---
 

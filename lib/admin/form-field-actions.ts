@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { slugifyFieldKey } from "@/lib/form-fields/defaults";
 import { createClient } from "@/lib/supabase/server";
 import { formFieldSchema } from "@/lib/validations/schemas";
+import type { EmployerDisclosureMode } from "@/lib/form-fields/types";
 
 const FORM_FIELD_PATHS = [
   "/admin/forms",
@@ -29,6 +30,8 @@ export async function saveFormField(formData: FormData, id?: string) {
     is_required: raw.is_required === "on" || raw.is_required === "true",
     is_active: raw.is_active === "on" || raw.is_active === "true" || raw.is_active === undefined,
     is_custom: raw.is_custom === "on" || raw.is_custom === "true",
+    employer_disclosure_mode:
+      raw.employer_disclosure_mode ?? "candidate_optional",
     sort_order: raw.sort_order ?? 0,
   });
 
@@ -61,6 +64,21 @@ export async function toggleFormFieldActive(id: string, is_active: boolean) {
   await requireRole("admin");
   const supabase = await createClient();
   const { error } = await supabase.from("form_fields").update({ is_active }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidateFormFieldPages();
+  return { success: true };
+}
+
+export async function updateEmployerDisclosureMode(
+  id: string,
+  employer_disclosure_mode: EmployerDisclosureMode
+) {
+  await requireRole("admin");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("form_fields")
+    .update({ employer_disclosure_mode })
+    .eq("id", id);
   if (error) return { error: error.message };
   revalidateFormFieldPages();
   return { success: true };
@@ -103,6 +121,7 @@ export async function createFormField(input: {
     is_required: input.is_required ?? false,
     is_active: true,
     is_custom: true,
+    employer_disclosure_mode: "candidate_optional",
     sort_order: nextSort,
   });
 

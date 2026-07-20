@@ -5,6 +5,7 @@ import { EmployerPageSection } from "@/components/employer/employer-ui";
 import { formatDate } from "@/lib/utils/profile";
 
 interface UnlockedCandidateCardProps {
+  candidateId?: string;
   fullName?: string | null;
   email?: string | null;
   phone?: string | null;
@@ -20,6 +21,7 @@ interface UnlockedCandidateCardProps {
 }
 
 export function UnlockedCandidateCard({
+  candidateId,
   fullName,
   email,
   phone,
@@ -93,9 +95,9 @@ export function UnlockedCandidateCard({
             </a>
           </Button>
         )}
-        {jobId && (
+        {jobId && candidateId && (
           <Button variant="ghost" size="sm" className="rounded-lg" asChild>
-            <Link href={`/employer/jobs/${jobId}/unlocked`}>View job unlocks</Link>
+            <Link href={`/employer/jobs/${jobId}/unlocked/${candidateId}`}>View candidate report</Link>
           </Button>
         )}
       </div>

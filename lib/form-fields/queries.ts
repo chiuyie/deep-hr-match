@@ -26,6 +26,7 @@ export async function ensureFormFieldsSeeded() {
     is_required: field.is_required ?? false,
     is_active: true,
     is_custom: false,
+    employer_disclosure_mode: "candidate_optional" as const,
     placeholder: field.placeholder ?? null,
   }));
 

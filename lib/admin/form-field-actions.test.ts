@@ -4,6 +4,7 @@ import {
   deleteFormField,
   saveFormField,
   toggleFormFieldActive,
+  updateEmployerDisclosureMode,
 } from "@/lib/admin/form-field-actions";
 import { makeFormField } from "@/lib/form-fields/test-fixtures";
 
@@ -63,6 +64,7 @@ describe("form-field-actions", () => {
       formData.set("is_required", "true");
       formData.set("is_active", "true");
       formData.set("is_custom", "false");
+      formData.set("employer_disclosure_mode", "admin_removed");
 
       const result = await saveFormField(formData, field.id);
       expect(requireRole).toHaveBeenCalledWith("admin");
@@ -105,6 +107,17 @@ describe("form-field-actions", () => {
     });
   });
 
+  describe("updateEmployerDisclosureMode", () => {
+    it("updates employer_disclosure_mode", async () => {
+      const chain = buildUpdateChain();
+      mockFrom.mockReturnValue(chain);
+
+      const result = await updateEmployerDisclosureMode("field-id", "admin_removed");
+      expect(result).toEqual({ success: true });
+      expect(chain.update).toHaveBeenCalledWith({ employer_disclosure_mode: "admin_removed" });
+    });
+  });
+
   describe("createFormField", () => {
     it("creates a custom field with generated key and next sort order", async () => {
       const insert = vi.fn(async () => ({ error: null }));
@@ -141,6 +154,7 @@ describe("form-field-actions", () => {
           is_required: true,
           is_custom: true,
           is_active: true,
+          employer_disclosure_mode: "candidate_optional",
           sort_order: 17,
         })
       );

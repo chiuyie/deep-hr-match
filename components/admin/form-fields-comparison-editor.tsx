@@ -29,13 +29,18 @@ import {
   deleteFormField,
   saveFormField,
   toggleFormFieldActive,
+  updateEmployerDisclosureMode,
 } from "@/lib/admin/form-field-actions";
 import {
   buildPairedFieldRows,
   countSectionFields,
   flattenSectionFields,
 } from "@/lib/form-fields/grouping";
-import type { FormFieldDefinition, FormFieldSectionGroup } from "@/lib/form-fields/types";
+import type {
+  EmployerDisclosureMode,
+  FormFieldDefinition,
+  FormFieldSectionGroup,
+} from "@/lib/form-fields/types";
 import { cn } from "@/lib/utils";
 
 interface FormFieldsComparisonEditorProps {
@@ -56,6 +61,28 @@ const FIELD_TYPE_STYLES: Record<string, string> = {
   file: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
+const DISCLOSURE_MODE_OPTIONS: Array<{
+  value: EmployerDisclosureMode;
+  label: string;
+  hint: string;
+}> = [
+  {
+    value: "candidate_optional",
+    label: "Candidate can hide value",
+    hint: "Employer still sees the field, but the value may be blank.",
+  },
+  {
+    value: "always_visible",
+    label: "Always visible to employer",
+    hint: "Employer should always see this field when it is available.",
+  },
+  {
+    value: "admin_removed",
+    label: "Remove from employer view",
+    hint: "Field is hidden completely from employer-facing match results and reports.",
+  },
+];
+
 function buildFormData(field: FormFieldDefinition, overrides: Partial<FormFieldDefinition> = {}) {
   const merged = { ...field, ...overrides };
   const formData = new FormData();
@@ -70,6 +97,7 @@ function buildFormData(field: FormFieldDefinition, overrides: Partial<FormFieldD
   formData.set("is_required", String(merged.is_required));
   formData.set("is_active", String(merged.is_active));
   formData.set("is_custom", String(merged.is_custom));
+  formData.set("employer_disclosure_mode", merged.employer_disclosure_mode);
   return formData;
 }
 
@@ -659,8 +687,6 @@ function SingleColumnPanel({
             key={group.section}
             group={group}
             pending={pending}
-            audience={audience}
-            formGroup={formGroup}
             onRunAction={onRunAction}
           />
         ))
@@ -684,14 +710,10 @@ function SingleColumnPanel({
 function JobSectionGroup({
   group,
   pending,
-  audience,
-  formGroup,
   onRunAction,
 }: {
   group: FormFieldSectionGroup;
   pending: boolean;
-  audience: "candidate" | "employer";
-  formGroup: "profile" | "job";
   onRunAction: (
     action: () => Promise<{ error?: string; success?: boolean }>,
     successMsg: string
@@ -775,6 +797,9 @@ function FieldRow({
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(field.label);
   const [isRequired, setIsRequired] = useState(field.is_required);
+  const [employerDisclosureMode, setEmployerDisclosureMode] = useState(
+    field.employer_disclosure_mode
+  );
 
   const sideAccent =
     side === "candidate"
@@ -784,6 +809,7 @@ function FieldRow({
   function cancel() {
     setLabel(field.label);
     setIsRequired(field.is_required);
+    setEmployerDisclosureMode(field.employer_disclosure_mode);
     setEditing(false);
   }
 
@@ -796,7 +822,11 @@ function FieldRow({
     onRunAction(
       () =>
         saveFormField(
-          buildFormData(field, { label: trimmed, is_required: isRequired }),
+          buildFormData(field, {
+            label: trimmed,
+            is_required: isRequired,
+            employer_disclosure_mode: employerDisclosureMode,
+          }),
           field.id
         ),
       "Field updated"
@@ -857,6 +887,25 @@ function FieldRow({
           />
           Required on form
         </label>
+        {side === "candidate" && (
+          <label className="mb-3 block text-sm text-slate-600">
+            <span className="mb-1.5 block font-medium text-slate-700">Employer visibility</span>
+            <select
+              value={employerDisclosureMode}
+              onChange={(e) =>
+                setEmployerDisclosureMode(e.target.value as EmployerDisclosureMode)
+              }
+              disabled={pending}
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+            >
+              {DISCLOSURE_MODE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="flex gap-2">
           <Button size="sm" className="h-8 flex-1 rounded-lg text-xs" disabled={pending} onClick={save}>
             <Check className="mr-1 h-3.5 w-3.5" />
@@ -898,6 +947,24 @@ function FieldRow({
                   Custom
                 </Badge>
               )}
+              {side === "candidate" && (
+                <Badge
+                  className={cn(
+                    "h-4 border-0 px-1.5 text-[10px]",
+                    field.employer_disclosure_mode === "admin_removed"
+                      ? "bg-slate-200 text-slate-700 hover:bg-slate-200"
+                      : field.employer_disclosure_mode === "always_visible"
+                        ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                        : "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                  )}
+                >
+                  {field.employer_disclosure_mode === "admin_removed"
+                    ? "Removed for employer"
+                    : field.employer_disclosure_mode === "always_visible"
+                      ? "Always visible"
+                      : "Candidate may hide"}
+                </Badge>
+              )}
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <FieldTypeBadge type={field.field_type} />
@@ -922,6 +989,25 @@ function FieldRow({
               }
               icon={field.is_active ? EyeOff : Eye}
             />
+            {side === "candidate" && (
+              <IconActionButton
+                pending={pending}
+                title="Toggle employer visibility"
+                onClick={() => {
+                  const nextMode: EmployerDisclosureMode =
+                    field.employer_disclosure_mode === "admin_removed"
+                      ? "candidate_optional"
+                      : "admin_removed";
+                  onRunAction(
+                    () => updateEmployerDisclosureMode(field.id, nextMode),
+                    nextMode === "admin_removed"
+                      ? "Removed from employer view"
+                      : "Returned to employer view"
+                  );
+                }}
+                icon={field.employer_disclosure_mode === "admin_removed" ? Eye : EyeOff}
+              />
+            )}
             {field.is_custom && (
               <IconActionButton
                 pending={pending}
@@ -961,6 +1047,24 @@ function FieldRow({
                 Custom
               </Badge>
             )}
+            {side === "candidate" && (
+              <Badge
+                className={cn(
+                  "h-4 border-0 px-1.5 text-[10px]",
+                  field.employer_disclosure_mode === "admin_removed"
+                    ? "bg-slate-200 text-slate-700 hover:bg-slate-200"
+                    : field.employer_disclosure_mode === "always_visible"
+                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                      : "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                )}
+              >
+                {field.employer_disclosure_mode === "admin_removed"
+                  ? "Removed for employer"
+                  : field.employer_disclosure_mode === "always_visible"
+                    ? "Always visible"
+                    : "Candidate may hide"}
+              </Badge>
+            )}
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <FieldTypeBadge type={field.field_type} />
@@ -997,6 +1101,38 @@ function FieldRow({
             </>
           )}
         </Button>
+        {side === "candidate" && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 rounded-lg px-2 text-[10px]"
+            disabled={pending}
+            onClick={() => {
+              const nextMode: EmployerDisclosureMode =
+                field.employer_disclosure_mode === "admin_removed"
+                  ? "candidate_optional"
+                  : "admin_removed";
+              onRunAction(
+                () => updateEmployerDisclosureMode(field.id, nextMode),
+                nextMode === "admin_removed"
+                  ? "Removed from employer view"
+                  : "Returned to employer view"
+              );
+            }}
+          >
+            {field.employer_disclosure_mode === "admin_removed" ? (
+              <>
+                <Eye className="mr-1 h-3 w-3" />
+                Show to employer
+              </>
+            ) : (
+              <>
+                <EyeOff className="mr-1 h-3 w-3" />
+                Remove for employer
+              </>
+            )}
+          </Button>
+        )}
         {field.is_custom && (
           <Button
             size="sm"
