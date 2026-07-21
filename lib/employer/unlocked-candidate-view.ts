@@ -48,7 +48,7 @@ export async function getEmployerUnlockedCandidateView(
   ]);
 
   const profileRecord =
-    (details.profile as Record<string, unknown> | null | undefined) ?? undefined;
+    (details.profile as unknown as Record<string, unknown> | null | undefined) ?? undefined;
 
   const visibleFields: EmployerVisibleCandidateField[] = candidateFields
     .filter((field) => field.employer_disclosure_mode !== "admin_removed")

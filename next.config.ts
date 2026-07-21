@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["172.20.10.2"],
   turbopack: {
     root: path.join(__dirname),
+    resolveAlias: {
+      "@tailwindcss/postcss": path.join(__dirname, "node_modules/@tailwindcss/postcss"),
+    },
   },
   webpack: (config, { dev }) => {
     if (dev && isSyncedFolder) {
