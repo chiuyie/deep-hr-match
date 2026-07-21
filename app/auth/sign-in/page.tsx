@@ -4,6 +4,7 @@ import { PublicNav } from "@/components/layout/public-nav";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { SupabaseSetupNotice } from "@/components/auth/supabase-setup-notice";
 import { WrongRoleSignInNotice } from "@/components/auth/wrong-role-sign-in-notice";
+import { AuthPortalRoleSwitch } from "@/components/auth/auth-portal-role-switch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { signIn } from "@/lib/auth/actions";
 import { getCurrentUser, getDashboardPath } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { cn } from "@/lib/utils";
 
 const errorMessages: Record<string, { title: string; description: string }> = {
   "use-admin-portal": {
@@ -63,7 +65,12 @@ export default async function SignInPage({
     <div className="flex min-h-screen flex-col bg-white dark:bg-slate-950">
       <PublicNav />
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-md border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <Card
+          className={cn(
+            "w-full border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900",
+            portalRole && !showWrongRoleNotice ? "max-w-md" : "max-w-lg"
+          )}
+        >
           <CardHeader>
             {showWrongRoleNotice && accountLabel ? (
               <>
@@ -75,8 +82,12 @@ export default async function SignInPage({
               </>
             ) : (
               <>
-                <CardTitle>{roleLabel ? `Log In as ${roleLabel}` : "Log In"}</CardTitle>
-                <CardDescription>Access your Deep HR Match account</CardDescription>
+                <CardTitle>{roleLabel ? `Log in as ${roleLabel}` : "Log in"}</CardTitle>
+                <CardDescription>
+                  {portalRole
+                    ? `Use your ${roleLabel.toLowerCase()} account email and password.`
+                    : "Select Candidate or Employer to continue."}
+                </CardDescription>
               </>
             )}
           </CardHeader>
@@ -87,6 +98,30 @@ export default async function SignInPage({
               <WrongRoleSignInNotice triedRole={portalRole} accountRole={accountRole} />
             ) : (
               <>
+                <AuthPortalRoleSwitch
+                  basePath="/auth/sign-in"
+                  activeRole={portalRole}
+                  preserveQuery={params.error ? { error: params.error } : undefined}
+                />
+
+                {!portalRole ? (
+                  <div className="mt-6 space-y-2 text-center text-sm text-muted-foreground">
+                    <p>
+                      Not sure?{" "}
+                      <Link href="/auth/sign-up" className="text-primary hover:underline">
+                        Create an account
+                      </Link>{" "}
+                      and pick Candidate or Employer there.
+                    </p>
+                    <p>
+                      Platform admin?{" "}
+                      <Link href="/auth/admin/sign-in" className="text-primary hover:underline">
+                        Admin sign in
+                      </Link>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-4">
                 {error && (
                   <Alert
                     variant={params.error === "confirm-email" ? "default" : "destructive"}
@@ -138,7 +173,7 @@ export default async function SignInPage({
                       )}
                     </div>
                     <Button type="submit" className="w-full rounded-lg">
-                      Log In
+                      Log in as {roleLabel}
                     </Button>
                   </fieldset>
                 </form>
@@ -146,10 +181,10 @@ export default async function SignInPage({
                 <p className="mt-4 text-center text-sm text-muted-foreground">
                   No account?{" "}
                   <Link
-                    href={`/auth/sign-up${params.role ? `?role=${params.role}` : ""}`}
+                    href={`/auth/sign-up?role=${portalRole}`}
                     className="text-primary hover:underline dark:text-primary/80"
                   >
-                    Get Started
+                    Get started as {roleLabel}
                   </Link>
                 </p>
                 <p className="mt-2 text-center text-sm text-muted-foreground">
@@ -161,6 +196,8 @@ export default async function SignInPage({
                     Admin sign in
                   </Link>
                 </p>
+                  </div>
+                )}
               </>
             )}
           </CardContent>
