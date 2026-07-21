@@ -1,5 +1,9 @@
 import type { MatrixCategory, MatrixQuestion, MatrixOption } from "@/types/database";
-import { getApplicableMatrixQuestions } from "@/lib/matching/matrix-tree";
+import {
+  getCurrentMatrixQuestion,
+  getMatrixPathQuestions,
+  getRootMatrixQuestions,
+} from "@/lib/matching/matrix-tree";
 
 export type MatrixCategoryWithQuestions = MatrixCategory & {
   matrix_questions: (MatrixQuestion & { matrix_options: MatrixOption[] })[];
@@ -30,8 +34,18 @@ export function validateMatrixSubmission(
   answers: Record<string, { option_id?: string; answer_text?: string }>
 ): string | null {
   for (const cat of categories.filter((c) => c.is_active)) {
-    const applicable = getApplicableMatrixQuestions(cat.matrix_questions ?? [], answers);
-    for (const question of applicable.filter((q) => q.is_required)) {
+    const questions = cat.matrix_questions ?? [];
+    if (getCurrentMatrixQuestion(questions, answers)) {
+      return "Please complete all levels before submitting.";
+    }
+    const path = getMatrixPathQuestions(questions, answers);
+    for (const question of getRootMatrixQuestions(questions).filter((q) => q.is_required)) {
+      const answer = answers[question.id];
+      if (!answer?.option_id && !answer?.answer_text?.trim()) {
+        return `Please choose a word for: ${question.question_text}`;
+      }
+    }
+    for (const question of path.filter((q) => q.is_required)) {
       const answer = answers[question.id];
       if (question.question_type === "text" || question.question_type === "scale") {
         if (!answer?.answer_text?.trim()) {

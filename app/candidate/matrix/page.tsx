@@ -49,7 +49,7 @@ export default async function CandidateMatrixPage({
       role="candidate"
       userName={user.name}
       title={FRAMEWORK_MATCHING_LANGUAGE}
-      description="Complete the matching language assessment"
+      description="Choose one best-fit word at each step to build your profile."
     >
       <div className="space-y-4">
         {params.step === "cv-complete" && (
@@ -66,6 +66,11 @@ export default async function CandidateMatrixPage({
           categories={filtered}
           existingAnswers={answerMap}
           onSave={saveCandidateMatrixAnswers}
+          wizard={{
+            instructionText:
+              "Only choose one word that you feel describes you the most.",
+          }}
+          hideFooterActions
         />
       </div>
     </DashboardShell>

@@ -20,7 +20,7 @@ function q(
 }
 
 describe("getApplicableMatrixQuestions", () => {
-  it("includes child question only when parent option is selected", () => {
+  it("shows only the current step (child after parent answered)", () => {
     const questions = [
       q({ id: "root", sort_order: 1, parent_option_id: null }),
       q({ id: "child", sort_order: 2, parent_option_id: "opt-a" }),
@@ -28,6 +28,17 @@ describe("getApplicableMatrixQuestions", () => {
     expect(getApplicableMatrixQuestions(questions, {}).map((x) => x.id)).toEqual(["root"]);
     expect(
       getApplicableMatrixQuestions(questions, { root: { option_id: "opt-a" } }).map((x) => x.id)
-    ).toEqual(["root", "child"]);
+    ).toEqual(["child"]);
+  });
+
+  it("does not show later root levels until earlier ones are answered", () => {
+    const questions = [
+      q({ id: "level1", sort_order: 1, parent_option_id: null }),
+      q({ id: "level2", sort_order: 2, parent_option_id: null }),
+    ];
+    expect(getApplicableMatrixQuestions(questions, {}).map((x) => x.id)).toEqual(["level1"]);
+    expect(
+      getApplicableMatrixQuestions(questions, { level1: { option_id: "opt-1" } }).map((x) => x.id)
+    ).toEqual(["level2"]);
   });
 });
