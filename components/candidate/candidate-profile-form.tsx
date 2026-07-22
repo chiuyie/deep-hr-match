@@ -222,38 +222,16 @@ function CandidateProfileFormInner({
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <div className="relative bg-gradient-to-br from-sky-50 via-white to-emerald-50/60 px-5 py-5 sm:px-6">
           <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-sky-200/30 blur-2xl" />
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-sky-800/70">
-                Profile strength
-              </p>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-3xl font-bold tabular-nums text-slate-900">
-                  {localCompletion}%
-                </span>
-                <span className="text-sm text-slate-500">
-                  · {PROFILE_COMPLETION_THRESHOLD}% needed to continue
-                </span>
-              </div>
-            </div>
-            <div className="text-sm text-slate-600">
-              Page {step + 1} of {totalSteps}
-              <span className="mx-1.5 text-slate-300">·</span>
-              <span className="font-medium text-slate-800">{current.title}</span>
-            </div>
+          <div className="relative text-sm text-slate-600">
+            Page {step + 1} of {totalSteps}
+            <span className="mx-1.5 text-slate-300">·</span>
+            <span className="font-medium text-slate-800">{current.title}</span>
           </div>
-          <Progress value={localCompletion} className="mt-4 h-2.5" />
           {showIncompleteError || (!meetsThreshold && missingFieldLabels.length > 0) ? (
             <p className="mt-3 text-sm text-slate-600">
               <span className="font-medium text-slate-800">Still empty:</span>{" "}
               {missingFieldLabels.slice(0, 4).join(", ")}
               {missingFieldLabels.length > 4 ? ` (+${missingFieldLabels.length - 4} more)` : ""}
-            </p>
-          ) : null}
-          {meetsThreshold ? (
-            <p className="mt-3 flex items-center gap-1.5 text-sm text-emerald-700">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              Minimum reached — finish the pages below, then continue to CV.
             </p>
           ) : null}
         </div>

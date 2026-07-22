@@ -7,6 +7,11 @@ import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveCandidateMatrixAnswers } from "@/lib/candidate/actions";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
+import {
+  fetchCandidateOnboardingState,
+  getOnboardingPath,
+  getOnboardingStep,
+} from "@/lib/candidate/onboarding";
 import { CheckCircle2 } from "lucide-react";
 
 export default async function CandidateMatrixPage({
@@ -44,6 +49,16 @@ export default async function CandidateMatrixPage({
     matrix_column: a.matrix_column ?? undefined,
   }));
 
+  const onboarding = await fetchCandidateOnboardingState(supabase, user.id);
+  const onboardingStep = getOnboardingStep(onboarding);
+  const alreadySubmitted = onboarding.hasMatrix;
+  const continueHref =
+    onboardingStep === "done" ? "/candidate/status" : getOnboardingPath(onboardingStep);
+  const continueLabel =
+    onboardingStep === "done" || onboardingStep === "matrix"
+      ? "Continue to matching status"
+      : "Continue";
+
   return (
     <DashboardShell
       role="candidate"
@@ -52,7 +67,7 @@ export default async function CandidateMatrixPage({
       description="Choose one best-fit word at each step to build your profile."
     >
       <div className="space-y-4">
-        {params.step === "cv-complete" && (
+        {params.step === "cv-complete" && !alreadySubmitted ? (
           <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
             <CheckCircle2 />
             <AlertTitle>CV uploaded</AlertTitle>
@@ -61,7 +76,7 @@ export default async function CandidateMatrixPage({
               onboarding.
             </AlertDescription>
           </Alert>
-        )}
+        ) : null}
         <MatrixForm
           categories={filtered}
           existingAnswers={answerRows}
@@ -69,6 +84,9 @@ export default async function CandidateMatrixPage({
           wizard={{
             instructionText:
               "Only choose one word that you feel describes you the most.",
+            alreadySubmitted,
+            continueHref,
+            continueLabel,
           }}
           hideFooterActions
         />

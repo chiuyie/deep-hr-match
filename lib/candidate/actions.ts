@@ -125,39 +125,168 @@ export async function saveCandidateProfileCore(
   return { completionPercentage: payload.completion_percentage };
 }
 
-export async function uploadCandidateCV(formData: FormData): Promise<void> {
+const CV_MAX_BYTES = 10 * 1024 * 1024;
+const CV_ALLOWED_EXTENSIONS = new Set([".pdf", ".doc", ".docx"]);
+const CV_ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+export type CandidateCvActionResult = {
+  error?: string;
+  success?: boolean;
+  redirectTo?: string;
+  downloadUrl?: string;
+};
+
+function sanitizeCvFileName(name: string): string {
+  const base = name.split(/[/\\]/).pop()?.trim() || "cv";
+  return base.replace(/[^\w.\- ()[\]]+/g, "_").slice(0, 180);
+}
+
+function validateCvFile(file: File | null): string | null {
+  if (!file || file.size === 0) return "Please choose a CV file to upload.";
+  if (file.size > CV_MAX_BYTES) return "File is too large. Maximum size is 10MB.";
+  const lower = file.name.toLowerCase();
+  const hasAllowedExt = [...CV_ALLOWED_EXTENSIONS].some((ext) => lower.endsWith(ext));
+  if (!hasAllowedExt) return "Use a PDF or Word file (.pdf, .doc, .docx).";
+  if (file.type && !CV_ALLOWED_MIME_TYPES.has(file.type)) {
+    // Some browsers send empty type for docx — extension check already passed.
+    if (file.type !== "application/octet-stream") {
+      return "Use a PDF or Word file (.pdf, .doc, .docx).";
+    }
+  }
+  return null;
+}
+
+export async function uploadCandidateCV(
+  formData: FormData
+): Promise<CandidateCvActionResult> {
   const user = await requireRole("candidate");
   const supabase = await createClient();
-  const file = formData.get("file") as File | null;
+  const file = formData.get("file");
+  const stayOnPage = formData.get("stay") === "1";
 
-  if (!file || file.size === 0) {
-    throw new Error("Please select a file");
+  if (!(file instanceof File)) {
+    return { error: "Please choose a CV file to upload." };
   }
 
-  const candidateId = await getCandidateId(user.id);
-  if (!candidateId) throw new Error("Profile not found");
+  const validationError = validateCvFile(file);
+  if (validationError) return { error: validationError };
 
-  const path = `${candidateId}/${Date.now()}-${file.name}`;
+  const candidateId = await getCandidateId(user.id);
+  if (!candidateId) return { error: "Profile not found" };
+
+  const safeName = sanitizeCvFileName(file.name);
+  const path = `${candidateId}/${Date.now()}-${safeName}`;
   const { error: uploadError } = await supabase.storage
     .from("candidate-cvs")
-    .upload(path, file, { upsert: true });
+    .upload(path, file, {
+      upsert: false,
+      contentType: file.type || undefined,
+    });
 
-  if (uploadError) throw new Error(uploadError.message);
+  if (uploadError) return { error: uploadError.message };
 
-  await supabase.from("candidate_cv_files").insert({
+  const { error: insertError } = await supabase.from("candidate_cv_files").insert({
     candidate_id: candidateId,
-    file_name: file.name,
+    file_name: safeName,
     file_url: path,
     file_path: path,
-    file_type: file.type,
+    file_type: file.type || null,
     file_size: file.size,
   });
+
+  if (insertError) {
+    await supabase.storage.from("candidate-cvs").remove([path]);
+    return { error: insertError.message };
+  }
 
   revalidatePath("/candidate/cv");
   revalidatePath("/candidate");
   revalidatePath("/candidate/status");
 
-  redirect("/candidate/matrix?step=cv-complete");
+  if (stayOnPage) {
+    return { success: true };
+  }
+
+  return { success: true, redirectTo: "/candidate/matrix?step=cv-complete" };
+}
+
+export async function deleteCandidateCV(
+  fileId: string
+): Promise<CandidateCvActionResult> {
+  const user = await requireRole("candidate");
+  const supabase = await createClient();
+  const candidateId = await getCandidateId(user.id);
+  if (!candidateId) return { error: "Profile not found" };
+  if (!fileId) return { error: "Missing file id" };
+
+  const { data: row, error: loadError } = await supabase
+    .from("candidate_cv_files")
+    .select("id, file_path")
+    .eq("id", fileId)
+    .eq("candidate_id", candidateId)
+    .maybeSingle();
+
+  if (loadError) return { error: loadError.message };
+  if (!row) return { error: "CV file not found" };
+
+  const { error: storageError } = await supabase.storage
+    .from("candidate-cvs")
+    .remove([row.file_path]);
+
+  if (storageError) {
+    // Still remove the DB row if the object is already gone.
+    if (!/not found|404/i.test(storageError.message)) {
+      return { error: storageError.message };
+    }
+  }
+
+  const { error: deleteError } = await supabase
+    .from("candidate_cv_files")
+    .delete()
+    .eq("id", row.id)
+    .eq("candidate_id", candidateId);
+
+  if (deleteError) return { error: deleteError.message };
+
+  revalidatePath("/candidate/cv");
+  revalidatePath("/candidate");
+  revalidatePath("/candidate/status");
+
+  return { success: true };
+}
+
+export async function getCandidateCvDownloadUrl(
+  fileId: string
+): Promise<CandidateCvActionResult> {
+  const user = await requireRole("candidate");
+  const supabase = await createClient();
+  const candidateId = await getCandidateId(user.id);
+  if (!candidateId) return { error: "Profile not found" };
+  if (!fileId) return { error: "Missing file id" };
+
+  const { data: row, error: loadError } = await supabase
+    .from("candidate_cv_files")
+    .select("id, file_path")
+    .eq("id", fileId)
+    .eq("candidate_id", candidateId)
+    .maybeSingle();
+
+  if (loadError) return { error: loadError.message };
+  if (!row) return { error: "CV file not found" };
+
+  const { data: signed, error: signError } = await supabase.storage
+    .from("candidate-cvs")
+    .createSignedUrl(row.file_path, 3600);
+
+  if (signError || !signed?.signedUrl) {
+    return { error: signError?.message || "Could not create download link" };
+  }
+
+  return { success: true, downloadUrl: signed.signedUrl };
 }
 
 export async function saveCandidateMatrixAnswers(
@@ -224,9 +353,13 @@ export async function saveCandidateMatrixAnswers(
   return { success: true };
 }
 
-export async function markCandidateReady(): Promise<void> {
+export async function markCandidateReady(formData: FormData): Promise<void> {
   const user = await requireRole("candidate");
   const supabase = await createClient();
+
+  if (formData.get("matching_consent") !== "on") {
+    redirect("/candidate/status?error=consent");
+  }
 
   const onboarding = await fetchCandidateOnboardingState(supabase, user.id);
 

@@ -104,11 +104,6 @@ export default async function CandidateProfilePage({
           ) : null}
         </div>
 
-        <p className="text-sm leading-relaxed text-slate-500">
-          Employers see an anonymized ranking first. After they unlock you, they see the details
-          you share here.
-        </p>
-
         <CandidateProfileForm
           values={p}
           sections={sections}

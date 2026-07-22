@@ -1,12 +1,18 @@
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from "next/link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { CandidateCvManager } from "@/components/candidate/candidate-cv-manager";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { uploadCandidateCV } from "@/lib/candidate/actions";
-import { formatDate } from "@/lib/utils/profile";
-import { CheckCircle2 } from "lucide-react";
+import {
+  fetchCandidateOnboardingState,
+  getOnboardingPath,
+  getOnboardingStep,
+} from "@/lib/candidate/onboarding";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { LayoutDashboard } from "lucide-react";
+import type { CandidateCvFile } from "@/types/database";
+import { cn } from "@/lib/utils";
 
 export default async function CandidateCVPage({
   searchParams,
@@ -29,59 +35,68 @@ export default async function CandidateCVPage({
     .eq("candidate_id", profile?.id ?? "")
     .order("uploaded_at", { ascending: false });
 
+  const onboarding = await fetchCandidateOnboardingState(supabase, user.id);
+  const onboardingStep = getOnboardingStep(onboarding);
+  const showOverviewLink = onboardingStep === "done";
+
+  let continueHref: string | undefined;
+  let continueLabel: string | undefined;
+  if (onboarding.hasCv && onboardingStep === "matrix") {
+    continueHref = getOnboardingPath("matrix");
+    continueLabel = `Continue to ${FRAMEWORK_MATCHING_LANGUAGE}`;
+  } else if (onboarding.hasCv && onboardingStep === "done") {
+    continueHref = "/candidate";
+    continueLabel = "Back to overview";
+  }
+
+  const cvFiles = (files ?? []) as CandidateCvFile[];
+
   return (
     <DashboardShell
       role="candidate"
       userName={user.name}
-      title="CV Upload"
-      description="Upload your resume (PDF or Word, max 10MB)"
+      title="CV / Résumé"
+      description="Upload, replace, or download the CV employers receive after unlock"
     >
-      <div className="space-y-4">
-        {params.step === "profile-complete" && (
-          <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
-            <CheckCircle2 />
-            <AlertTitle>Profile saved</AlertTitle>
-            <AlertDescription>
-              Great progress. Upload your CV below to continue onboarding.
-            </AlertDescription>
-          </Alert>
-        )}
+      <div className="mx-auto max-w-3xl space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <nav aria-label="Onboarding path" className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+              1 · Profile
+            </span>
+            <span className="text-slate-300">→</span>
+            <span
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                onboardingStep === "cv" || onboardingStep === "matrix" || onboardingStep === "done"
+                  ? "bg-sky-600 text-white"
+                  : "bg-slate-100 text-slate-500"
+              )}
+            >
+              2 · CV
+            </span>
+            <span className="text-slate-300">→</span>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+              3 · {FRAMEWORK_MATCHING_LANGUAGE}
+            </span>
+          </nav>
+          {showOverviewLink ? (
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-slate-500" asChild>
+              <Link href="/candidate">
+                <LayoutDashboard className="h-3.5 w-3.5" />
+                Overview
+              </Link>
+            </Button>
+          ) : null}
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload CV</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form action={uploadCandidateCV} className="space-y-4">
-              <input
-                type="file"
-                name="file"
-                accept=".pdf,.doc,.docx"
-                required
-                className="block w-full text-sm"
-              />
-              <Button type="submit">Upload CV &amp; Continue</Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {files && files.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Uploaded Files</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {files.map((f) => (
-                  <li key={f.id} className="flex justify-between rounded border p-3 text-sm">
-                    <span>{f.file_name}</span>
-                    <span className="text-muted-foreground">{formatDate(f.uploaded_at)}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+        <CandidateCvManager
+          files={cvFiles}
+          continueHref={continueHref}
+          continueLabel={continueLabel}
+          showProfileComplete={params.step === "profile-complete"}
+          redirectOnFirstUpload={onboardingStep === "cv"}
+        />
       </div>
     </DashboardShell>
   );

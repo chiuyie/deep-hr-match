@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +29,7 @@ import { pickPrimaryMatrixCategory } from "@/lib/matching/matrix-queries";
 import { sortMatrixOptions } from "@/lib/matching/matrix-option-display";
 import { MatrixWordSearchPicker } from "@/components/forms/matrix-word-search-picker";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, CheckCircle2, Grid3X3, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Grid3X3, Sparkles } from "lucide-react";
 import type { MatrixCategory, MatrixQuestion, MatrixOption } from "@/types/database";
 
 type ExistingAnswerRow = {
@@ -60,6 +61,10 @@ interface MatrixFormProps {
   headerIcon?: React.ReactNode;
   wizard?: {
     instructionText?: string;
+    /** True when the candidate has already submitted this form. */
+    alreadySubmitted?: boolean;
+    continueHref?: string;
+    continueLabel?: string;
   };
   hideFooterActions?: boolean;
 }
@@ -125,6 +130,7 @@ export function MatrixForm({
     normalizeExistingAnswers(existingAnswers)
   );
   const [saving, setSaving] = useState(false);
+  const [submitted, setSubmitted] = useState(Boolean(wizard?.alreadySubmitted));
 
   const category = useMemo(() => prepareCategory(categories), [categories]);
 
@@ -144,6 +150,7 @@ export function MatrixForm({
   const progressValue = formComplete
     ? 100
     : Math.max(8, Math.round(((factorNumber - 1) / MATRIX_WORDS_PER_LEVEL) * 100));
+  const showSubmittedState = formComplete && submitted;
 
   function clearDescendants(
     next: ColumnAnswersMap,
@@ -170,6 +177,7 @@ export function MatrixForm({
     options?: { isFactorWordPick?: boolean }
   ) {
     if (!category) return;
+    setSubmitted(false);
     setAnswers((prev) => {
       let next = { ...prev };
       const key = columnAnswerKey(questionId, column);
@@ -250,9 +258,14 @@ export function MatrixForm({
       }
 
       if (submit && result.redirectTo) {
+        setSubmitted(true);
         toast.success("Form submitted — continuing to the next step");
         router.push(result.redirectTo);
         return;
+      }
+
+      if (submit) {
+        setSubmitted(true);
       }
 
       if (!options?.silent) {
@@ -292,6 +305,7 @@ export function MatrixForm({
 
   function clearPreviousStep() {
     if (!category) return;
+    setSubmitted(false);
 
     const tryClearColumn = (column: number) => {
       const path = getAnsweredColumnPath(category, answers, column);
@@ -544,10 +558,14 @@ export function MatrixForm({
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-emerald-950 dark:text-emerald-100">
-                    You have completed all 7 factors
+                    {showSubmittedState
+                      ? "Your answers are submitted"
+                      : "You have completed all 7 factors"}
                   </h3>
                   <p className="text-sm text-emerald-900/80 dark:text-emerald-200/90">
-                    Review with Back if needed, or submit your responses to continue.
+                    {showSubmittedState
+                      ? "You can review with Back if you want to change anything, then continue."
+                      : "Review with Back if needed, or submit your responses to continue."}
                   </p>
                 </div>
               </div>
@@ -562,14 +580,23 @@ export function MatrixForm({
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <Button
-                  type="button"
-                  className="rounded-xl"
-                  disabled={saving}
-                  onClick={() => handleSave(true)}
-                >
-                  {saving ? "Submitting..." : "Submit answers"}
-                </Button>
+                {showSubmittedState ? (
+                  <Button type="button" className="rounded-xl" asChild>
+                    <Link href={wizard?.continueHref || "/candidate/status"}>
+                      {wizard?.continueLabel || "Continue"}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    className="rounded-xl"
+                    disabled={saving}
+                    onClick={() => handleSave(true)}
+                  >
+                    {saving ? "Submitting..." : "Submit answers"}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

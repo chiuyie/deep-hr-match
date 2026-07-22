@@ -3,6 +3,7 @@ import {
   calculateProfileCompletion,
   formatCurrency,
   formatDate,
+  formatFileSize,
   getProfileCompletionDetails,
   parseCommaList,
   statusBadgeClassName,
@@ -91,6 +92,19 @@ describe("formatDate", () => {
   it("formats ISO date strings", () => {
     expect(formatDate("2026-07-14T00:00:00.000Z")).toMatch(/Jul/);
     expect(formatDate("2026-07-14T00:00:00.000Z")).toMatch(/2026/);
+  });
+});
+
+describe("formatFileSize", () => {
+  it("handles empty values", () => {
+    expect(formatFileSize(null)).toBe("—");
+    expect(formatFileSize(undefined)).toBe("—");
+  });
+
+  it("formats bytes through megabytes", () => {
+    expect(formatFileSize(500)).toBe("500 B");
+    expect(formatFileSize(2048)).toBe("2 KB");
+    expect(formatFileSize(5 * 1024 * 1024)).toBe("5 MB");
   });
 });
 

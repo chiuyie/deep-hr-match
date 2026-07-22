@@ -1,16 +1,5 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import type { CandidateProfile, MatchResult } from "@/types/database";
-
-type CandidateCvFile = {
-  id: string;
-  candidate_id: string;
-  file_name: string;
-  file_url: string;
-  file_path: string;
-  file_type: string | null;
-  file_size: number | null;
-  uploaded_at: string;
-};
+import type { CandidateCvFile, CandidateProfile, MatchResult } from "@/types/database";
 
 export async function hasCandidateUnlock(
   employerId: string,
