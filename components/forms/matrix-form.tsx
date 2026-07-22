@@ -505,11 +505,6 @@ export function MatrixForm({
                 <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                   {FRAMEWORK_MATCHING_LANGUAGE}
                 </h2>
-                <p className="max-w-2xl text-sm text-muted-foreground">
-                  Each factor is one Level 1 column. For Character - Roles, choose one word from
-                  that column (Initiator, Leader, … Negotiator), then any sub-levels — then move
-                  to the next factor.
-                </p>
               </div>
             </div>
             <div className="min-w-44 rounded-2xl border border-primary/15 bg-white/80 px-4 py-3 text-right shadow-sm backdrop-blur dark:bg-slate-900/70">
