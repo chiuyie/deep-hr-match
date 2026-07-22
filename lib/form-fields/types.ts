@@ -25,6 +25,8 @@ export interface FormFieldDefinition {
   is_active: boolean;
   is_custom: boolean;
   employer_disclosure_mode: EmployerDisclosureMode;
+  /** When true, field may appear on anonymized candidate-job match rankings. */
+  show_on_anonymous_match: boolean;
   sort_order: number;
 }
 

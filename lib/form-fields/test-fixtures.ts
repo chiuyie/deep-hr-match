@@ -16,6 +16,7 @@ export function makeFormField(
     is_active: overrides.is_active ?? true,
     is_custom: overrides.is_custom ?? false,
     employer_disclosure_mode: overrides.employer_disclosure_mode ?? "candidate_optional",
+    show_on_anonymous_match: overrides.show_on_anonymous_match ?? false,
     sort_order: overrides.sort_order ?? 1,
   };
 }

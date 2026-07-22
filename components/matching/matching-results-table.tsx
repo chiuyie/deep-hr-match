@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Lock, Target, Unlock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,29 @@ interface MatchingResultsTableProps {
   displayLimit?: number;
   lastMatchedAt?: string | null;
   mockPayments?: boolean;
+  showMatchScore?: boolean;
+  showMatchRank?: boolean;
+}
+
+function PreviewFieldsList({
+  fields,
+}: {
+  fields: AnonymousCandidateMatch["preview_fields"];
+}) {
+  if (!fields.length) {
+    return <span className="text-slate-400">No shared details</span>;
+  }
+
+  return (
+    <div className="space-y-1">
+      {fields.map((field) => (
+        <p key={field.key} className="text-sm text-slate-600">
+          <span className="font-medium text-slate-700">{field.label}:</span>{" "}
+          {field.value ?? "—"}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 export function MatchingResultsTable({
@@ -34,11 +57,22 @@ export function MatchingResultsTable({
   displayLimit,
   lastMatchedAt,
   mockPayments = false,
+  showMatchScore = true,
+  showMatchRank = true,
 }: MatchingResultsTableProps) {
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   const total = selected.length * UNLOCK_PRICE_CENTS;
+  const previewColumns = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const row of results) {
+      for (const field of row.preview_fields) {
+        if (!seen.has(field.key)) seen.set(field.key, field.label);
+      }
+    }
+    return Array.from(seen.entries()).map(([key, label]) => ({ key, label }));
+  }, [results]);
 
   function toggle(id: string) {
     setSelected((prev) =>
@@ -113,10 +147,14 @@ export function MatchingResultsTable({
                       <p className="font-mono text-sm font-semibold text-slate-800">
                         {row.anonymous_id}
                       </p>
-                      <p className="mt-1 text-lg font-bold text-primary">{row.overall_score}%</p>
+                      {showMatchScore ? (
+                        <p className="mt-1 text-lg font-bold text-primary">{row.overall_score}%</p>
+                      ) : null}
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <Badge variant="outline">#{row.ranking_position}</Badge>
+                      {showMatchRank ? (
+                        <Badge variant="outline">#{row.ranking_position}</Badge>
+                      ) : null}
                       {row.is_unlocked ? (
                         <Badge className="gap-1 bg-emerald-600">
                           <Unlock className="h-3 w-3" /> Unlocked
@@ -128,13 +166,9 @@ export function MatchingResultsTable({
                       )}
                     </div>
                   </div>
-                  <p className="mt-3 text-sm text-slate-600">
-                    {row.years_of_experience != null ? `${row.years_of_experience} yrs` : "—"} ·{" "}
-                    {row.highest_education ?? "—"}
-                  </p>
-                  <p className="mt-1 break-words text-sm text-slate-500">
-                    {row.skills_overview.slice(0, 3).join(", ") || "—"}
-                  </p>
+                  <div className="mt-3">
+                    <PreviewFieldsList fields={row.preview_fields} />
+                  </div>
                   {row.is_unlocked ? (
                     <Button variant="outline" size="sm" className="mt-4 rounded-lg" asChild>
                       <Link href={`/employer/jobs/${jobId}/unlocked/${row.id}`}>View profile</Link>
@@ -157,72 +191,78 @@ export function MatchingResultsTable({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">Select</TableHead>
-                    <TableHead>Rank</TableHead>
+                    {showMatchRank ? <TableHead>Rank</TableHead> : null}
                     <TableHead>Candidate ID</TableHead>
-                    <TableHead>Match Score</TableHead>
-                    <TableHead>Experience</TableHead>
-                    <TableHead>Education</TableHead>
-                    <TableHead>Skills Overview</TableHead>
+                    {showMatchScore ? <TableHead>Match Score</TableHead> : null}
+                    {previewColumns.map((column) => (
+                      <TableHead key={column.key}>{column.label}</TableHead>
+                    ))}
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {results.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>
-                        {!row.is_unlocked && (
-                          <Checkbox
-                            checked={selected.includes(row.id)}
-                            onCheckedChange={() => toggle(row.id)}
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell>#{row.ranking_position}</TableCell>
-                      <TableCell className="font-mono text-sm">{row.anonymous_id}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-primary">{row.overall_score}%</span>
-                          {row.is_placeholder && (
-                            <Badge variant="outline" className="text-xs">
-                              DEMO
+                  {results.map((row) => {
+                    const previewByKey = Object.fromEntries(
+                      row.preview_fields.map((field) => [field.key, field.value])
+                    );
+                    return (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          {!row.is_unlocked && (
+                            <Checkbox
+                              checked={selected.includes(row.id)}
+                              onCheckedChange={() => toggle(row.id)}
+                            />
+                          )}
+                        </TableCell>
+                        {showMatchRank ? <TableCell>#{row.ranking_position}</TableCell> : null}
+                        <TableCell className="font-mono text-sm">{row.anonymous_id}</TableCell>
+                        {showMatchScore ? (
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-primary">{row.overall_score}%</span>
+                              {row.is_placeholder && (
+                                <Badge variant="outline" className="text-xs">
+                                  DEMO
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                        ) : null}
+                        {previewColumns.map((column) => (
+                          <TableCell
+                            key={column.key}
+                            className="max-w-xs whitespace-normal break-words"
+                          >
+                            {previewByKey[column.key] ?? "—"}
+                          </TableCell>
+                        ))}
+                        <TableCell>
+                          {row.is_unlocked ? (
+                            <Badge className="gap-1 bg-emerald-600">
+                              <Unlock className="h-3 w-3" /> Unlocked
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1">
+                              <Lock className="h-3 w-3" /> Locked
                             </Badge>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {row.years_of_experience != null
-                          ? `${row.years_of_experience} yrs`
-                          : "—"}
-                      </TableCell>
-                      <TableCell>{row.highest_education ?? "—"}</TableCell>
-                      <TableCell className="max-w-xs whitespace-normal break-words">
-                        {row.skills_overview.slice(0, 3).join(", ") || "—"}
-                      </TableCell>
-                      <TableCell>
-                        {row.is_unlocked ? (
-                          <Badge className="gap-1 bg-emerald-600">
-                            <Unlock className="h-3 w-3" /> Unlocked
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="gap-1">
-                            <Lock className="h-3 w-3" /> Locked
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {row.is_unlocked ? (
-                          <Button variant="outline" size="sm" className="rounded-lg" asChild>
-                            <Link href={`/employer/jobs/${jobId}/unlocked/${row.id}`}>
-                              View profile
-                            </Link>
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-slate-400">Unlock required</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {row.is_unlocked ? (
+                            <Button variant="outline" size="sm" className="rounded-lg" asChild>
+                              <Link href={`/employer/jobs/${jobId}/unlocked/${row.id}`}>
+                                View profile
+                              </Link>
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-slate-400">Unlock required</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

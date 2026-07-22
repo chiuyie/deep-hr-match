@@ -135,7 +135,7 @@ const adminNav: DashboardNavItem[] = [
   {
     href: "/admin/forms",
     label: "Form Fields",
-    description: "Compare candidate vs employer inputs",
+    description: "Profile/job forms and match-result disclosure",
     icon: ListTree,
   },
   {

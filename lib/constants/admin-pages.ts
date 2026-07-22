@@ -85,7 +85,8 @@ export function getAdminPageMeta(pathname: string): AdminPageMeta {
   if (pathname === "/admin/forms") {
     return {
       title: "Form Fields",
-      description: "Compare and edit candidate vs employer input fields",
+      description:
+        "Edit candidate profile, employer profile, and create-job form fields — plus what employers can see on match rankings and unlocked reports",
       contentClassName: wideContentClassName,
     };
   }

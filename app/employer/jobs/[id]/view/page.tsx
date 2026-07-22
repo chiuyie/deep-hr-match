@@ -10,7 +10,7 @@ import {
   EmployerPageSection,
 } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
-import { anonymizeCandidateId, requireRole } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
   canEditJob,
@@ -18,11 +18,17 @@ import {
   editBlockedReason,
   matchingActionLabel,
 } from "@/lib/employer/job-rules";
+import { buildAnonymousCandidateMatches } from "@/lib/employer/anonymous-match";
 import {
   countNewReadyCandidatesSince,
   getSnapshotGeneratedAt,
 } from "@/lib/matching/snapshot";
 import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
+import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
+import {
+  isShownOnAnonymous,
+  loadPlatformDisclosureMap,
+} from "@/lib/employer/platform-disclosure";
 import { formatDate } from "@/lib/utils/profile";
 import type { AnonymousCandidateMatch } from "@/types/database";
 
@@ -98,30 +104,34 @@ export default async function JobViewPage({
   const { data: topMatches } = lifecycle.hasMatches
     ? await supabase
         .from("match_results")
-        .select(
-          "candidate_id, ranking_position, overall_score, is_placeholder, candidate_profiles(years_of_experience, highest_education, skills)"
-        )
+        .select("candidate_id, ranking_position, overall_score, is_placeholder")
         .eq("job_id", id)
         .order("ranking_position")
         .limit(3)
     : { data: [] };
 
-  const previewMatches: AnonymousCandidateMatch[] = (topMatches ?? []).map((row) => {
-    const candidate = Array.isArray(row.candidate_profiles)
-      ? row.candidate_profiles[0]
-      : row.candidate_profiles;
+  const previewCandidateIds = (topMatches ?? []).map((row) => row.candidate_id);
+  await ensureFormFieldsReady();
+  const [candidateFields, platformDisclosure, previewProfilesResult] = await Promise.all([
+    loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
+    loadPlatformDisclosureMap(),
+    previewCandidateIds.length
+      ? supabase.from("candidate_profiles").select("*").in("id", previewCandidateIds)
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+  ]);
 
-    return {
-      id: row.candidate_id,
-      anonymous_id: anonymizeCandidateId(row.candidate_id),
-      ranking_position: row.ranking_position,
-      overall_score: Number(row.overall_score),
-      is_placeholder: Boolean(row.is_placeholder),
-      years_of_experience: candidate?.years_of_experience ?? null,
-      highest_education: candidate?.highest_education ?? null,
-      skills_overview: candidate?.skills ?? [],
-      is_unlocked: unlockedIds.includes(row.candidate_id),
-    };
+  const previewProfilesById = Object.fromEntries(
+    (previewProfilesResult.data ?? []).map((profile) => [
+      String((profile as { id: string }).id),
+      profile as Record<string, unknown>,
+    ])
+  );
+
+  const previewMatches: AnonymousCandidateMatch[] = buildAnonymousCandidateMatches({
+    matchResults: topMatches ?? [],
+    profilesById: previewProfilesById,
+    candidateFields,
+    unlockedIds,
   });
 
   return (
@@ -200,7 +210,12 @@ export default async function JobViewPage({
       </EmployerPageSection>
 
       <div className="mt-6">
-        <JobMatchPreview jobId={id} results={previewMatches} />
+        <JobMatchPreview
+          jobId={id}
+          results={previewMatches}
+          showMatchScore={isShownOnAnonymous(platformDisclosure, "match_score")}
+          showMatchRank={isShownOnAnonymous(platformDisclosure, "match_rank")}
+        />
       </div>
     </>
   );

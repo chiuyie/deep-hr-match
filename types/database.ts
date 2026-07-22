@@ -167,9 +167,8 @@ export interface AnonymousCandidateMatch {
   ranking_position: number;
   overall_score: number;
   is_placeholder: boolean;
-  years_of_experience: number | null;
-  highest_education: string | null;
-  skills_overview: string[];
+  /** Admin-configured preview fields for anonymized rankings. */
+  preview_fields: Array<{ key: string; label: string; value: string | null }>;
   is_unlocked: boolean;
 }
 

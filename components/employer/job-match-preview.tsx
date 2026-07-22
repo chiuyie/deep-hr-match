@@ -13,9 +13,16 @@ import type { AnonymousCandidateMatch } from "@/types/database";
 interface JobMatchPreviewProps {
   jobId: string;
   results: AnonymousCandidateMatch[];
+  showMatchScore?: boolean;
+  showMatchRank?: boolean;
 }
 
-export function JobMatchPreview({ jobId, results }: JobMatchPreviewProps) {
+export function JobMatchPreview({
+  jobId,
+  results,
+  showMatchScore = true,
+  showMatchRank = true,
+}: JobMatchPreviewProps) {
   return (
     <EmployerPageSection
       title="Top Matching Profiles"
@@ -41,7 +48,8 @@ export function JobMatchPreview({ jobId, results }: JobMatchPreviewProps) {
         <div className="space-y-4">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Candidate identities, contact details, and downloadable CVs remain hidden until you
-            unlock them from the matching results page.
+            unlock them from the matching results page. Shared preview fields are controlled by
+            admin Form Fields settings.
           </div>
 
           <div className="grid gap-4 xl:grid-cols-3">
@@ -55,12 +63,16 @@ export function JobMatchPreview({ jobId, results }: JobMatchPreviewProps) {
                     <p className="font-mono text-sm font-semibold text-slate-700">
                       {candidate.anonymous_id}
                     </p>
-                    <p className="mt-2 text-3xl font-bold tracking-tight text-primary">
-                      {candidate.overall_score}%
-                    </p>
+                    {showMatchScore ? (
+                      <p className="mt-2 text-3xl font-bold tracking-tight text-primary">
+                        {candidate.overall_score}%
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <Badge variant="outline">#{candidate.ranking_position}</Badge>
+                    {showMatchRank ? (
+                      <Badge variant="outline">#{candidate.ranking_position}</Badge>
+                    ) : null}
                     {candidate.is_unlocked ? (
                       <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-600">
                         <Unlock className="h-3 w-3" />
@@ -76,32 +88,18 @@ export function JobMatchPreview({ jobId, results }: JobMatchPreviewProps) {
                 </div>
 
                 <dl className="mt-4 space-y-3 text-sm">
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Experience
-                    </dt>
-                    <dd className="mt-1 text-slate-700">
-                      {candidate.years_of_experience != null
-                        ? `${candidate.years_of_experience} years`
-                        : "Hidden"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Education
-                    </dt>
-                    <dd className="mt-1 text-slate-700">
-                      {candidate.highest_education ?? "Hidden"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Skills Overview
-                    </dt>
-                    <dd className="mt-1 text-slate-700">
-                      {candidate.skills_overview.slice(0, 3).join(", ") || "Hidden"}
-                    </dd>
-                  </div>
+                  {candidate.preview_fields.length === 0 ? (
+                    <p className="text-slate-500">No shared preview fields configured.</p>
+                  ) : (
+                    candidate.preview_fields.map((field) => (
+                      <div key={field.key}>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          {field.label}
+                        </dt>
+                        <dd className="mt-1 text-slate-700">{field.value ?? "Hidden"}</dd>
+                      </div>
+                    ))
+                  )}
                 </dl>
 
                 <div className="mt-5 flex flex-wrap gap-2">

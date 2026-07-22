@@ -12,6 +12,7 @@ const FORM_FIELD_PATHS = [
   "/candidate/profile",
   "/employer/company",
   "/employer/jobs/new",
+  "/employer/jobs",
 ] as const;
 
 function revalidateFormFieldPages() {
@@ -32,6 +33,8 @@ export async function saveFormField(formData: FormData, id?: string) {
     is_custom: raw.is_custom === "on" || raw.is_custom === "true",
     employer_disclosure_mode:
       raw.employer_disclosure_mode ?? "candidate_optional",
+    show_on_anonymous_match:
+      raw.show_on_anonymous_match === "on" || raw.show_on_anonymous_match === "true",
     sort_order: raw.sort_order ?? 0,
   });
 
@@ -75,9 +78,31 @@ export async function updateEmployerDisclosureMode(
 ) {
   await requireRole("admin");
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("form_fields")
     .update({ employer_disclosure_mode })
+    .eq("id", id)
+    .select("id");
+  if (error) {
+    if (error.message.toLowerCase().includes("employer_disclosure_mode")) {
+      return {
+        error:
+          "Could not save after-unlock disclosure. Apply migration 008_form_field_disclosure.sql, then try again.",
+      };
+    }
+    return { error: error.message };
+  }
+  if (!data?.length) return { error: "Field not found." };
+  revalidateFormFieldPages();
+  return { success: true };
+}
+
+export async function updateShowOnAnonymousMatch(id: string, show_on_anonymous_match: boolean) {
+  await requireRole("admin");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("form_fields")
+    .update({ show_on_anonymous_match })
     .eq("id", id);
   if (error) return { error: error.message };
   revalidateFormFieldPages();
@@ -122,6 +147,7 @@ export async function createFormField(input: {
     is_active: true,
     is_custom: true,
     employer_disclosure_mode: "candidate_optional",
+    show_on_anonymous_match: false,
     sort_order: nextSort,
   });
 

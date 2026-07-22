@@ -12,6 +12,15 @@ import { UnlockedCandidateCard } from "@/components/employer/unlocked-candidate-
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getUnlockedCandidateDetailsBatch } from "@/lib/auth/unlock";
+import {
+  getCandidateFieldDisplayValue,
+  isUnlockedContactFieldVisible,
+} from "@/lib/employer/match-disclosure";
+import {
+  loadPlatformDisclosureMap,
+  shouldShowUnlockedPlatformItem,
+} from "@/lib/employer/platform-disclosure";
+import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
 
 export default async function JobUnlockedPage({
   params,
@@ -48,11 +57,16 @@ export default async function JobUnlockedPage({
     .order("unlocked_at", { ascending: false });
 
   const unlockOrder = unlocks ?? [];
-  const details = await getUnlockedCandidateDetailsBatch(
-    employer!.id,
-    jobId,
-    unlockOrder.map((unlock) => unlock.candidate_id)
-  );
+  await ensureFormFieldsReady();
+  const [details, candidateFields, platformDisclosure] = await Promise.all([
+    getUnlockedCandidateDetailsBatch(
+      employer!.id,
+      jobId,
+      unlockOrder.map((unlock) => unlock.candidate_id)
+    ),
+    loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
+    loadPlatformDisclosureMap(),
+  ]);
   const detailsMap = new Map(details.map((item) => [item.candidateId, item]));
   const unlockedDetails = unlockOrder
     .map((unlock) => {
@@ -61,6 +75,20 @@ export default async function JobUnlockedPage({
       return { ...detail, unlocked_at: unlock.unlocked_at };
     })
     .filter(Boolean);
+
+  const showName = isUnlockedContactFieldVisible(candidateFields, "full_name");
+  const showEmail = isUnlockedContactFieldVisible(candidateFields, "email");
+  const showPhone = isUnlockedContactFieldVisible(candidateFields, "phone");
+  const experienceField = candidateFields.find((field) => field.field_key === "years_of_experience");
+  const skillsField = candidateFields.find((field) => field.field_key === "skills");
+  const showExperience = experienceField
+    ? experienceField.employer_disclosure_mode !== "admin_removed"
+    : true;
+  const showSkills = skillsField
+    ? skillsField.employer_disclosure_mode !== "admin_removed"
+    : true;
+  const showMatchScore = shouldShowUnlockedPlatformItem(platformDisclosure, "match_score");
+  const showCv = shouldShowUnlockedPlatformItem(platformDisclosure, "candidate_cv");
 
   return (
     <>
@@ -103,22 +131,46 @@ export default async function JobUnlockedPage({
         </EmployerPageSection>
       ) : (
         <div className="space-y-4">
-          {unlockedDetails.map(({ profile, cvDownloadUrl, matchResult, unlocked_at }) => (
+          {unlockedDetails.map(({ profile, cvDownloadUrl, matchResult, unlocked_at }) => {
+            const profileRecord = (profile as unknown as Record<string, unknown> | null) ?? null;
+            const experienceValue = experienceField
+              ? getCandidateFieldDisplayValue(experienceField, profileRecord)
+              : profile?.years_of_experience != null
+                ? String(profile.years_of_experience)
+                : null;
+            const skillsValue = skillsField
+              ? getCandidateFieldDisplayValue(skillsField, profileRecord)
+              : profile?.skills?.join(", ") ?? null;
+
+            return (
             <UnlockedCandidateCard
               key={profile?.id}
               candidateId={profile?.id}
-              fullName={profile?.full_name}
-              email={profile?.email}
-              phone={profile?.phone}
-              yearsOfExperience={profile?.years_of_experience}
-              skills={profile?.skills}
-              matchScore={matchResult?.overall_score != null ? Number(matchResult.overall_score) : null}
+              fullName={showName ? profile?.full_name : "Candidate"}
+              email={showEmail ? profile?.email : null}
+              phone={showPhone ? profile?.phone : null}
+              yearsOfExperience={
+                showExperience && experienceValue != null && experienceValue !== ""
+                  ? Number(experienceValue) || null
+                  : null
+              }
+              skills={
+                showSkills && skillsValue
+                  ? skillsValue.split(",").map((item) => item.trim()).filter(Boolean)
+                  : null
+              }
+              matchScore={
+                showMatchScore && matchResult?.overall_score != null
+                  ? Number(matchResult.overall_score)
+                  : null
+              }
               isPlaceholder={matchResult?.is_placeholder}
               unlockedAt={unlocked_at}
-              cvDownloadUrl={cvDownloadUrl}
+              cvDownloadUrl={showCv ? cvDownloadUrl : null}
               jobId={jobId}
             />
-          ))}
+            );
+          })}
         </div>
       )}
 

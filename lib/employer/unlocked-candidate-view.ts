@@ -1,32 +1,11 @@
 import { loadFormFields } from "@/lib/form-fields/queries";
 import { getUnlockedCandidateDetails } from "@/lib/auth/unlock";
+import {
+  getCandidateFieldDisplayValue,
+  getUnlockedVisibleFields,
+  isUnlockedContactFieldVisible,
+} from "@/lib/employer/match-disclosure";
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
-
-function formatFieldValue(value: unknown): string | null {
-  if (value === null || value === undefined) return null;
-  if (Array.isArray(value)) {
-    const filtered = value.filter(Boolean).map((item) => String(item).trim()).filter(Boolean);
-    return filtered.length ? filtered.join(", ") : null;
-  }
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  const text = String(value).trim();
-  return text ? text : null;
-}
-
-function getCandidateFieldValue(
-  field: FormFieldDefinition,
-  profile: Record<string, unknown> | null | undefined
-) {
-  if (!profile) return null;
-
-  if (field.is_custom) {
-    const customFields =
-      (profile.custom_fields as Record<string, unknown> | null | undefined) ?? undefined;
-    return formatFieldValue(customFields?.[field.field_key]);
-  }
-
-  return formatFieldValue(profile[field.field_key]);
-}
 
 export interface EmployerVisibleCandidateField {
   id: string;
@@ -50,19 +29,26 @@ export async function getEmployerUnlockedCandidateView(
   const profileRecord =
     (details.profile as unknown as Record<string, unknown> | null | undefined) ?? undefined;
 
-  const visibleFields: EmployerVisibleCandidateField[] = candidateFields
-    .filter((field) => field.employer_disclosure_mode !== "admin_removed")
-    .map((field) => ({
+  const visibleFields: EmployerVisibleCandidateField[] = getUnlockedVisibleFields(candidateFields).map(
+    (field) => ({
       id: field.id,
       section: field.section,
       label: field.label,
       field_key: field.field_key,
       employer_disclosure_mode: field.employer_disclosure_mode,
-      value: getCandidateFieldValue(field, profileRecord),
-    }));
+      value: getCandidateFieldDisplayValue(field, profileRecord),
+    })
+  );
+
+  const showName = isUnlockedContactFieldVisible(candidateFields, "full_name");
+  const showEmail = isUnlockedContactFieldVisible(candidateFields, "email");
+  const showPhone = isUnlockedContactFieldVisible(candidateFields, "phone");
 
   return {
     ...details,
+    displayName: showName ? details.profile?.full_name ?? "Candidate" : "Candidate",
+    displayEmail: showEmail ? details.profile?.email ?? null : null,
+    displayPhone: showPhone ? details.profile?.phone ?? null : null,
     visibleFields,
   };
 }

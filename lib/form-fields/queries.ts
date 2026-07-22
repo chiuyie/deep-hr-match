@@ -20,6 +20,9 @@ function defaultRow(field: ReturnType<typeof getDefaultFormFields>[number]) {
     is_active: true,
     is_custom: false,
     employer_disclosure_mode: "candidate_optional" as const,
+    show_on_anonymous_match: ["years_of_experience", "highest_education", "skills"].includes(
+      field.field_key
+    ),
     placeholder: field.placeholder ?? null,
   };
 }
@@ -74,7 +77,11 @@ export async function loadFormFields(options?: {
   if (!options?.includeInactive) query = query.eq("is_active", true);
 
   const { data } = await query;
-  return (data ?? []) as FormFieldDefinition[];
+  return ((data ?? []) as FormFieldDefinition[]).map((field) => ({
+    ...field,
+    show_on_anonymous_match: Boolean(field.show_on_anonymous_match),
+    employer_disclosure_mode: field.employer_disclosure_mode ?? "candidate_optional",
+  }));
 }
 
 export async function loadFormFieldSections(

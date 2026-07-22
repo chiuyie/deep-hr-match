@@ -14,6 +14,7 @@ import {
   Plus,
   Search,
   Sparkles,
+  Target,
   Trash2,
   User,
   X,
@@ -30,6 +31,7 @@ import {
   saveFormField,
   toggleFormFieldActive,
   updateEmployerDisclosureMode,
+  updateShowOnAnonymousMatch,
 } from "@/lib/admin/form-field-actions";
 import {
   buildPairedFieldRows,
@@ -41,12 +43,16 @@ import type {
   FormFieldDefinition,
   FormFieldSectionGroup,
 } from "@/lib/form-fields/types";
+import type { PlatformDisclosureItem } from "@/lib/employer/platform-disclosure";
+import { PlatformDisclosureSection } from "@/components/admin/platform-disclosure-section";
 import { cn } from "@/lib/utils";
 
 interface FormFieldsComparisonEditorProps {
   candidate: FormFieldSectionGroup[];
   employerProfile: FormFieldSectionGroup[];
   employerJob: FormFieldSectionGroup[];
+  platformDisclosure: PlatformDisclosureItem[];
+  schemaWarnings?: string[];
 }
 
 const FIELD_TYPE_STYLES: Record<string, string> = {
@@ -67,21 +73,47 @@ const DISCLOSURE_MODE_OPTIONS: Array<{
   hint: string;
 }> = [
   {
-    value: "candidate_optional",
-    label: "Candidate can hide value",
-    hint: "Employer still sees the field, but the value may be blank.",
+    value: "always_visible",
+    label: "Show after unlock",
+    hint: "Employers see this field on the unlocked candidate profile and match report.",
   },
   {
-    value: "always_visible",
-    label: "Always visible to employer",
-    hint: "Employer should always see this field when it is available.",
+    value: "candidate_optional",
+    label: "Show if candidate filled it in",
+    hint: "Employers see the field after unlock only when the candidate provided a value.",
   },
   {
     value: "admin_removed",
-    label: "Remove from employer view",
-    hint: "Field is hidden completely from employer-facing match results and reports.",
+    label: "Keep private after unlock",
+    hint: "Employers never see this field, even after paying to unlock the candidate.",
   },
 ];
+
+function isShownAfterUnlock(mode: EmployerDisclosureMode) {
+  return mode !== "admin_removed";
+}
+
+function unlockedVisibilityCopy(mode: EmployerDisclosureMode) {
+  if (mode === "admin_removed") {
+    return {
+      badge: "Private after unlock",
+      button: "Keep private",
+      helper: "Hidden from the paid profile and match report.",
+    };
+  }
+  if (mode === "always_visible") {
+    return {
+      badge: "Shown after unlock",
+      button: "Show after unlock",
+      helper: "Included on the unlocked profile and match report.",
+    };
+  }
+  return {
+    badge: "Shown if filled in",
+    button: "Show if filled in",
+    helper: "Included after unlock when the candidate has provided a value.",
+  };
+}
 
 function buildFormData(field: FormFieldDefinition, overrides: Partial<FormFieldDefinition> = {}) {
   const merged = { ...field, ...overrides };
@@ -98,6 +130,7 @@ function buildFormData(field: FormFieldDefinition, overrides: Partial<FormFieldD
   formData.set("is_active", String(merged.is_active));
   formData.set("is_custom", String(merged.is_custom));
   formData.set("employer_disclosure_mode", merged.employer_disclosure_mode);
+  formData.set("show_on_anonymous_match", String(Boolean(merged.show_on_anonymous_match)));
   return formData;
 }
 
@@ -111,11 +144,14 @@ export function FormFieldsComparisonEditor({
   candidate,
   employerProfile,
   employerJob,
+  platformDisclosure,
+  schemaWarnings = [],
 }: FormFieldsComparisonEditorProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [profileSearch, setProfileSearch] = useState("");
   const [jobSearch, setJobSearch] = useState("");
+  const [matchSearch, setMatchSearch] = useState("");
   const [showHidden, setShowHidden] = useState(true);
 
   function refresh() {
@@ -143,6 +179,20 @@ export function FormFieldsComparisonEditor({
 
   return (
     <div className="space-y-6">
+      {schemaWarnings.length > 0 ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+          <p className="font-semibold">Database migrations required</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {schemaWarnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-amber-800/90">
+            Or run <code className="rounded bg-amber-100 px-1">node scripts/apply-disclosure-migrations.mjs</code>{" "}
+            after setting <code className="rounded bg-amber-100 px-1">SUPABASE_DB_URL</code>.
+          </p>
+        </div>
+      ) : null}
       <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-lg">
         <div className="border-b border-slate-100 bg-gradient-to-r from-violet-50/80 via-white to-cyan-50/80 px-6 py-6 sm:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -152,11 +202,13 @@ export function FormFieldsComparisonEditor({
               </div>
               <div>
                 <h2 className="text-xl font-bold tracking-tight text-slate-800 sm:text-2xl">
-                  Form Fields Comparison
+                  Form Fields &amp; Match Disclosure
                 </h2>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-500">
-                  Compare candidate and employer inputs side by side, edit labels, toggle required
-                  fields, and add custom fields. Changes apply to live onboarding forms immediately.
+                <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500">
+                  Use this page to manage the live fields on the <strong>candidate profile</strong>,{" "}
+                  <strong>employer profile</strong>, and <strong>employer create-job</strong> forms.
+                  Candidate fields also control what employers can see on anonymized match rankings
+                  and unlocked candidate profiles / match reports.
                 </p>
               </div>
             </div>
@@ -204,7 +256,7 @@ export function FormFieldsComparisonEditor({
             className="rounded-xl px-4 py-2.5 text-sm data-active:bg-blue-50 data-active:text-blue-800"
           >
             <User className="mr-2 h-4 w-4" />
-            Profile comparison
+            Profile forms
             <Badge variant="secondary" className="ml-2 text-[10px]">
               {candidateCount} / {employerProfileCount}
             </Badge>
@@ -214,14 +266,29 @@ export function FormFieldsComparisonEditor({
             className="rounded-xl px-4 py-2.5 text-sm data-active:bg-violet-50 data-active:text-violet-800"
           >
             <Briefcase className="mr-2 h-4 w-4" />
-            Job form
+            Create job form
             <Badge variant="secondary" className="ml-2 text-[10px]">
               {employerJobCount}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger
+            value="match"
+            className="rounded-xl px-4 py-2.5 text-sm data-active:bg-emerald-50 data-active:text-emerald-800"
+          >
+            <Target className="mr-2 h-4 w-4" />
+            Match results disclosure
+            <Badge variant="secondary" className="ml-2 text-[10px]">
+              {candidateCount}
             </Badge>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-0 space-y-4">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-blue-900">
+            Edit fields shown on the <strong>candidate profile page</strong> and{" "}
+            <strong>employer profile page</strong>. Candidate-side visibility badges here also feed
+            unlocked match reports.
+          </div>
           <Toolbar
             search={profileSearch}
             onSearchChange={setProfileSearch}
@@ -241,6 +308,10 @@ export function FormFieldsComparisonEditor({
         </TabsContent>
 
         <TabsContent value="job" className="mt-0 space-y-4">
+          <div className="rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3 text-sm text-violet-900">
+            Edit fields employers fill when creating or editing a job. These inputs also filter
+            candidate-job matches (for example required availability, age range, or ethnicity).
+          </div>
           <Toolbar
             search={jobSearch}
             onSearchChange={setJobSearch}
@@ -248,7 +319,7 @@ export function FormFieldsComparisonEditor({
             pending={pending}
           />
           <SingleColumnPanel
-            title="Employer job creation form"
+            title="Employer create-job form"
             description="Fields employers complete when posting or editing a job."
             sections={employerJob}
             pending={pending}
@@ -258,6 +329,51 @@ export function FormFieldsComparisonEditor({
             formGroup="job"
             onRunAction={runAction}
           />
+        </TabsContent>
+
+        <TabsContent value="match" className="mt-0 space-y-4">
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-4 text-sm text-emerald-950">
+            <p className="font-medium">Control what employers see before and after unlock.</p>
+            <p className="mt-2 text-emerald-900/90">
+              Start with <strong>scores, 7^7 answers, and CV</strong> below, then expand profile
+              fields only when you need finer control. Sensitive contact fields usually stay off
+              anonymized rankings.
+            </p>
+          </div>
+          <PlatformDisclosureSection
+            items={platformDisclosure}
+            pending={pending}
+            onRunAction={runAction}
+          />
+          <details className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3 marker:content-none">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Candidate profile fields ({candidateCount})
+                </p>
+                <p className="text-xs text-slate-500">
+                  Per-field control for profile data the candidate submitted on signup.
+                </p>
+              </div>
+              <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-180" />
+            </summary>
+            <div className="space-y-4 p-4">
+              <Toolbar
+                search={matchSearch}
+                onSearchChange={setMatchSearch}
+                placeholder="Search profile fields…"
+                pending={pending}
+              />
+              <MatchDisclosurePanel
+                sections={candidate}
+                pending={pending}
+                search={matchSearch.trim().toLowerCase()}
+                showHidden={showHidden}
+                onRunAction={runAction}
+                compactSummary
+              />
+            </div>
+          </details>
         </TabsContent>
       </Tabs>
 
@@ -311,6 +427,216 @@ function LegendItem({ color, label }: { color: string; label: string }) {
       <span className={cn("h-2 w-2 rounded-full", color.split(" ")[0])} />
       {label}
     </span>
+  );
+}
+
+function MatchDisclosurePanel({
+  sections,
+  pending,
+  search,
+  showHidden,
+  onRunAction,
+  compactSummary = false,
+}: {
+  sections: FormFieldSectionGroup[];
+  pending: boolean;
+  search: string;
+  showHidden: boolean;
+  onRunAction: (
+    action: () => Promise<{ error?: string; success?: boolean }>,
+    successMsg: string
+  ) => void;
+  compactSummary?: boolean;
+}) {
+  const fields = useMemo(
+    () =>
+      flattenSectionFields(sections).filter((field) => {
+        if (!showHidden && !field.is_active) return false;
+        if (!search) return true;
+        return fieldMatchesSearch(field, search);
+      }),
+    [sections, search, showHidden]
+  );
+
+  const beforeUnlockCount = fields.filter((field) => field.show_on_anonymous_match).length;
+  const afterUnlockCount = fields.filter((field) =>
+    isShownAfterUnlock(field.employer_disclosure_mode)
+  ).length;
+
+  if (!fields.length) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
+        No candidate fields match this search.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {!compactSummary ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Before unlock
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-slate-800">{beforeUnlockCount}</p>
+            <p className="mt-1 text-sm text-slate-500">
+              summary field{beforeUnlockCount === 1 ? "" : "s"} shown on anonymized rankings
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              After unlock
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-slate-800">{afterUnlockCount}</p>
+            <p className="mt-1 text-sm text-slate-500">
+              field{afterUnlockCount === 1 ? "" : "s"} included on the paid profile / match report
+            </p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-slate-500">
+          {beforeUnlockCount} on rankings · {afterUnlockCount} after unlock
+        </p>
+      )}
+
+      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <div className="grid gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
+          <span>Candidate field</span>
+          <span>Before unlock</span>
+          <span>After unlock</span>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {fields.map((field) => {
+            const unlockedCopy = unlockedVisibilityCopy(field.employer_disclosure_mode);
+            const shownAfterUnlock = isShownAfterUnlock(field.employer_disclosure_mode);
+            const isSensitiveContact = ["full_name", "email", "phone"].includes(field.field_key);
+
+            return (
+              <div
+                key={field.id}
+                className={cn(
+                  "grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)] lg:items-start",
+                  !field.is_active && "bg-slate-50/70 opacity-70"
+                )}
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="text-sm font-semibold text-slate-800">{field.label}</p>
+                    {!field.is_active && (
+                      <Badge className="h-4 border-0 bg-slate-200 px-1.5 text-[10px] text-slate-600 hover:bg-slate-200">
+                        Hidden from form
+                      </Badge>
+                    )}
+                    {isSensitiveContact && (
+                      <Badge className="h-4 border-0 bg-rose-100 px-1.5 text-[10px] text-rose-700 hover:bg-rose-100">
+                        Sensitive
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {isSensitiveContact
+                      ? "Usually keep this private until an employer unlocks the candidate."
+                      : "Choose whether employers can use this detail when reviewing matches."}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={field.show_on_anonymous_match ? "secondary" : "outline"}
+                    className="h-9 w-full justify-start rounded-xl text-xs sm:w-auto"
+                    disabled={pending}
+                    onClick={() =>
+                      onRunAction(
+                        () =>
+                          updateShowOnAnonymousMatch(field.id, !field.show_on_anonymous_match),
+                        field.show_on_anonymous_match
+                          ? "Hidden from anonymized rankings"
+                          : "Shown on anonymized rankings"
+                      )
+                    }
+                  >
+                    {field.show_on_anonymous_match ? (
+                      <>
+                        <Eye className="mr-1.5 h-3.5 w-3.5" />
+                        Show on rankings
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff className="mr-1.5 h-3.5 w-3.5" />
+                        Hide from rankings
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs leading-5 text-slate-500">
+                    {field.show_on_anonymous_match
+                      ? "Visible next to the anonymous candidate ID and match score."
+                      : "Not shown while the candidate is still locked."}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={shownAfterUnlock ? "secondary" : "outline"}
+                      className="h-9 justify-start rounded-xl text-xs"
+                      disabled={pending}
+                      onClick={() => {
+                        const nextMode: EmployerDisclosureMode = shownAfterUnlock
+                          ? "admin_removed"
+                          : "always_visible";
+                        onRunAction(
+                          () => updateEmployerDisclosureMode(field.id, nextMode),
+                          nextMode === "admin_removed"
+                            ? "Kept private after unlock"
+                            : "Shown after unlock"
+                        );
+                      }}
+                    >
+                      {shownAfterUnlock ? (
+                        <>
+                          <Eye className="mr-1.5 h-3.5 w-3.5" />
+                          Include after unlock
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="mr-1.5 h-3.5 w-3.5" />
+                          Keep private
+                        </>
+                      )}
+                    </Button>
+                    {shownAfterUnlock ? (
+                      <select
+                        value={field.employer_disclosure_mode}
+                        disabled={pending}
+                        onChange={(e) => {
+                          const nextMode = e.target.value as EmployerDisclosureMode;
+                          if (nextMode === "admin_removed") return;
+                          onRunAction(
+                            () => updateEmployerDisclosureMode(field.id, nextMode),
+                            "After-unlock visibility updated"
+                          );
+                        }}
+                        className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-xs"
+                        aria-label={`How to show ${field.label} after unlock`}
+                      >
+                        <option value="always_visible">Always include</option>
+                        <option value="candidate_optional">Only if filled in</option>
+                      </select>
+                    ) : null}
+                  </div>
+                  <p className="text-xs leading-5 text-slate-500">{unlockedCopy.helper}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -889,7 +1215,9 @@ function FieldRow({
         </label>
         {side === "candidate" && (
           <label className="mb-3 block text-sm text-slate-600">
-            <span className="mb-1.5 block font-medium text-slate-700">Employer visibility</span>
+            <span className="mb-1.5 block font-medium text-slate-700">
+              After unlock (paid profile / report)
+            </span>
             <select
               value={employerDisclosureMode}
               onChange={(e) =>
@@ -904,6 +1232,10 @@ function FieldRow({
                 </option>
               ))}
             </select>
+            <span className="mt-1.5 block text-xs text-slate-500">
+              {DISCLOSURE_MODE_OPTIONS.find((option) => option.value === employerDisclosureMode)
+                ?.hint}
+            </span>
           </label>
         )}
         <div className="flex gap-2">
@@ -958,11 +1290,7 @@ function FieldRow({
                         : "bg-amber-100 text-amber-700 hover:bg-amber-100"
                   )}
                 >
-                  {field.employer_disclosure_mode === "admin_removed"
-                    ? "Removed for employer"
-                    : field.employer_disclosure_mode === "always_visible"
-                      ? "Always visible"
-                      : "Candidate may hide"}
+                  {unlockedVisibilityCopy(field.employer_disclosure_mode).badge}
                 </Badge>
               )}
             </div>
@@ -992,17 +1320,21 @@ function FieldRow({
             {side === "candidate" && (
               <IconActionButton
                 pending={pending}
-                title="Toggle employer visibility"
+                title={
+                  field.employer_disclosure_mode === "admin_removed"
+                    ? "Show after unlock"
+                    : "Keep private after unlock"
+                }
                 onClick={() => {
                   const nextMode: EmployerDisclosureMode =
                     field.employer_disclosure_mode === "admin_removed"
-                      ? "candidate_optional"
+                      ? "always_visible"
                       : "admin_removed";
                   onRunAction(
                     () => updateEmployerDisclosureMode(field.id, nextMode),
                     nextMode === "admin_removed"
-                      ? "Removed from employer view"
-                      : "Returned to employer view"
+                      ? "Kept private after unlock"
+                      : "Shown after unlock"
                   );
                 }}
                 icon={field.employer_disclosure_mode === "admin_removed" ? Eye : EyeOff}
@@ -1058,11 +1390,7 @@ function FieldRow({
                       : "bg-amber-100 text-amber-700 hover:bg-amber-100"
                 )}
               >
-                {field.employer_disclosure_mode === "admin_removed"
-                  ? "Removed for employer"
-                  : field.employer_disclosure_mode === "always_visible"
-                    ? "Always visible"
-                    : "Candidate may hide"}
+                {unlockedVisibilityCopy(field.employer_disclosure_mode).badge}
               </Badge>
             )}
           </div>
@@ -1110,25 +1438,25 @@ function FieldRow({
             onClick={() => {
               const nextMode: EmployerDisclosureMode =
                 field.employer_disclosure_mode === "admin_removed"
-                  ? "candidate_optional"
+                  ? "always_visible"
                   : "admin_removed";
               onRunAction(
                 () => updateEmployerDisclosureMode(field.id, nextMode),
                 nextMode === "admin_removed"
-                  ? "Removed from employer view"
-                  : "Returned to employer view"
+                  ? "Kept private after unlock"
+                  : "Shown after unlock"
               );
             }}
           >
             {field.employer_disclosure_mode === "admin_removed" ? (
               <>
                 <Eye className="mr-1 h-3 w-3" />
-                Show to employer
+                Show after unlock
               </>
             ) : (
               <>
                 <EyeOff className="mr-1 h-3 w-3" />
-                Remove for employer
+                Keep private
               </>
             )}
           </Button>

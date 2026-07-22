@@ -11,6 +11,9 @@ import {
   sampleCandidateSections,
   sampleEmployerSections,
 } from "@/lib/form-fields/test-fixtures";
+import { PLATFORM_DISCLOSURE_DEFAULTS } from "@/lib/employer/platform-disclosure";
+
+const platformDisclosure = PLATFORM_DISCLOSURE_DEFAULTS;
 
 const refresh = vi.fn();
 
@@ -34,6 +37,8 @@ vi.mock("@/lib/admin/form-field-actions", () => ({
   deleteFormField: vi.fn(async () => ({ success: true })),
   toggleFormFieldActive: vi.fn(async () => ({ success: true })),
   createFormField: vi.fn(async () => ({ success: true })),
+  updateEmployerDisclosureMode: vi.fn(async () => ({ success: true })),
+  updateShowOnAnonymousMatch: vi.fn(async () => ({ success: true })),
 }));
 
 describe("FormFieldsComparisonEditor", () => {
@@ -43,10 +48,11 @@ describe("FormFieldsComparisonEditor", () => {
         candidate={sampleCandidateSections}
         employerProfile={sampleEmployerSections}
         employerJob={[]}
+        platformDisclosure={platformDisclosure}
       />
     );
 
-    expect(screen.getByRole("heading", { name: "Form Fields Comparison" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Form Fields & Match Disclosure" })).toBeInTheDocument();
     expect(screen.getAllByText("Candidate profile").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Employer profile").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Full Name").length).toBeGreaterThanOrEqual(1);
@@ -74,11 +80,12 @@ describe("FormFieldsComparisonEditor", () => {
         candidate={sampleCandidateSections}
         employerProfile={sampleEmployerSections}
         employerJob={jobSections}
+        platformDisclosure={platformDisclosure}
       />
     );
 
-    await user.click(screen.getAllByRole("tab", { name: /Job form/i })[0]!);
-    expect(screen.getByText("Employer job creation form")).toBeInTheDocument();
+    await user.click(screen.getAllByRole("tab", { name: /Create job form/i })[0]!);
+    expect(screen.getByText("Employer create-job form")).toBeInTheDocument();
     expect(screen.getByText("Job Title")).toBeInTheDocument();
   });
 
@@ -89,6 +96,7 @@ describe("FormFieldsComparisonEditor", () => {
         candidate={sampleCandidateSections}
         employerProfile={sampleEmployerSections}
         employerJob={[]}
+        platformDisclosure={platformDisclosure}
       />
     );
 
@@ -109,6 +117,7 @@ describe("FormFieldsComparisonEditor", () => {
         candidate={sampleCandidateSections}
         employerProfile={sampleEmployerSections}
         employerJob={[]}
+        platformDisclosure={platformDisclosure}
       />
     );
 

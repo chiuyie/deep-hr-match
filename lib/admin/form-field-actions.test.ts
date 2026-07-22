@@ -25,10 +25,21 @@ vi.mock("next/cache", () => ({
   revalidatePath: (...args: unknown[]) => revalidatePath(...args),
 }));
 
-function buildUpdateChain(error: { message: string } | null = null) {
+function buildUpdateChain(
+  error: { message: string } | null = null,
+  data: unknown[] = [{ id: "field-id" }]
+) {
+  const result = { data, error };
   return {
     update: vi.fn(() => ({
-      eq: vi.fn(async () => ({ error })),
+      eq: vi.fn(() => {
+        const select = vi.fn(async () => result);
+        return {
+          select,
+          then: (resolve: (value: typeof result) => unknown, reject?: (reason: unknown) => unknown) =>
+            Promise.resolve(result).then(resolve, reject),
+        };
+      }),
     })),
   };
 }
@@ -155,6 +166,7 @@ describe("form-field-actions", () => {
           is_custom: true,
           is_active: true,
           employer_disclosure_mode: "candidate_optional",
+          show_on_anonymous_match: false,
           sort_order: 17,
         })
       );

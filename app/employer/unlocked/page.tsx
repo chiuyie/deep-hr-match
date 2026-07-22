@@ -4,6 +4,8 @@ import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/e
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getUnlockedCandidateDetailsBatch } from "@/lib/auth/unlock";
+import { isUnlockedContactFieldVisible } from "@/lib/employer/match-disclosure";
+import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
 
 export default async function EmployerUnlockedPage() {
   const user = await requireRole("employer");
@@ -22,6 +24,14 @@ export default async function EmployerUnlockedPage() {
     .order("unlocked_at", { ascending: false });
 
   const unlockRows = unlocks ?? [];
+  await ensureFormFieldsReady();
+  const candidateFields = await loadFormFields({
+    audience: "candidate",
+    formGroup: "profile",
+    includeInactive: false,
+  });
+  const showName = isUnlockedContactFieldVisible(candidateFields, "full_name");
+
   const jobIds = Array.from(new Set(unlockRows.map((unlock) => unlock.job_id)));
   const detailGroups = await Promise.all(
     jobIds.map(async (jobId) => {
@@ -39,7 +49,7 @@ export default async function EmployerUnlockedPage() {
     return {
       id: unlock.id,
       candidateId: unlock.candidate_id,
-      name: detail?.profile?.full_name ?? "Candidate",
+      name: showName ? detail?.profile?.full_name ?? "Candidate" : "Candidate",
       jobTitle: (unlock.jobs as { title: string } | null)?.title ?? "Job",
       jobId: unlock.job_id,
     };

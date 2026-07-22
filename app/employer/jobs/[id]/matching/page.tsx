@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { EmployerJobContext, EmployerPageSection } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { MatchingResultsTable } from "@/components/matching/matching-results-table";
-import { requireRole, anonymizeCandidateId } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { generateMatchingResults } from "@/lib/employer/actions";
+import { buildAnonymousCandidateMatches } from "@/lib/employer/anonymous-match";
 import {
   canEditJob,
   canRunMatching,
@@ -25,6 +26,11 @@ import {
   newCandidatesNotice,
 } from "@/lib/matching/snapshot";
 import { formatDate } from "@/lib/utils/profile";
+import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
+import {
+  isShownOnAnonymous,
+  loadPlatformDisclosureMap,
+} from "@/lib/employer/platform-disclosure";
 import type { AnonymousCandidateMatch } from "@/types/database";
 
 export default async function JobMatchingPage({
@@ -80,28 +86,24 @@ export default async function JobMatchingPage({
   const newCandidatesMessage = newCandidatesNotice(newCandidatesSince);
 
   const candidateIds = matchResults?.map((m) => m.candidate_id) ?? [];
-  const { data: candidates } = candidateIds.length
-    ? await supabase
-        .from("candidate_profiles")
-        .select("id, years_of_experience, highest_education, skills")
-        .in("id", candidateIds)
-    : { data: [] };
+  await ensureFormFieldsReady();
+  const [candidateFields, platformDisclosure, candidatesResult] = await Promise.all([
+    loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
+    loadPlatformDisclosureMap(),
+    candidateIds.length
+      ? supabase.from("candidate_profiles").select("*").in("id", candidateIds)
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+  ]);
 
-  const candidateMap = Object.fromEntries((candidates ?? []).map((c) => [c.id, c]));
+  const candidateMap = Object.fromEntries(
+    (candidatesResult.data ?? []).map((c) => [String((c as { id: string }).id), c as Record<string, unknown>])
+  );
 
-  const results: AnonymousCandidateMatch[] = (matchResults ?? []).map((m) => {
-    const c = candidateMap[m.candidate_id];
-    return {
-      id: m.candidate_id,
-      anonymous_id: anonymizeCandidateId(m.candidate_id),
-      ranking_position: m.ranking_position,
-      overall_score: Number(m.overall_score),
-      is_placeholder: m.is_placeholder,
-      years_of_experience: c?.years_of_experience ?? null,
-      highest_education: c?.highest_education ?? null,
-      skills_overview: c?.skills ?? [],
-      is_unlocked: unlockedIds.includes(m.candidate_id),
-    };
+  const results: AnonymousCandidateMatch[] = buildAnonymousCandidateMatches({
+    matchResults: matchResults ?? [],
+    profilesById: candidateMap,
+    candidateFields,
+    unlockedIds,
   });
 
   async function generate() {
@@ -191,6 +193,8 @@ export default async function JobMatchingPage({
         displayLimit={MATCH_DISPLAY_LIMIT}
         lastMatchedAt={lastMatchedAt}
         mockPayments={isMockPayments()}
+        showMatchScore={isShownOnAnonymous(platformDisclosure, "match_score")}
+        showMatchRank={isShownOnAnonymous(platformDisclosure, "match_rank")}
       />
     </>
   );
