@@ -1,6 +1,7 @@
 import type { MatrixCategory, MatrixQuestion, MatrixOption } from "@/types/database";
 import {
   getCurrentMatrixQuestion,
+  getMatrixChoiceQuestions,
   getMatrixPathQuestions,
   getRootMatrixQuestions,
 } from "@/lib/matching/matrix-tree";
@@ -26,7 +27,8 @@ export function filterSharedMatrixCategories(
         (q) => q.is_active && q.target_role === "both"
       ),
     }))
-    .filter((cat) => cat.matrix_questions.length > 0);
+    .filter((cat) => cat.matrix_questions.length > 0)
+    .sort((a, b) => a.sort_order - b.sort_order);
 }
 
 export function validateMatrixSubmission(
@@ -34,15 +36,18 @@ export function validateMatrixSubmission(
   answers: Record<string, { option_id?: string; answer_text?: string }>
 ): string | null {
   for (const cat of categories.filter((c) => c.is_active)) {
-    const questions = cat.matrix_questions ?? [];
+    // Level 1 is the factor itself — users only answer Level 2+ word choices.
+    const questions = getMatrixChoiceQuestions(cat.matrix_questions ?? []);
+    if (questions.length === 0) continue;
+
     if (getCurrentMatrixQuestion(questions, answers)) {
-      return "Please complete all levels before submitting.";
+      return "Please complete all factors before submitting.";
     }
     const path = getMatrixPathQuestions(questions, answers);
     for (const question of getRootMatrixQuestions(questions).filter((q) => q.is_required)) {
       const answer = answers[question.id];
       if (!answer?.option_id && !answer?.answer_text?.trim()) {
-        return `Please choose a word for: ${question.question_text}`;
+        return `Please choose a word for factor: ${cat.name || "untitled"}`;
       }
     }
     for (const question of path.filter((q) => q.is_required)) {

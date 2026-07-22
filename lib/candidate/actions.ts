@@ -5,18 +5,25 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { extractCustomFields, stripCustomEntries } from "@/lib/form-fields/parse-custom";
-import { buildDynamicProfileSchema, validateRequiredCustomFields } from "@/lib/form-fields/validate-dynamic";
+import { buildDynamicProfileSchema, validateRequiredCustomFields, normalizeCandidateProfilePayload } from "@/lib/form-fields/validate-dynamic";
 import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
 import {
   calculateProfileCompletion,
-  parseCommaList,
 } from "@/lib/utils/profile";
-import { fetchCandidateOnboardingState } from "@/lib/candidate/onboarding";
-import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategories } from "@/lib/matching/matrix-queries";
 import {
-  filterSharedMatrixCategories,
-  validateMatrixSubmission,
-} from "@/lib/matching/matrix-form";
+  parseLanguageEntriesInput,
+  parseStringArrayInput,
+  validateCertificationsList,
+  validateLanguagesList,
+  validateSkillsList,
+} from "@/lib/form-fields/profile-tags";
+import { fetchCandidateOnboardingState } from "@/lib/candidate/onboarding";
+import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategory } from "@/lib/matching/matrix-queries";
+import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
+import {
+  toColumnAnswersMap,
+  validateMatrixColumnSubmission,
+} from "@/lib/matching/matrix-column-flow";
 
 async function getCandidateId(userId: string) {
   const supabase = await createClient();
@@ -36,51 +43,86 @@ function buildProfilePayload(data: Record<string, unknown>, submit: boolean) {
       : "draft"
     : "draft";
 
+  const skillsResult = validateSkillsList(data.skills);
+  const certsResult = validateCertificationsList(data.certifications);
+  // Draft saves drop unknown legacy language names so wizard Next isn't blocked;
+  // aliases (e.g. Mandarin → Mandarin Chinese) apply on every save.
+  const langsResult = validateLanguagesList(data.languages, { dropUnknown: !submit });
+
   return {
     ...data,
-    skills: parseCommaList(data.skills as string),
-    certifications: parseCommaList(data.certifications as string),
-    languages: parseCommaList(data.languages as string),
+    skills: skillsResult.ok === true ? skillsResult.value : parseStringArrayInput(data.skills),
+    certifications:
+      certsResult.ok === true ? certsResult.value : parseStringArrayInput(data.certifications),
+    languages:
+      langsResult.ok === true ? langsResult.value : parseLanguageEntriesInput(data.languages),
     completion_percentage: completion,
     status,
   };
 }
 
 export async function saveCandidateProfile(formData: FormData, submit = false): Promise<void> {
+  const result = await saveCandidateProfileCore(formData, submit);
+  if (result.error) throw new Error(result.error);
+
+  if (submit) {
+    if ((result.completionPercentage ?? 0) < 60) {
+      redirect("/candidate/profile?error=profile-incomplete");
+    }
+    redirect("/candidate/cv?step=profile-complete");
+  }
+}
+
+export type SaveCandidateProfileResult = {
+  error?: string;
+  completionPercentage?: number;
+};
+
+export async function saveCandidateProfileCore(
+  formData: FormData,
+  submit: boolean
+): Promise<SaveCandidateProfileResult> {
   const user = await requireRole("candidate");
   const supabase = await createClient();
 
   await ensureFormFieldsReady();
   const fields = await loadFormFields({ audience: "candidate", formGroup: "profile" });
-  const schema = buildDynamicProfileSchema(fields);
+  // Draft saves (wizard Next / Save for later) allow incomplete later pages;
+  // full submit still enforces required fields.
+  const schemaOptions = { enforceRequired: submit };
+  const schema = buildDynamicProfileSchema(fields, schemaOptions);
   const raw = stripCustomEntries(Object.fromEntries(formData.entries()));
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message);
+    return { error: parsed.error.issues[0]?.message ?? "Invalid profile data" };
   }
 
   const custom_fields = extractCustomFields(formData);
-  const customCheck = validateRequiredCustomFields(fields, custom_fields);
-  if (customCheck.ok === false) throw new Error(customCheck.message);
-  const payload = buildProfilePayload({ ...parsed.data, custom_fields }, submit);
+  const customCheck = validateRequiredCustomFields(fields, custom_fields, schemaOptions);
+  if (customCheck.ok === false) return { error: customCheck.message };
+  const payload = buildProfilePayload(
+    normalizeCandidateProfilePayload(
+      {
+        ...(parsed.data as Record<string, unknown>),
+        custom_fields,
+      },
+      fields
+    ),
+    submit
+  );
 
   const { error } = await supabase
     .from("candidate_profiles")
     .update(payload)
     .eq("user_id", user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath("/candidate");
   revalidatePath("/candidate/profile");
   revalidatePath("/candidate/status");
 
-  if (submit) {
-    if (payload.completion_percentage < 60) {
-      redirect("/candidate/profile?error=profile-incomplete");
-    }
-    redirect("/candidate/cv?step=profile-complete");
-  }
+  return { completionPercentage: payload.completion_percentage };
 }
 
 export async function uploadCandidateCV(formData: FormData): Promise<void> {
@@ -119,7 +161,12 @@ export async function uploadCandidateCV(formData: FormData): Promise<void> {
 }
 
 export async function saveCandidateMatrixAnswers(
-  answers: { question_id: string; option_id?: string; answer_text?: string }[],
+  answers: {
+    question_id: string;
+    option_id?: string;
+    answer_text?: string;
+    matrix_column?: number;
+  }[],
   submit = false
 ): Promise<{ error?: string; success?: boolean; redirectTo?: string }> {
   const user = await requireRole("candidate");
@@ -134,29 +181,35 @@ export async function saveCandidateMatrixAnswers(
       .eq("is_active", true)
       .order("sort_order");
 
-    const answerMap = Object.fromEntries(
-      answers.map((a) => [
-        a.question_id,
-        { option_id: a.option_id, answer_text: a.answer_text },
-      ])
+    const primary = pickPrimaryMatrixCategory(
+      filterSharedMatrixCategories(categories ?? [])
+    );
+    if (!primary) return { error: "Matrix form is not configured" };
+
+    const answerMap = toColumnAnswersMap(
+      answers.map((a) => ({
+        question_id: a.question_id,
+        option_id: a.option_id,
+        answer_text: a.answer_text,
+        matrix_column: a.matrix_column,
+      }))
     );
 
-    const validationError = validateMatrixSubmission(
-      pickPrimaryMatrixCategories(filterSharedMatrixCategories(categories ?? [])),
-      answerMap
-    );
+    const validationError = validateMatrixColumnSubmission(primary, answerMap);
     if (validationError) return { error: validationError };
   }
 
   for (const answer of answers) {
+    const matrixColumn = answer.matrix_column && answer.matrix_column >= 1 ? answer.matrix_column : 0;
     await supabase.from("candidate_matrix_answers").upsert(
       {
         candidate_id: candidateId,
         question_id: answer.question_id,
         option_id: answer.option_id ?? null,
         answer_text: answer.answer_text ?? null,
+        matrix_column: matrixColumn,
       },
-      { onConflict: "candidate_id,question_id" }
+      { onConflict: "candidate_id,question_id,matrix_column" }
     );
   }
 

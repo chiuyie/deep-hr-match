@@ -404,11 +404,9 @@ export async function createMatrixSubLevelForWord(parentOptionId: string) {
     parentQuestion.category_id
   );
 
-  // Level 1 is factor1…factor7 only — sub-levels start at Level 2.
-  if (parentLevelIndex < 1) {
-    return {
-      error: "Sub-levels are only allowed under Level 2+ words (not under factor1–factor7).",
-    };
+  // Sub-levels are allowed under Level 1 factors and Level 2+ words.
+  if (parentLevelIndex < 0) {
+    return { error: "Could not resolve the parent word level." };
   }
 
   const { data: existingChild } = await supabase

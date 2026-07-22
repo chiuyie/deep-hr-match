@@ -10,6 +10,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { EmployerDetailField } from "@/components/employer/employer-ui";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils/profile";
+import { formatLanguagesForDisplay } from "@/lib/form-fields/profile-tags";
+import type { CandidateLanguageEntry } from "@/types/database";
 
 export default async function AdminCandidateDetailPage({
   params,
@@ -82,7 +84,12 @@ export default async function AdminCandidateDetailPage({
             label="Certifications"
             value={candidate.certifications?.join(", ")}
           />
-          <EmployerDetailField label="Languages" value={candidate.languages?.join(", ")} />
+          <EmployerDetailField
+            label="Languages"
+            value={formatLanguagesForDisplay(
+              candidate.languages as CandidateLanguageEntry[] | null
+            )}
+          />
           <EmployerDetailField label="Current salary" value={candidate.current_salary} />
           <EmployerDetailField label="Expected salary" value={candidate.expected_salary} />
           <EmployerDetailField

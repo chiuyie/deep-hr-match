@@ -3,6 +3,7 @@ import {
   calculateProfileCompletion,
   formatCurrency,
   formatDate,
+  getProfileCompletionDetails,
   parseCommaList,
   statusBadgeClassName,
   statusLabel,
@@ -45,7 +46,7 @@ describe("calculateProfileCompletion", () => {
       highest_education: "Bachelor's",
       skills: ["TypeScript"],
       certifications: ["AWS"],
-      languages: ["English"],
+      languages: [{ language: "English", proficiency: "Fluent" }],
       current_salary: "SGD 8000",
       expected_salary: "SGD 10000",
       employment_type_preference: "Full-time",
@@ -53,6 +54,15 @@ describe("calculateProfileCompletion", () => {
       availability: "Immediate",
     });
     expect(completion).toBe(100);
+  });
+});
+
+describe("getProfileCompletionDetails", () => {
+  it("lists missing field labels", () => {
+    const details = getProfileCompletionDetails({ full_name: "Jane" });
+    expect(details.percentage).toBe(6);
+    expect(details.missingFields.length).toBe(15);
+    expect(details.missingFields.some((f) => f.key === "email")).toBe(true);
   });
 });
 

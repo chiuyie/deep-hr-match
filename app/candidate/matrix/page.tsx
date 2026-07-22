@@ -34,15 +34,15 @@ export default async function CandidateMatrixPage({
 
   const { data: answers } = await supabase
     .from("candidate_matrix_answers")
-    .select("*")
+    .select("question_id, option_id, answer_text, matrix_column")
     .eq("candidate_id", profile?.id ?? "");
 
-  const answerMap = Object.fromEntries(
-    (answers ?? []).map((a) => [
-      a.question_id,
-      { option_id: a.option_id ?? undefined, answer_text: a.answer_text ?? undefined },
-    ])
-  );
+  const answerRows = (answers ?? []).map((a) => ({
+    question_id: a.question_id,
+    option_id: a.option_id ?? undefined,
+    answer_text: a.answer_text ?? undefined,
+    matrix_column: a.matrix_column ?? undefined,
+  }));
 
   return (
     <DashboardShell
@@ -64,7 +64,7 @@ export default async function CandidateMatrixPage({
         )}
         <MatrixForm
           categories={filtered}
-          existingAnswers={answerMap}
+          existingAnswers={answerRows}
           onSave={saveCandidateMatrixAnswers}
           wizard={{
             instructionText:

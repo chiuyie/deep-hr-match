@@ -13,7 +13,18 @@ export function defaultShowOnAnonymousMatch(fieldKey: string) {
 export function formatCandidateFieldValue(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   if (Array.isArray(value)) {
-    const filtered = value.filter(Boolean).map((item) => String(item).trim()).filter(Boolean);
+    const filtered = value
+      .map((item) => {
+        if (item && typeof item === "object" && "language" in item) {
+          const entry = item as { language?: unknown; proficiency?: unknown };
+          const language = String(entry.language ?? "").trim();
+          if (!language) return "";
+          const proficiency = String(entry.proficiency ?? "").trim();
+          return proficiency ? `${language} (${proficiency})` : language;
+        }
+        return String(item ?? "").trim();
+      })
+      .filter(Boolean);
     return filtered.length ? filtered.join(", ") : null;
   }
   if (typeof value === "boolean") return value ? "Yes" : "No";

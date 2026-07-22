@@ -12,6 +12,13 @@ export type PaymentStatus = "pending" | "paid" | "failed" | "cancelled";
 
 export type PaymentType = "candidate_profile_unlock";
 
+export type {
+  CandidateLanguageEntry,
+  LanguageProficiency,
+} from "@/lib/constants/profile-tags";
+
+import type { CandidateLanguageEntry } from "@/lib/constants/profile-tags";
+
 export interface User {
   id: string;
   auth_user_id: string;
@@ -35,7 +42,7 @@ export interface CandidateProfile {
   highest_education: string | null;
   skills: string[] | null;
   certifications: string[] | null;
-  languages: string[] | null;
+  languages: CandidateLanguageEntry[] | null;
   current_salary: string | null;
   expected_salary: string | null;
   employment_type_preference: string | null;

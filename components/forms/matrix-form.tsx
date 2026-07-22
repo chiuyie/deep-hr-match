@@ -12,34 +12,103 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
-import { getCurrentMatrixQuestion, getMatrixPathQuestions } from "@/lib/matching/matrix-tree";
-import { validateMatrixSubmission } from "@/lib/matching/matrix-form";
-import { pickPrimaryMatrixCategories } from "@/lib/matching/matrix-queries";
+import { MATRIX_WORDS_PER_LEVEL } from "@/lib/matching/matrix-constants";
+import {
+  clearOtherFactorWordPicks,
+  columnAnswerKey,
+  flattenColumnAnswers,
+  getAnsweredColumnPath,
+  getMatrixColumnFlowState,
+  getWordRootQuestions,
+  toColumnAnswersMap,
+  type ColumnAnswersMap,
+  type MatrixCategoryTree,
+} from "@/lib/matching/matrix-column-flow";
+import { pickPrimaryMatrixCategory } from "@/lib/matching/matrix-queries";
 import { sortMatrixOptions } from "@/lib/matching/matrix-option-display";
 import { MatrixWordSearchPicker } from "@/components/forms/matrix-word-search-picker";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ArrowRight, CheckCircle2, Grid3X3, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Grid3X3, Sparkles } from "lucide-react";
 import type { MatrixCategory, MatrixQuestion, MatrixOption } from "@/types/database";
+
+type ExistingAnswerRow = {
+  question_id?: string;
+  option_id?: string;
+  answer_text?: string;
+  matrix_column?: number;
+};
 
 interface MatrixFormProps {
   categories: (MatrixCategory & {
     matrix_questions: (MatrixQuestion & { matrix_options: MatrixOption[] })[];
   })[];
-  existingAnswers: Record<string, { option_id?: string; answer_text?: string }>;
+  /** Prefer full rows with matrix_column. Legacy maps without column still accepted. */
+  existingAnswers:
+    | ColumnAnswersMap
+    | Record<string, { option_id?: string; answer_text?: string }>
+    | ExistingAnswerRow[];
   onSave: (
-    answers: { question_id: string; option_id?: string; answer_text?: string }[],
+    answers: {
+      question_id: string;
+      option_id?: string;
+      answer_text?: string;
+      matrix_column: number;
+    }[],
     submit: boolean
   ) => Promise<{ error?: string; success?: boolean; redirectTo?: string }>;
   targetLabel?: string;
   headerIcon?: React.ReactNode;
-  /**
-   * Candidate UX: keep the view minimal and show Back/Next controls.
-   * Other pages keep the default Submit & continue / Save draft actions.
-   */
   wizard?: {
     instructionText?: string;
   };
   hideFooterActions?: boolean;
+}
+
+function normalizeExistingAnswers(
+  existing: MatrixFormProps["existingAnswers"]
+): ColumnAnswersMap {
+  if (Array.isArray(existing)) {
+    return toColumnAnswersMap(
+      existing.map((row) => ({
+        question_id: row.question_id ?? "",
+        option_id: row.option_id,
+        answer_text: row.answer_text,
+        matrix_column: row.matrix_column,
+      }))
+    );
+  }
+
+  // Already column-keyed?
+  const values = Object.values(existing);
+  if (
+    values.some(
+      (value) =>
+        value &&
+        typeof value === "object" &&
+        "matrix_column" in value &&
+        typeof (value as { matrix_column?: number }).matrix_column === "number" &&
+        ((value as { matrix_column?: number }).matrix_column ?? 0) >= 1
+    )
+  ) {
+    return existing as ColumnAnswersMap;
+  }
+
+  // Legacy questionId → answer map (no column): ignore for column flow.
+  return {};
+}
+
+function prepareCategory(
+  categories: MatrixFormProps["categories"]
+): MatrixCategoryTree | undefined {
+  const primary = pickPrimaryMatrixCategory(categories.filter((c) => c.is_active));
+  if (!primary) return undefined;
+  return {
+    ...primary,
+    matrix_questions: (primary.matrix_questions ?? []).map((q) => ({
+      ...q,
+      matrix_options: sortMatrixOptions(q.matrix_options ?? []),
+    })),
+  };
 }
 
 export function MatrixForm({
@@ -52,116 +121,127 @@ export function MatrixForm({
   hideFooterActions = false,
 }: MatrixFormProps) {
   const router = useRouter();
-  const [answers, setAnswers] = useState(existingAnswers);
+  const [answers, setAnswers] = useState<ColumnAnswersMap>(() =>
+    normalizeExistingAnswers(existingAnswers)
+  );
   const [saving, setSaving] = useState(false);
 
-  const activeCategories = useMemo(
-    () => pickPrimaryMatrixCategories(categories.filter((c) => c.is_active)),
-    [categories]
+  const category = useMemo(() => prepareCategory(categories), [categories]);
+
+  const flow = useMemo(
+    () =>
+      category
+        ? getMatrixColumnFlowState(category, answers)
+        : { current: null, formComplete: false, completedColumns: 0 },
+    [answers, category]
   );
 
-  const current = useMemo(() => {
-    const cat = activeCategories[0];
-    if (!cat) return undefined;
-    return {
-      ...cat,
-      matrix_questions: (cat.matrix_questions ?? []).map((q) => ({
-        ...q,
-        matrix_options: sortMatrixOptions(q.matrix_options ?? []),
-      })),
-    };
-  }, [activeCategories]);
+  const current = flow.current;
+  const formComplete = flow.formComplete;
+  const factorNumber = formComplete
+    ? MATRIX_WORDS_PER_LEVEL
+    : current?.column ?? Math.min(flow.completedColumns + 1, MATRIX_WORDS_PER_LEVEL);
+  const progressValue = formComplete
+    ? 100
+    : Math.max(8, Math.round(((factorNumber - 1) / MATRIX_WORDS_PER_LEVEL) * 100));
 
-  function clearDescendantAnswers(
-    next: Record<string, { option_id?: string; answer_text?: string }>,
-    source: Record<string, { option_id?: string; answer_text?: string }>,
+  function clearDescendants(
+    next: ColumnAnswersMap,
+    source: ColumnAnswersMap,
     parentOptionId: string,
-    allQuestions: MatrixQuestion[]
+    column: number,
+    allQuestions: Array<MatrixQuestion & { matrix_options?: MatrixOption[] }>
   ) {
-    for (const q of allQuestions) {
-      if (q.parent_option_id === parentOptionId) {
-        const childOption = source[q.id]?.option_id;
-        delete next[q.id];
-        if (childOption) {
-          clearDescendantAnswers(next, source, childOption, allQuestions);
-        }
+    for (const question of allQuestions) {
+      if (question.parent_option_id !== parentOptionId) continue;
+      const key = columnAnswerKey(question.id, column);
+      const childOption = source[key]?.option_id;
+      delete next[key];
+      if (childOption) {
+        clearDescendants(next, source, childOption, column, allQuestions);
       }
     }
   }
 
   function setAnswer(
     questionId: string,
-    value: { option_id?: string; answer_text?: string }
+    column: number,
+    value: { option_id?: string; answer_text?: string },
+    options?: { isFactorWordPick?: boolean }
   ) {
+    if (!category) return;
     setAnswers((prev) => {
-      const next = { ...prev };
-      const allQuestions = current?.matrix_questions ?? [];
-      const previousOption = prev[questionId]?.option_id;
+      let next = { ...prev };
+      const key = columnAnswerKey(questionId, column);
+      const previousOption = prev[key]?.option_id;
+      const allQuestions = category.matrix_questions ?? [];
+      const wordRoots = getWordRootQuestions(category);
 
       if (!value.option_id && value.answer_text === undefined) {
-        delete next[questionId];
+        delete next[key];
         if (previousOption) {
-          clearDescendantAnswers(next, prev, previousOption, allQuestions);
+          clearDescendants(next, prev, previousOption, column, allQuestions);
         }
         return next;
       }
 
       if (value.option_id === "") {
-        delete next[questionId];
+        delete next[key];
         if (previousOption) {
-          clearDescendantAnswers(next, prev, previousOption, allQuestions);
+          clearDescendants(next, prev, previousOption, column, allQuestions);
         }
         return next;
       }
 
-      next[questionId] = value;
-
-      if (value.option_id && current) {
-        if (previousOption && previousOption !== value.option_id) {
-          clearDescendantAnswers(next, prev, previousOption, allQuestions);
+      // Factor word pick spans Level 2–7 in this column — keep only the chosen question.
+      if (options?.isFactorWordPick) {
+        for (const root of wordRoots) {
+          const rootKey = columnAnswerKey(root.id, column);
+          const prior = next[rootKey]?.option_id;
+          if (prior) {
+            clearDescendants(next, next, prior, column, allQuestions);
+          }
         }
+        next = clearOtherFactorWordPicks(next, wordRoots, column, questionId);
+      }
+
+      next[key] = {
+        ...value,
+        matrix_column: column,
+      };
+
+      if (value.option_id && previousOption && previousOption !== value.option_id) {
+        clearDescendants(next, prev, previousOption, column, allQuestions);
       }
       return next;
     });
   }
 
-  const pathSteps = useMemo(
-    () => (current ? getMatrixPathQuestions(current.matrix_questions ?? [], answers) : []),
-    [current, answers]
-  );
-
-  const currentQuestion = useMemo(
-    () =>
-      current
-        ? (getCurrentMatrixQuestion(current.matrix_questions ?? [], answers) as
-            | (MatrixQuestion & { matrix_options?: MatrixOption[] })
-            | null)
-        : null,
-    [current, answers]
-  );
-
-  const formComplete = current && !currentQuestion;
+  function selectOption(optionId: string) {
+    if (!current) return;
+    const selected = current.options.find((o) => o.id === optionId);
+    const questionId = selected?.question_id || current.question.id;
+    setAnswer(
+      questionId,
+      current.column,
+      { option_id: optionId },
+      { isFactorWordPick: current.isFactorWordPick }
+    );
+  }
 
   async function handleSave(submit: boolean, options?: { silent?: boolean }) {
+    if (!category) return;
+
     if (submit) {
-      if (current && getCurrentMatrixQuestion(current.matrix_questions ?? [], answers)) {
-        toast.error("Please complete the current level before submitting.");
-        return;
-      }
-      const validationError = validateMatrixSubmission(activeCategories, answers);
-      if (validationError) {
-        toast.error(validationError);
+      const state = getMatrixColumnFlowState(category, answers);
+      if (!state.formComplete) {
+        toast.error("Please complete all 7 factors before submitting.");
         return;
       }
     }
 
     setSaving(true);
-    const payload = Object.entries(answers)
-      .filter(([, val]) => val.option_id || val.answer_text?.trim())
-      .map(([question_id, val]) => ({
-        question_id,
-        ...val,
-      }));
+    const payload = flattenColumnAnswers(answers);
     try {
       const result = await onSave(payload, submit);
       if (result.error) {
@@ -184,110 +264,92 @@ export function MatrixForm({
   }
 
   const isCurrentAnswered = useMemo(() => {
-    if (!currentQuestion) return false;
-    const a = answers[currentQuestion.id];
-    if (currentQuestion.question_type === "text" || currentQuestion.question_type === "scale") {
-      return Boolean(a?.answer_text?.trim());
+    if (!current) return false;
+    if (current.isFactorWordPick) {
+      return current.options.some((option) => {
+        const answer = answers[columnAnswerKey(option.question_id, current.column)];
+        return answer?.option_id === option.id;
+      });
     }
-    return Boolean(a?.option_id);
-  }, [answers, currentQuestion]);
+    const answer = answers[columnAnswerKey(current.question.id, current.column)];
+    if (current.question.question_type === "text" || current.question.question_type === "scale") {
+      return Boolean(answer?.answer_text?.trim());
+    }
+    return Boolean(answer?.option_id);
+  }, [answers, current]);
+
+  const currentSelectedOptionId = useMemo(() => {
+    if (!current) return undefined;
+    if (current.isFactorWordPick) {
+      for (const option of current.options) {
+        const answer = answers[columnAnswerKey(option.question_id, current.column)];
+        if (answer?.option_id === option.id) return option.id;
+      }
+      return undefined;
+    }
+    return answers[columnAnswerKey(current.question.id, current.column)]?.option_id;
+  }, [answers, current]);
 
   function clearPreviousStep() {
-    // Back navigates by clearing the last answered step,
-    // which makes that question the new "currentQuestion" for the wizard.
-    if (pathSteps.length < 1) return;
-    const previousQuestion = pathSteps[pathSteps.length - 1];
-    if (!previousQuestion) return;
-    setAnswer(previousQuestion.id, {});
+    if (!category) return;
+
+    const tryClearColumn = (column: number) => {
+      const path = getAnsweredColumnPath(category, answers, column);
+      const last = path[path.length - 1];
+      if (!last) return false;
+      setAnswer(last.id, column, {});
+      return true;
+    };
+
+    const activeColumn = current?.column ?? flow.completedColumns;
+    if (activeColumn >= 1 && tryClearColumn(activeColumn)) return;
+    for (let column = activeColumn - 1; column >= 1; column -= 1) {
+      if (tryClearColumn(column)) return;
+    }
   }
 
-  const rootQuestions = useMemo(
-    () =>
-      (current?.matrix_questions ?? [])
-        .filter((question) => !question.parent_option_id && question.is_active)
-        .sort((a, b) => a.sort_order - b.sort_order),
-    [current]
-  );
-
-  const completedRootCount = useMemo(
-    () => pathSteps.filter((question) => !question.parent_option_id).length,
-    [pathSteps]
-  );
-
-  const activeRootQuestion = useMemo(() => {
-    if (!currentQuestion) {
-      return rootQuestions[Math.max(rootQuestions.length - 1, 0)] ?? null;
+  const canGoBack = useMemo(() => {
+    if (!category) return false;
+    for (let column = MATRIX_WORDS_PER_LEVEL; column >= 1; column -= 1) {
+      if (getAnsweredColumnPath(category, answers, column).length > 0) return true;
     }
-    if (!currentQuestion.parent_option_id) {
-      return currentQuestion;
-    }
-    for (let index = pathSteps.length - 1; index >= 0; index -= 1) {
-      if (!pathSteps[index].parent_option_id) {
-        return pathSteps[index];
-      }
-    }
-    return rootQuestions[0] ?? null;
-  }, [currentQuestion, pathSteps, rootQuestions]);
-
-  const activeRootIndex = useMemo(() => {
-    if (!activeRootQuestion) return 0;
-    const index = rootQuestions.findIndex((question) => question.id === activeRootQuestion.id);
-    return index >= 0 ? index : 0;
-  }, [activeRootQuestion, rootQuestions]);
-
-  const progressValue = useMemo(() => {
-    if (!rootQuestions.length) return 0;
-    if (formComplete) return 100;
-    return Math.max(8, Math.round((completedRootCount / rootQuestions.length) * 100));
-  }, [completedRootCount, formComplete, rootQuestions.length]);
-
-  const currentFactorLabel = useMemo(() => {
-    if (!wizard) return null;
-    return activeRootQuestion?.question_text?.trim() || current.name?.trim() || "Current factor";
-  }, [activeRootQuestion, current, wizard]);
+    return false;
+  }, [answers, category]);
 
   const optionLookup = useMemo(() => {
     const map = new Map<string, MatrixOption>();
-    for (const question of current?.matrix_questions ?? []) {
+    for (const question of category?.matrix_questions ?? []) {
       for (const option of question.matrix_options ?? []) {
         map.set(option.id, option);
       }
     }
     return map;
-  }, [current]);
+  }, [category]);
 
-  const answeredRootSteps = useMemo(
-    () =>
-      rootQuestions
-        .map((question, index) => {
-          const answer = answers[question.id];
-          if (!answer?.option_id && !answer?.answer_text?.trim()) return null;
-          return {
-            id: question.id,
-            label: question.question_text,
-            step: index + 1,
-            value:
-              optionLookup.get(answer.option_id ?? "")?.option_text ??
-              answer.answer_text?.trim() ??
-              "",
-          };
-        })
-        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
-    [answers, optionLookup, rootQuestions]
-  );
+  const selectionsSoFar = useMemo(() => {
+    if (!category) return [] as Array<{ column: number; value: string }>;
+    const rows: Array<{ column: number; value: string }> = [];
+    for (let column = 1; column <= MATRIX_WORDS_PER_LEVEL; column += 1) {
+      const path = getAnsweredColumnPath(category, answers, column);
+      const first = path[0];
+      if (!first) continue;
+      const answer = answers[columnAnswerKey(first.id, column)];
+      const label =
+        optionLookup.get(answer?.option_id ?? "")?.option_text ??
+        answer?.answer_text?.trim() ??
+        "";
+      if (!label) continue;
+      rows.push({ column, value: label });
+    }
+    return rows;
+  }, [answers, category, optionLookup]);
 
   const currentSelectedLabel = useMemo(() => {
-    if (!currentQuestion) return null;
-    const answer = answers[currentQuestion.id];
-    if (!answer) return null;
-    return (
-      optionLookup.get(answer.option_id ?? "")?.option_text ??
-      answer.answer_text?.trim() ??
-      null
-    );
-  }, [answers, currentQuestion, optionLookup]);
+    if (!currentSelectedOptionId) return null;
+    return optionLookup.get(currentSelectedOptionId)?.option_text ?? null;
+  }, [currentSelectedOptionId, optionLookup]);
 
-  if (!activeCategories.length || !current) {
+  if (!category) {
     return (
       <EmployerPageSection
         title={targetLabel}
@@ -305,6 +367,131 @@ export function MatrixForm({
     );
   }
 
+  const questionCard = current ? (
+    <Card className="overflow-hidden rounded-3xl border-primary/10 shadow-sm">
+      <CardContent className="space-y-6 p-6 md:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-3">
+            <Badge variant="secondary" className="rounded-full px-3 py-1">
+              {current.isFactorWordPick || !current.question.parent_option_id
+                ? `Factor ${current.column} of ${MATRIX_WORDS_PER_LEVEL}`
+                : "Sub-level choice"}
+            </Badge>
+            <div className="space-y-2">
+              {current.isFactorWordPick || !current.question.parent_option_id ? (
+                <h3 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                  {current.factorLabel}
+                </h3>
+              ) : null}
+              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                {current.isFactorWordPick
+                  ? wizard?.instructionText ||
+                    "Choose the one word that describes you best for this factor."
+                  : current.question.parent_option_id
+                    ? "Refine your choice by selecting one word from the sub-level below."
+                    : wizard?.instructionText ||
+                      "Choose the one word that describes you best for this factor."}
+              </p>
+            </div>
+          </div>
+          <div className="rounded-2xl bg-primary/5 px-4 py-3 text-sm text-primary">
+            <div className="flex items-center gap-2 font-medium">
+              <Sparkles className="h-4 w-4" />
+              Choose one best-fit word
+            </div>
+          </div>
+        </div>
+
+        {selectionsSoFar.length > 0 ? (
+          <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Your selections so far
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {selectionsSoFar.map((entry) => (
+                <div
+                  key={entry.column}
+                  className="rounded-full border border-border bg-background px-3 py-1.5 text-sm text-slate-700 shadow-sm dark:text-slate-200"
+                >
+                  {entry.value}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {currentSelectedLabel ? (
+          <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-primary">
+            Selected for this step:{" "}
+            <span className="font-semibold">{currentSelectedLabel}</span>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border/70 px-4 py-3 text-sm text-muted-foreground">
+            Pick one option below to continue.
+          </div>
+        )}
+
+        {current.question.question_type === "text" ? (
+          <Textarea
+            value={
+              answers[columnAnswerKey(current.question.id, current.column)]?.answer_text ?? ""
+            }
+            onChange={(e) =>
+              setAnswer(current.question.id, current.column, {
+                answer_text: e.target.value,
+              })
+            }
+            placeholder="Your answer..."
+            className="min-h-28 rounded-2xl"
+          />
+        ) : current.question.question_type === "scale" ? (
+          <Input
+            type="number"
+            min={1}
+            max={10}
+            value={
+              answers[columnAnswerKey(current.question.id, current.column)]?.answer_text ?? ""
+            }
+            onChange={(e) =>
+              setAnswer(current.question.id, current.column, {
+                answer_text: e.target.value,
+              })
+            }
+            className="rounded-2xl"
+          />
+        ) : (
+          <MatrixWordSearchPicker
+            key={`factor-${current.column}-${current.options.map((o) => o.id).join(",")}`}
+            options={current.options}
+            value={currentSelectedOptionId}
+            onChange={selectOption}
+          />
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-5">
+          <Button
+            type="button"
+            variant="secondary"
+            className="rounded-xl"
+            disabled={saving || !canGoBack}
+            onClick={clearPreviousStep}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <Button
+            type="button"
+            className="rounded-xl px-5"
+            disabled={saving}
+            onClick={() => handleSave(false, { silent: true })}
+          >
+            {saving ? "Saving..." : "Save progress"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  ) : null;
+
   if (wizard) {
     return (
       <div className="mx-auto max-w-5xl space-y-6">
@@ -319,8 +506,9 @@ export function MatrixForm({
                   {FRAMEWORK_MATCHING_LANGUAGE}
                 </h2>
                 <p className="max-w-2xl text-sm text-muted-foreground">
-                  Move through one factor at a time and choose the single word that fits you
-                  best. You can always go back to review your answers before submitting.
+                  Each factor is one Level 1 column. For Character - Roles, choose one word from
+                  that column (Initiator, Leader, … Negotiator), then any sub-levels — then move
+                  to the next factor.
                 </p>
               </div>
             </div>
@@ -329,9 +517,9 @@ export function MatrixForm({
                 Progress
               </p>
               <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-50">
-                {formComplete ? rootQuestions.length : activeRootIndex + 1}
+                {factorNumber}
                 <span className="ml-1 text-sm font-medium text-muted-foreground">
-                  / {rootQuestions.length}
+                  / {MATRIX_WORDS_PER_LEVEL}
                 </span>
               </p>
             </div>
@@ -340,38 +528,16 @@ export function MatrixForm({
           <div className="mt-6 space-y-2">
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="font-medium text-slate-700 dark:text-slate-200">
-                {formComplete ? "All factors completed" : `Current factor: ${currentFactorLabel}`}
+                {formComplete
+                  ? "All factors completed"
+                  : current
+                    ? `Factor ${current.column}: ${current.factorLabel}`
+                    : "Your progress"}
               </span>
               <span className="text-muted-foreground">{progressValue}% complete</span>
             </div>
             <Progress value={progressValue} aria-label="Candidate matrix progress" />
           </div>
-
-          {rootQuestions.length > 0 ? (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {rootQuestions.map((question, index) => {
-                const answered = Boolean(
-                  answers[question.id]?.option_id || answers[question.id]?.answer_text?.trim()
-                );
-                const active = activeRootQuestion?.id === question.id;
-                return (
-                  <div
-                    key={question.id}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                      active
-                        ? "border-primary bg-primary/10 text-primary"
-                        : answered
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200"
-                          : "border-border/70 bg-background/70 text-muted-foreground"
-                    )}
-                  >
-                    Factor {index + 1}
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
         </div>
 
         {formComplete ? (
@@ -383,10 +549,10 @@ export function MatrixForm({
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-emerald-950 dark:text-emerald-100">
-                    You have completed all factors
+                    You have completed all 7 factors
                   </h3>
                   <p className="text-sm text-emerald-900/80 dark:text-emerald-200/90">
-                    Review your last answer if needed, or submit your responses to continue.
+                    Review with Back if needed, or submit your responses to continue.
                   </p>
                 </div>
               </div>
@@ -395,7 +561,7 @@ export function MatrixForm({
                   type="button"
                   variant="secondary"
                   className="rounded-xl"
-                  disabled={saving || pathSteps.length < 1}
+                  disabled={saving || !canGoBack}
                   onClick={clearPreviousStep}
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -414,127 +580,19 @@ export function MatrixForm({
           </Card>
         ) : null}
 
-        {!currentQuestion && !formComplete ? (
+        {!current && !formComplete ? (
           <Card className="rounded-3xl shadow-sm">
             <CardContent className="p-6">
               <p className="text-sm text-muted-foreground">
-                No questions are available yet. Ask an administrator to configure the matrix.
+                No word choices are available yet for these columns. Ask an administrator to
+                add Level 2+ words (or sub-levels under each Level 1 factor) in the matrix
+                editor.
               </p>
             </CardContent>
           </Card>
         ) : null}
 
-        {currentQuestion ? (
-          <Card className="overflow-hidden rounded-3xl border-primary/10 shadow-sm">
-            <CardContent className="space-y-6 p-6 md:p-8">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-3">
-                  <Badge variant="secondary" className="rounded-full px-3 py-1">
-                    {currentQuestion.parent_option_id
-                      ? "Sub-level choice"
-                      : `Factor ${activeRootIndex + 1} of ${rootQuestions.length}`}
-                  </Badge>
-                  <div className="space-y-2">
-                    <Label className="block text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                      {!currentQuestion.parent_option_id
-                        ? current.name?.trim() || currentQuestion.question_text
-                        : currentQuestion.question_text}
-                      {currentQuestion.is_required && (
-                        <span className="text-destructive"> *</span>
-                      )}
-                    </Label>
-                    <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                      {currentQuestion.parent_option_id
-                        ? "Refine your choice by selecting one word from the sub-level below."
-                        : wizard.instructionText ||
-                          "Choose the one word that describes you best."}
-                    </p>
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-primary/5 px-4 py-3 text-sm text-primary">
-                  <div className="flex items-center gap-2 font-medium">
-                    <Sparkles className="h-4 w-4" />
-                    Choose one best-fit word
-                  </div>
-                </div>
-              </div>
-
-              {answeredRootSteps.length > 0 ? (
-                <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    Your selections so far
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {answeredRootSteps.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="rounded-full border border-border bg-background px-3 py-1.5 text-sm text-slate-700 shadow-sm dark:text-slate-200"
-                      >
-                        <span className="font-medium">F{entry.step}:</span> {entry.value}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {currentSelectedLabel ? (
-                <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-primary">
-                  Selected for this step: <span className="font-semibold">{currentSelectedLabel}</span>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border/70 px-4 py-3 text-sm text-muted-foreground">
-                  Pick one option below to continue to the next step.
-                </div>
-              )}
-
-              {currentQuestion.question_type === "text" ? (
-                <Textarea
-                  value={answers[currentQuestion.id]?.answer_text ?? ""}
-                  onChange={(e) => setAnswer(currentQuestion.id, { answer_text: e.target.value })}
-                  placeholder="Your answer..."
-                  className="min-h-28 rounded-2xl"
-                />
-              ) : currentQuestion.question_type === "scale" ? (
-                <Input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={answers[currentQuestion.id]?.answer_text ?? ""}
-                  onChange={(e) => setAnswer(currentQuestion.id, { answer_text: e.target.value })}
-                  className="rounded-2xl"
-                />
-              ) : (
-                <MatrixWordSearchPicker
-                  options={currentQuestion.matrix_options ?? []}
-                  value={answers[currentQuestion.id]?.option_id}
-                  onChange={(optionId) => setAnswer(currentQuestion.id, { option_id: optionId })}
-                />
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-5">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="rounded-xl"
-                  disabled={saving || pathSteps.length < 1}
-                  onClick={clearPreviousStep}
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <Button
-                  type="button"
-                  className="rounded-xl px-5"
-                  disabled={saving || !isCurrentAnswered}
-                  onClick={() => handleSave(false, { silent: true })}
-                >
-                  {saving ? "Saving..." : "Next"}
-                  {!saving ? <ArrowRight className="ml-2 h-4 w-4" /> : null}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
+        {questionCard}
       </div>
     );
   }
@@ -542,136 +600,84 @@ export function MatrixForm({
   return (
     <div className="space-y-6">
       <EmployerPageSection
-        title={wizard ? "" : current.name?.trim() ? current.name : targetLabel}
+        title={current?.factorLabel || targetLabel}
         description={
-          wizard
-            ? ""
-            : current.description?.trim() ||
-              "Questions and fields match what your administrator configured in the matrix editor."
+          current
+            ? `Factor ${current.column} of ${MATRIX_WORDS_PER_LEVEL} — choose one best-fit word.`
+            : formComplete
+              ? "All factors completed."
+              : "Questions match what your administrator configured in the matrix editor."
         }
         icon={headerIcon}
         gradient="from-purple-500 to-purple-600"
       >
         <div className="space-y-6">
-          {!wizard && currentQuestion ? (
-            <p className="text-sm text-muted-foreground">
-              Step {pathSteps.length + 1} — answer one level at a time.
-              {pathSteps.length > 0
-                ? ` (${pathSteps.length} level${pathSteps.length === 1 ? "" : "s"} completed)`
-                : null}
-            </p>
-          ) : null}
-
-          {!wizard && formComplete ? (
+          {formComplete ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100">
-              You have completed all levels. Submit to continue, or save a draft.
-            </div>
-          ) : null}
-          {wizard && formComplete ? (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100">
-              You have completed all levels.
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="rounded-lg"
-                  disabled={saving || pathSteps.length < 1}
-                  onClick={clearPreviousStep}
-                >
-                  Back
-                </Button>
-                <Button
-                  type="button"
-                  className="rounded-lg"
-                  disabled={saving}
-                  onClick={() => handleSave(true)}
-                >
-                  {saving ? "Submitting…" : "Submit"}
-                </Button>
-              </div>
+              You have completed all 7 factors. Submit to continue, or save a draft.
             </div>
           ) : null}
 
-          {!currentQuestion && !formComplete ? (
+          {!current && !formComplete ? (
             <p className="text-sm text-muted-foreground">
-              No questions are available yet. Ask an administrator to configure levels in the
+              No word choices are available yet. Configure Level 2+ words per column in the
               matrix editor.
             </p>
           ) : null}
 
-          {currentQuestion ? (
+          {current ? (
             <div
-              key={currentQuestion.id}
+              key={`${current.column}-${current.question.id}`}
               className={cn(
                 "space-y-3",
-                currentQuestion.parent_option_id && "ml-4 border-l-2 border-primary/20 pl-4"
+                current.question.parent_option_id && "ml-4 border-l-2 border-primary/20 pl-4"
               )}
             >
               <Label className="text-base text-slate-800 dark:text-slate-100">
-                {!currentQuestion.parent_option_id && wizard
-                  ? current.name?.trim() || currentQuestion.question_text
-                  : currentQuestion.question_text}
-                {currentQuestion.is_required && <span className="text-destructive"> *</span>}
+                {current.question.parent_option_id
+                  ? "Sub-level choice"
+                  : current.factorLabel}
+                {current.question.is_required && (
+                  <span className="text-destructive"> *</span>
+                )}
               </Label>
-              {wizard?.instructionText && !currentQuestion.parent_option_id ? (
-                <p className="text-sm text-muted-foreground">{wizard.instructionText}</p>
-              ) : null}
-              {currentQuestion.parent_option_id ? (
-                <p className="text-xs text-muted-foreground">
-                  Sub-level under your previous choice — pick one word below.
-                </p>
-              ) : null}
-              {currentQuestion.question_type === "text" ? (
+              {current.question.question_type === "text" ? (
                 <Textarea
-                  value={answers[currentQuestion.id]?.answer_text ?? ""}
+                  value={
+                    answers[columnAnswerKey(current.question.id, current.column)]
+                      ?.answer_text ?? ""
+                  }
                   onChange={(e) =>
-                    setAnswer(currentQuestion.id, { answer_text: e.target.value })
+                    setAnswer(current.question.id, current.column, {
+                      answer_text: e.target.value,
+                    })
                   }
                   placeholder="Your answer..."
                   className="min-h-24 rounded-xl"
                 />
-              ) : currentQuestion.question_type === "scale" ? (
+              ) : current.question.question_type === "scale" ? (
                 <Input
                   type="number"
                   min={1}
                   max={10}
-                  value={answers[currentQuestion.id]?.answer_text ?? ""}
+                  value={
+                    answers[columnAnswerKey(current.question.id, current.column)]
+                      ?.answer_text ?? ""
+                  }
                   onChange={(e) =>
-                    setAnswer(currentQuestion.id, { answer_text: e.target.value })
+                    setAnswer(current.question.id, current.column, {
+                      answer_text: e.target.value,
+                    })
                   }
                   className="rounded-xl"
                 />
               ) : (
                 <MatrixWordSearchPicker
-                  options={currentQuestion.matrix_options ?? []}
-                  value={answers[currentQuestion.id]?.option_id}
-                  onChange={(optionId) =>
-                    setAnswer(currentQuestion.id, { option_id: optionId })
-                  }
+                  options={current.options}
+                  value={currentSelectedOptionId}
+                  onChange={selectOption}
                 />
               )}
-
-              {wizard ? (
-                <div className="flex flex-wrap gap-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="rounded-lg"
-                    disabled={saving || pathSteps.length < 1}
-                    onClick={clearPreviousStep}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    type="button"
-                    className="rounded-lg"
-                    disabled={saving || !isCurrentAnswered}
-                    onClick={() => handleSave(Boolean(formComplete))}
-                  >
-                    {saving ? "Saving…" : formComplete ? "Submit" : "Next"}
-                  </Button>
-                </div>
-              ) : null}
             </div>
           ) : null}
         </div>
@@ -679,8 +685,21 @@ export function MatrixForm({
 
       {!hideFooterActions ? (
         <div className="flex flex-wrap gap-2">
-          <Button className="rounded-lg" disabled={saving} onClick={() => handleSave(true)}>
-            {saving ? "Submitting…" : "Submit & continue"}
+          <Button
+            type="button"
+            variant="secondary"
+            className="rounded-lg"
+            disabled={saving || !canGoBack}
+            onClick={clearPreviousStep}
+          >
+            Back
+          </Button>
+          <Button
+            className="rounded-lg"
+            disabled={saving || (!formComplete && !isCurrentAnswered)}
+            onClick={() => handleSave(Boolean(formComplete))}
+          >
+            {saving ? "Submitting…" : formComplete ? "Submit & continue" : "Next"}
           </Button>
           <Button
             variant="secondary"

@@ -426,9 +426,7 @@ function SpreadsheetWordCell({
   const [text, setText] = useState(word.option_text);
   const [description, setDescription] = useState(word.description ?? "");
   const subQuestion = getSubLevelQuestion(category, word.id);
-  const rootIndex = getRootQuestions(category).findIndex((q) => q.id === parentQuestion.id);
-  const canAddSubLevel =
-    Boolean(parentQuestion.parent_option_id) || rootIndex >= 1;
+  const canAddSubLevel = true;
 
   useEffect(() => {
     setText(word.option_text);

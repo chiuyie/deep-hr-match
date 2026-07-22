@@ -1,7 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MatrixQuestion } from "@/types/database";
 import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
-import { getMatrixPathQuestions, type MatrixAnswersMap } from "@/lib/matching/matrix-tree";
+import {
+  getMatrixChoiceQuestions,
+  getMatrixPathQuestions,
+  type MatrixAnswersMap,
+} from "@/lib/matching/matrix-tree";
 
 export type MatrixAnswerStep = {
   questionId: string;
@@ -15,27 +19,30 @@ type MatrixQuestionWithOptions = MatrixQuestion & {
 
 type MatrixCategoryRow = {
   name?: string | null;
+  sort_order?: number;
   matrix_questions?: MatrixQuestionWithOptions[];
 };
 
-async function loadPrimaryMatrixCategory(supabase: SupabaseClient) {
+async function loadActiveMatrixCategories(supabase: SupabaseClient) {
   const { data: categories } = await supabase
     .from("matrix_categories")
     .select(MATRIX_CATEGORY_TREE_SELECT)
     .eq("is_active", true)
-    .order("sort_order")
-    .limit(1);
-  return (categories?.[0] ?? null) as MatrixCategoryRow | null;
+    .order("sort_order");
+  return ((categories ?? []) as MatrixCategoryRow[]).sort(
+    (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+  );
 }
 
 function buildMatrixAnswerSteps(
   category: MatrixCategoryRow,
   answerMap: MatrixAnswersMap
 ): MatrixAnswerStep[] {
-  const questions = (category.matrix_questions ?? []) as MatrixQuestionWithOptions[];
+  const allQuestions = (category.matrix_questions ?? []) as MatrixQuestionWithOptions[];
+  const questions = getMatrixChoiceQuestions(allQuestions) as MatrixQuestionWithOptions[];
   const path = getMatrixPathQuestions(questions, answerMap);
   const optionById = new Map<string, string>();
-  for (const question of questions) {
+  for (const question of allQuestions) {
     for (const option of question.matrix_options ?? []) {
       optionById.set(option.id, option.option_text);
     }
@@ -46,17 +53,21 @@ function buildMatrixAnswerSteps(
     const optionId = answerMap[question.id]?.option_id;
     if (!optionId) continue;
     const word = optionById.get(optionId) ?? "—";
-    const isRoot = !question.parent_option_id;
     steps.push({
       questionId: question.id,
-      factorLabel: isRoot
-        ? category.name?.trim() || question.question_text
-        : question.question_text,
+      factorLabel: category.name?.trim() || question.question_text,
       wordLabel: word,
     });
   }
 
   return steps;
+}
+
+function buildAllFactorAnswerSteps(
+  categories: MatrixCategoryRow[],
+  answerMap: MatrixAnswersMap
+): MatrixAnswerStep[] {
+  return categories.flatMap((category) => buildMatrixAnswerSteps(category, answerMap));
 }
 
 /** Human-readable path of the candidate's submitted 7^7 word choices. */
@@ -75,10 +86,10 @@ export async function loadCandidateMatrixAnswerSteps(
     answers.map((row) => [row.question_id, { option_id: row.option_id ?? undefined }])
   );
 
-  const category = await loadPrimaryMatrixCategory(supabase);
-  if (!category) return [];
+  const categories = await loadActiveMatrixCategories(supabase);
+  if (!categories.length) return [];
 
-  return buildMatrixAnswerSteps(category, answerMap);
+  return buildAllFactorAnswerSteps(categories, answerMap);
 }
 
 export async function loadJobMatrixAnswerSteps(
@@ -96,10 +107,10 @@ export async function loadJobMatrixAnswerSteps(
     answers.map((row) => [row.question_id, { option_id: row.option_id ?? undefined }])
   );
 
-  const category = await loadPrimaryMatrixCategory(supabase);
-  if (!category) return [];
+  const categories = await loadActiveMatrixCategories(supabase);
+  if (!categories.length) return [];
 
-  return buildMatrixAnswerSteps(category, answerMap);
+  return buildAllFactorAnswerSteps(categories, answerMap);
 }
 
 export type MatrixComparisonRow = {

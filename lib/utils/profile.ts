@@ -29,6 +29,58 @@ export function calculateProfileCompletion(profile: Partial<CandidateProfile>): 
   return Math.round((filled.length / PROFILE_FIELDS.length) * 100);
 }
 
+const PROFILE_FIELD_LABELS: Partial<Record<keyof CandidateProfile, string>> = {
+  full_name: "Full name",
+  email: "Email",
+  phone: "Phone",
+  country: "Country",
+  city: "City",
+  current_job_title: "Current job title",
+  years_of_experience: "Years of experience",
+  highest_education: "Highest education",
+  skills: "Skills",
+  certifications: "Certifications",
+  languages: "Languages",
+  current_salary: "Current salary",
+  expected_salary: "Expected salary",
+  employment_type_preference: "Employment type preference",
+  work_arrangement_preference: "Work arrangement",
+  availability: "Availability",
+};
+
+function isProfileFieldFilled(
+  profile: Partial<CandidateProfile>,
+  field: keyof CandidateProfile
+): boolean {
+  const value = profile[field];
+  if (Array.isArray(value)) return value.length > 0;
+  return value !== null && value !== undefined && value !== "";
+}
+
+export function getProfileCompletionDetails(profile: Partial<CandidateProfile>): {
+  percentage: number;
+  filledCount: number;
+  totalCount: number;
+  missingFields: Array<{ key: keyof CandidateProfile; label: string }>;
+} {
+  const missingFields: Array<{ key: keyof CandidateProfile; label: string }> = [];
+  for (const field of PROFILE_FIELDS) {
+    if (!isProfileFieldFilled(profile, field)) {
+      missingFields.push({
+        key: field,
+        label: PROFILE_FIELD_LABELS[field] ?? String(field),
+      });
+    }
+  }
+  const filledCount = PROFILE_FIELDS.length - missingFields.length;
+  return {
+    percentage: calculateProfileCompletion(profile),
+    filledCount,
+    totalCount: PROFILE_FIELDS.length,
+    missingFields,
+  };
+}
+
 export function parseCommaList(value?: string | null): string[] {
   if (!value) return [];
   return value

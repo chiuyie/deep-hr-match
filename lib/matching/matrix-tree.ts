@@ -20,6 +20,39 @@ export function getChildMatrixQuestions(
   return sortQuestions(questions.filter((q) => q.parent_option_id === parentOptionId));
 }
 
+/**
+ * Level 1 root question is the factor identity (Matching Factor N), not a user pick.
+ * Candidates/employers start choosing at Level 2+ under each factor.
+ */
+export function getFactorIdentityRootQuestion(
+  questions: MatrixQuestion[]
+): MatrixQuestion | null {
+  const roots = getRootMatrixQuestions(questions).filter((q) => q.is_active);
+  return roots[0] ?? null;
+}
+
+/** Word-choice questions only — excludes the Level 1 factor-identity root when Level 2+ exists. */
+export function getMatrixChoiceQuestions(questions: MatrixQuestion[]): MatrixQuestion[] {
+  const roots = getRootMatrixQuestions(questions ?? []).filter((q) => q.is_active);
+  // Minimal seeds may only have Level 1 — keep it as the choosable question.
+  if (roots.length <= 1) return questions ?? [];
+  const identity = roots[0];
+  if (!identity) return questions ?? [];
+  return (questions ?? []).filter((q) => q.id !== identity.id);
+}
+
+function isQuestionAnswered(
+  question: MatrixQuestion,
+  answers: MatrixAnswersMap
+): boolean {
+  const answer = answers[question.id];
+  const selectedOptionId = answer?.option_id;
+  const hasTextAnswer =
+    (question.question_type === "text" || question.question_type === "scale") &&
+    Boolean(answer?.answer_text?.trim());
+  return Boolean(selectedOptionId || hasTextAnswer);
+}
+
 /** All questions on the user's current branch (answered steps only, stops at first gap). */
 export function getMatrixPathQuestions(
   questions: MatrixQuestion[],
@@ -32,12 +65,8 @@ export function getMatrixPathQuestions(
     for (const question of sortQuestions(level)) {
       if (!question.is_active) continue;
       result.push(question);
-      const answer = answers[question.id];
-      const selectedOptionId = answer?.option_id;
-      const hasTextAnswer =
-        (question.question_type === "text" || question.question_type === "scale") &&
-        Boolean(answer?.answer_text?.trim());
-      if (!selectedOptionId && !hasTextAnswer) return;
+      if (!isQuestionAnswered(question, answers)) return;
+      const selectedOptionId = answers[question.id]?.option_id;
       const children = all.filter(
         (q) => q.is_active && q.parent_option_id === selectedOptionId
       );
@@ -59,12 +88,8 @@ export function getCurrentMatrixQuestion(
   function walk(level: MatrixQuestion[]): MatrixQuestion | null {
     for (const question of sortQuestions(level)) {
       if (!question.is_active) continue;
-      const answer = answers[question.id];
-      const selectedOptionId = answer?.option_id;
-      const hasTextAnswer =
-        (question.question_type === "text" || question.question_type === "scale") &&
-        Boolean(answer?.answer_text?.trim());
-      if (!selectedOptionId && !hasTextAnswer) return question;
+      if (!isQuestionAnswered(question, answers)) return question;
+      const selectedOptionId = answers[question.id]?.option_id;
       const children = all.filter(
         (q) => q.is_active && q.parent_option_id === selectedOptionId
       );

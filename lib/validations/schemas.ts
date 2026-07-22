@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateYearsOfExperienceValue } from "@/lib/form-fields/years-of-experience";
 
 export const signUpSchema = z.object({
   email: z.string().email("Valid email required"),
@@ -19,11 +20,22 @@ export const candidateProfileSchema = z.object({
   country: z.string().optional(),
   city: z.string().optional(),
   current_job_title: z.string().optional(),
-  years_of_experience: z.coerce.number().min(0).optional(),
+  years_of_experience: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((value, ctx) => {
+      if (value === undefined || value === null || value === "") return undefined;
+      const result = validateYearsOfExperienceValue(value, { required: false });
+      if (result.ok === false) {
+        ctx.addIssue({ code: "custom", message: result.message });
+        return z.NEVER;
+      }
+      return result.value === null ? undefined : result.value;
+    }),
   highest_education: z.string().optional(),
-  skills: z.string().optional(),
-  certifications: z.string().optional(),
-  languages: z.string().optional(),
+  skills: z.union([z.string(), z.array(z.string())]).optional(),
+  certifications: z.union([z.string(), z.array(z.string())]).optional(),
+  languages: z.union([z.string(), z.array(z.any())]).optional(),
   current_salary: z.string().optional(),
   expected_salary: z.string().optional(),
   employment_type_preference: z.string().optional(),

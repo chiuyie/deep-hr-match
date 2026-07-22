@@ -62,6 +62,31 @@ export async function ensureFormFieldsReady() {
   if (missing.length > 0) {
     await supabase.from("form_fields").insert(missing);
   }
+
+  // One-time label cleanup after tag inputs replaced comma-separated fields.
+  await Promise.all([
+    supabase
+      .from("form_fields")
+      .update({ label: "Skills" })
+      .eq("audience", "candidate")
+      .eq("form_group", "profile")
+      .eq("field_key", "skills")
+      .eq("label", "Skills (comma-separated)"),
+    supabase
+      .from("form_fields")
+      .update({ label: "Certifications" })
+      .eq("audience", "candidate")
+      .eq("form_group", "profile")
+      .eq("field_key", "certifications")
+      .eq("label", "Certifications (comma-separated)"),
+    supabase
+      .from("form_fields")
+      .update({ label: "Languages" })
+      .eq("audience", "candidate")
+      .eq("form_group", "profile")
+      .eq("field_key", "languages")
+      .eq("label", "Languages (comma-separated)"),
+  ]);
 }
 
 export async function loadFormFields(options?: {

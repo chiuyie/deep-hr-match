@@ -20,11 +20,12 @@ import {
   formStateToJobPayload,
   parseJobFormState,
 } from "@/lib/utils/job-form";
-import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategories } from "@/lib/matching/matrix-queries";
+import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategory } from "@/lib/matching/matrix-queries";
+import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 import {
-  filterSharedMatrixCategories,
-  validateMatrixSubmission,
-} from "@/lib/matching/matrix-form";
+  toColumnAnswersMap,
+  validateMatrixColumnSubmission,
+} from "@/lib/matching/matrix-column-flow";
 import {
   UNLOCK_CURRENCY,
   UNLOCK_PRICE_CENTS,
@@ -167,7 +168,12 @@ export async function uploadJobJD(formData: FormData, jobId: string): Promise<vo
 
 export async function saveJobMatrixAnswers(
   jobId: string,
-  answers: { question_id: string; option_id?: string; answer_text?: string }[],
+  answers: {
+    question_id: string;
+    option_id?: string;
+    answer_text?: string;
+    matrix_column?: number;
+  }[],
   submit = false
 ) {
   const user = await requireRole("employer");
@@ -191,29 +197,35 @@ export async function saveJobMatrixAnswers(
       .eq("is_active", true)
       .order("sort_order");
 
-    const answerMap = Object.fromEntries(
-      answers.map((a) => [
-        a.question_id,
-        { option_id: a.option_id, answer_text: a.answer_text },
-      ])
+    const primary = pickPrimaryMatrixCategory(
+      filterSharedMatrixCategories(categories ?? [])
+    );
+    if (!primary) return { error: "Matrix form is not configured" };
+
+    const answerMap = toColumnAnswersMap(
+      answers.map((a) => ({
+        question_id: a.question_id,
+        option_id: a.option_id,
+        answer_text: a.answer_text,
+        matrix_column: a.matrix_column,
+      }))
     );
 
-    const validationError = validateMatrixSubmission(
-      pickPrimaryMatrixCategories(filterSharedMatrixCategories(categories ?? [])),
-      answerMap
-    );
+    const validationError = validateMatrixColumnSubmission(primary, answerMap);
     if (validationError) return { error: validationError };
   }
 
   for (const answer of answers) {
+    const matrixColumn = answer.matrix_column && answer.matrix_column >= 1 ? answer.matrix_column : 0;
     await supabase.from("job_matrix_answers").upsert(
       {
         job_id: jobId,
         question_id: answer.question_id,
         option_id: answer.option_id ?? null,
         answer_text: answer.answer_text ?? null,
+        matrix_column: matrixColumn,
       },
-      { onConflict: "job_id,question_id" }
+      { onConflict: "job_id,question_id,matrix_column" }
     );
   }
 

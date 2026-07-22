@@ -155,8 +155,12 @@ export default async function JobUnlockedPage({
                   : null
               }
               skills={
-                showSkills && skillsValue
-                  ? skillsValue.split(",").map((item) => item.trim()).filter(Boolean)
+                showSkills
+                  ? Array.isArray(profile?.skills)
+                    ? profile.skills
+                    : skillsValue
+                      ? skillsValue.split(",").map((item) => item.trim()).filter(Boolean)
+                      : null
                   : null
               }
               matchScore={

@@ -69,6 +69,30 @@ describe("candidateProfileSchema", () => {
       expect(result.data.years_of_experience).toBe(5);
     }
   });
+
+  it("accepts half-year increments and rejects invalid years", () => {
+    expect(
+      candidateProfileSchema.safeParse({
+        full_name: "Jane",
+        email: "jane@example.com",
+        years_of_experience: "25.5",
+      }).success
+    ).toBe(true);
+    expect(
+      candidateProfileSchema.safeParse({
+        full_name: "Jane",
+        email: "jane@example.com",
+        years_of_experience: "1e5",
+      }).success
+    ).toBe(false);
+    expect(
+      candidateProfileSchema.safeParse({
+        full_name: "Jane",
+        email: "jane@example.com",
+        years_of_experience: "60.5",
+      }).success
+    ).toBe(false);
+  });
 });
 
 describe("employerProfileSchema", () => {

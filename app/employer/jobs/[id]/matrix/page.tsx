@@ -44,18 +44,23 @@ export default async function JobMatrixPage({
 
   const { data: answers } = await supabase
     .from("job_matrix_answers")
-    .select("*")
+    .select("question_id, option_id, answer_text, matrix_column")
     .eq("job_id", id);
 
-  const answerMap = Object.fromEntries(
-    (answers ?? []).map((a) => [
-      a.question_id,
-      { option_id: a.option_id ?? undefined, answer_text: a.answer_text ?? undefined },
-    ])
-  );
+  const answerRows = (answers ?? []).map((a) => ({
+    question_id: a.question_id,
+    option_id: a.option_id ?? undefined,
+    answer_text: a.answer_text ?? undefined,
+    matrix_column: a.matrix_column ?? undefined,
+  }));
 
   async function onSave(
-    payload: { question_id: string; option_id?: string; answer_text?: string }[],
+    payload: {
+      question_id: string;
+      option_id?: string;
+      answer_text?: string;
+      matrix_column: number;
+    }[],
     submit: boolean
   ) {
     "use server";
@@ -72,7 +77,7 @@ export default async function JobMatrixPage({
       <JobWorkflowNav jobId={id} currentStep="matrix" canEdit={job.status === "draft"} />
       <MatrixForm
         categories={filtered}
-        existingAnswers={answerMap}
+        existingAnswers={answerRows}
         onSave={onSave}
         targetLabel={`Job ${FRAMEWORK_MATCHING_LANGUAGE}`}
         headerIcon={<Grid3X3 className="h-6 w-6" />}
