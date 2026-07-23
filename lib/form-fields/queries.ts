@@ -15,6 +15,7 @@ import {
   normalizeSelectOptions,
 } from "@/lib/form-fields/select-options";
 import { defaultSectionTitles } from "@/lib/form-fields/section-defaults";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import type {
   FormFieldAudience,
   FormFieldDefinition,
@@ -281,6 +282,23 @@ export async function ensureFormFieldsReady() {
   if (optionSeeds.length > 0) {
     await Promise.all(optionSeeds);
   }
+
+  // Drop legacy "(optional)" label from the job 7^7 section title.
+  const legacyMatrixTitle = `${FRAMEWORK_MATCHING_LANGUAGE} (optional)`;
+  await Promise.all([
+    supabase
+      .from("form_fields")
+      .update({ section: FRAMEWORK_MATCHING_LANGUAGE })
+      .eq("audience", "employer")
+      .eq("form_group", "job")
+      .eq("section", legacyMatrixTitle),
+    supabase
+      .from("form_sections")
+      .update({ title: FRAMEWORK_MATCHING_LANGUAGE })
+      .eq("audience", "employer")
+      .eq("form_group", "job")
+      .eq("title", legacyMatrixTitle),
+  ]);
 
   await ensureFormSectionsReady();
 }

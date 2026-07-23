@@ -45,7 +45,9 @@ export function JobCreationProgressHeader({
             <p className="mt-1 text-sm font-medium text-slate-600">{preferredPartLabel}</p>
           )}
           <p className="mt-1 text-sm text-slate-500">
-            {section.id === "job-identification" || section.id === "background-information-questions"
+            {section.id === "job-identification" ||
+            section.id === "background-information-questions" ||
+            section.id === "preferred-selection-by-the-employer"
               ? "Complete the required fields on this step to continue."
               : section.id === "compensation"
                 ? "Optional — budget and benefits for this role only."

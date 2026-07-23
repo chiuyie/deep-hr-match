@@ -449,9 +449,8 @@ export function JobCreationFormSectionBody({
           hideHeader
         >
           <p className="mb-4 text-sm text-slate-600">
-            <strong>Optional.</strong> Answer the same {FRAMEWORK_MATCHING_LANGUAGE} questions
-            candidates complete. Matching compares these word choices to rank who fits this role.
-            Skip this step if you want to finish it later from the job workflow.
+            Required. Answer the same {FRAMEWORK_MATCHING_LANGUAGE} questions candidates complete.
+            Matching compares these word choices to rank who fits this role.
           </p>
           {matrixCategories.length > 0 ? (
             <MatrixForm
@@ -471,7 +470,7 @@ export function JobCreationFormSectionBody({
           ) : (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               The {FRAMEWORK_MATCHING_LANGUAGE} form is not configured yet. Ask an administrator to
-              publish the matrix, or continue and complete it later from the job workflow.
+              publish the matrix before you can post this job.
             </div>
           )}
           <JobCustomFieldsBlock fields={customForSection} values={values} onChange={onChange} />

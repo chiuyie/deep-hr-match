@@ -68,7 +68,19 @@ function renderEmployerInput(field: FormFieldDefinition, defaultValue: string) {
   return (
     <input
       {...common}
-      type={field.field_type === "email" ? "email" : field.field_type === "number" ? "number" : "text"}
+      type={
+        field.field_type === "email"
+          ? "email"
+          : field.field_type === "number"
+            ? "number"
+            : field.field_type === "date"
+              ? "date"
+              : field.field_type === "tel"
+                ? "tel"
+                : field.field_type === "url"
+                  ? "url"
+                  : "text"
+      }
       className={employerInputClassName}
     />
   );

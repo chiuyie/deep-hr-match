@@ -272,6 +272,22 @@ export function JobCreationForm({
       return;
     }
 
+    if (isMatrixSection) {
+      if (matrixCategories.length === 0) {
+        setSectionError(
+          `${FRAMEWORK_MATCHING_LANGUAGE} is not configured yet. Ask an administrator to publish it before continuing.`
+        );
+        return;
+      }
+      const matrixStats = matrixFillStats(matrixAnswers);
+      if (matrixStats.filled < matrixStats.total) {
+        setSectionError(
+          `Complete all ${matrixStats.total} ${FRAMEWORK_MATCHING_LANGUAGE} factors before continuing (${matrixStats.filled}/${matrixStats.total} done).`
+        );
+        return;
+      }
+    }
+
     goToSection(currentSectionIndex + 1);
   };
 
@@ -285,7 +301,30 @@ export function JobCreationForm({
     if (validation.ok === false) {
       setSectionError(validation.message);
       goToSection(findSectionIndexForField(validation.focusField));
-      queueMicrotask(() => focusField(validation.focusField));
+      voidMicrotask(() => focusField(validation.focusField));
+      return;
+    }
+
+    if (matrixCategories.length === 0) {
+      const matrixSectionIndex = JOB_FORM_SECTIONS.findIndex(
+        (section) => section.id === "preferred-selection-by-the-employer"
+      );
+      setSectionError(
+        `${FRAMEWORK_MATCHING_LANGUAGE} is not configured yet. Ask an administrator to publish it before posting.`
+      );
+      if (matrixSectionIndex >= 0) goToSection(matrixSectionIndex);
+      return;
+    }
+
+    const matrixStats = matrixFillStats(matrixAnswers);
+    if (matrixStats.filled < matrixStats.total) {
+      const matrixSectionIndex = JOB_FORM_SECTIONS.findIndex(
+        (section) => section.id === "preferred-selection-by-the-employer"
+      );
+      setSectionError(
+        `Complete all ${matrixStats.total} ${FRAMEWORK_MATCHING_LANGUAGE} factors before posting (${matrixStats.filled}/${matrixStats.total} done).`
+      );
+      if (matrixSectionIndex >= 0) goToSection(matrixSectionIndex);
       return;
     }
 
@@ -375,9 +414,9 @@ export function JobCreationForm({
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-center text-xs text-slate-500 sm:text-left">
                   {isLastSection
-                    ? `Review your answers, then save. ${FRAMEWORK_MATCHING_LANGUAGE} is optional.`
+                    ? `Complete all ${FRAMEWORK_MATCHING_LANGUAGE} factors, then save.`
                     : isMatrixSection
-                      ? `Optional · same ${FRAMEWORK_MATCHING_LANGUAGE} candidates complete.`
+                      ? `Required · same ${FRAMEWORK_MATCHING_LANGUAGE} candidates complete.`
                       : "Required fields are marked with * · Other steps are optional."}
                 </p>
                 <div className="flex flex-wrap justify-end gap-2">

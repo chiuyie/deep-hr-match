@@ -61,6 +61,19 @@ export function JobCustomFieldsBlock({
               placeholder={field.placeholder ?? undefined}
               value={value}
               required={field.is_required}
+              type={
+                field.field_type === "date"
+                  ? "date"
+                  : field.field_type === "email"
+                    ? "email"
+                    : field.field_type === "tel"
+                      ? "tel"
+                      : field.field_type === "url"
+                        ? "url"
+                        : field.field_type === "number"
+                          ? "number"
+                          : "text"
+              }
               onChange={onChange}
             />
           );

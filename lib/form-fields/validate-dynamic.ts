@@ -77,6 +77,7 @@ function baseStringField(field: FormFieldDefinition): z.ZodTypeAny {
     case "select":
     case "checkbox":
     case "file":
+    case "date":
     default:
       return field.is_required
         ? z.string().min(1, `${field.label} is required`)

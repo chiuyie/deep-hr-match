@@ -894,7 +894,11 @@ function TrackedTextField({
                 ? "number"
                 : field.field_type === "tel"
                   ? "tel"
-                  : "text"
+                  : field.field_type === "date"
+                    ? "date"
+                    : field.field_type === "url"
+                      ? "url"
+                      : "text"
           }
           min={field.field_type === "number" ? 0 : undefined}
           autoComplete={

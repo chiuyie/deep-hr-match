@@ -173,6 +173,7 @@ export async function createFormField(input: {
     "select",
     "checkbox",
     "file",
+    "date",
   ]);
   const field_type = (
     input.field_type && allowedTypes.has(input.field_type) ? input.field_type : "text"

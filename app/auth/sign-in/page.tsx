@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { signIn } from "@/lib/auth/actions";
+import { signIn, signOutToPortalSignIn } from "@/lib/auth/actions";
 import { getCurrentUser, getDashboardPath } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { cn } from "@/lib/utils";
@@ -49,13 +49,15 @@ export default async function SignInPage({
       ? errorMessages[params.error]
       : null;
 
+  let signedInAdmin = false;
   if (!showWrongRoleNotice) {
     const user = await getCurrentUser();
     if (user) {
       if (user.role === "admin") {
-        redirect("/auth/admin/sign-in?error=use-admin-portal");
-      }
-      if (!portalRole || user.role === portalRole) {
+        // Stay on this page so admins can switch to candidate/employer login
+        // instead of bouncing back to the admin portal in a loop.
+        signedInAdmin = true;
+      } else if (!portalRole || user.role === portalRole) {
         redirect(getDashboardPath(user.role));
       }
     }
@@ -68,7 +70,7 @@ export default async function SignInPage({
         <Card
           className={cn(
             "w-full border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900",
-            portalRole && !showWrongRoleNotice ? "max-w-md" : "max-w-lg"
+            portalRole && !showWrongRoleNotice && !signedInAdmin ? "max-w-md" : "max-w-lg"
           )}
         >
           <CardHeader>
@@ -78,6 +80,14 @@ export default async function SignInPage({
                 <CardDescription>
                   Your login details are correct. This email is registered as a {accountLabel}{" "}
                   account.
+                </CardDescription>
+              </>
+            ) : signedInAdmin ? (
+              <>
+                <CardTitle>Switch account type</CardTitle>
+                <CardDescription>
+                  You&apos;re currently signed in as a platform admin. Sign out to log in as a
+                  candidate or employer, or continue to the admin dashboard.
                 </CardDescription>
               </>
             ) : (
@@ -96,6 +106,24 @@ export default async function SignInPage({
 
             {showWrongRoleNotice ? (
               <WrongRoleSignInNotice triedRole={portalRole} accountRole={accountRole} />
+            ) : signedInAdmin ? (
+              <div className="space-y-4">
+                <Button className="w-full rounded-lg" asChild>
+                  <Link href="/admin">Go to admin dashboard</Link>
+                </Button>
+                <form action={signOutToPortalSignIn} className="space-y-3">
+                  {portalRole ? <input type="hidden" name="role" value={portalRole} /> : null}
+                  <Button type="submit" variant="outline" className="w-full rounded-lg">
+                    Sign out and use candidate / employer login
+                  </Button>
+                </form>
+                <p className="text-center text-sm text-muted-foreground">
+                  Or open{" "}
+                  <Link href="/auth/admin/sign-in" className="text-primary hover:underline">
+                    admin sign in
+                  </Link>
+                </p>
+              </div>
             ) : (
               <>
                 <AuthPortalRoleSwitch
@@ -122,80 +150,80 @@ export default async function SignInPage({
                   </div>
                 ) : (
                   <div className="mt-4 space-y-4">
-                {error && (
-                  <Alert
-                    variant={params.error === "confirm-email" ? "default" : "destructive"}
-                    className="mb-4"
-                  >
-                    <AlertTitle>{error.title}</AlertTitle>
-                    <AlertDescription>
-                      {error.description}
-                      {params.error === "use-admin-portal" && (
-                        <>
-                          {" "}
-                          <Link href="/auth/admin/sign-in" className="font-medium underline">
-                            Go to admin sign in
-                          </Link>
-                        </>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                )}
+                    {error && (
+                      <Alert
+                        variant={params.error === "confirm-email" ? "default" : "destructive"}
+                        className="mb-4"
+                      >
+                        <AlertTitle>{error.title}</AlertTitle>
+                        <AlertDescription>
+                          {error.description}
+                          {params.error === "use-admin-portal" && (
+                            <>
+                              {" "}
+                              <Link href="/auth/admin/sign-in" className="font-medium underline">
+                                Go to admin sign in
+                              </Link>
+                            </>
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
-                <form action={signIn} className="space-y-4">
-                  <fieldset disabled={!supabaseReady} className="space-y-4">
-                    {portalRole && <input type="hidden" name="role" value={portalRole} />}
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        aria-invalid={showInvalidCredentials}
-                        aria-describedby={showInvalidCredentials ? "sign-in-error" : undefined}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        name="password"
-                        type="password"
-                        required
-                        aria-invalid={showInvalidCredentials}
-                        aria-describedby={showInvalidCredentials ? "sign-in-error" : undefined}
-                      />
-                      {showInvalidCredentials && (
-                        <p id="sign-in-error" className="text-sm text-destructive">
-                          Email or password doesn&apos;t match. Try again.
-                        </p>
-                      )}
-                    </div>
-                    <Button type="submit" className="w-full rounded-lg">
-                      Log in as {roleLabel}
-                    </Button>
-                  </fieldset>
-                </form>
+                    <form action={signIn} className="space-y-4">
+                      <fieldset disabled={!supabaseReady} className="space-y-4">
+                        {portalRole && <input type="hidden" name="role" value={portalRole} />}
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            required
+                            aria-invalid={showInvalidCredentials}
+                            aria-describedby={showInvalidCredentials ? "sign-in-error" : undefined}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="password">Password</Label>
+                          <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            required
+                            aria-invalid={showInvalidCredentials}
+                            aria-describedby={showInvalidCredentials ? "sign-in-error" : undefined}
+                          />
+                          {showInvalidCredentials && (
+                            <p id="sign-in-error" className="text-sm text-destructive">
+                              Email or password doesn&apos;t match. Try again.
+                            </p>
+                          )}
+                        </div>
+                        <Button type="submit" className="w-full rounded-lg">
+                          Log in as {roleLabel}
+                        </Button>
+                      </fieldset>
+                    </form>
 
-                <p className="mt-4 text-center text-sm text-muted-foreground">
-                  No account?{" "}
-                  <Link
-                    href={`/auth/sign-up?role=${portalRole}`}
-                    className="text-primary hover:underline dark:text-primary/80"
-                  >
-                    Get started as {roleLabel}
-                  </Link>
-                </p>
-                <p className="mt-2 text-center text-sm text-muted-foreground">
-                  Platform admin?{" "}
-                  <Link
-                    href="/auth/admin/sign-in"
-                    className="text-primary hover:underline dark:text-primary/80"
-                  >
-                    Admin sign in
-                  </Link>
-                </p>
+                    <p className="mt-4 text-center text-sm text-muted-foreground">
+                      No account?{" "}
+                      <Link
+                        href={`/auth/sign-up?role=${portalRole}`}
+                        className="text-primary hover:underline dark:text-primary/80"
+                      >
+                        Get started as {roleLabel}
+                      </Link>
+                    </p>
+                    <p className="mt-2 text-center text-sm text-muted-foreground">
+                      Platform admin?{" "}
+                      <Link
+                        href="/auth/admin/sign-in"
+                        className="text-primary hover:underline dark:text-primary/80"
+                      >
+                        Admin sign in
+                      </Link>
+                    </p>
                   </div>
                 )}
               </>

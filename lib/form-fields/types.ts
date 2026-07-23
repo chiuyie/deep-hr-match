@@ -10,7 +10,8 @@ export type FormFieldType =
   | "url"
   | "select"
   | "checkbox"
-  | "file";
+  | "file"
+  | "date";
 
 export interface FormFieldDefinition {
   id: string;

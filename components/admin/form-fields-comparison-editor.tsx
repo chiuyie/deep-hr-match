@@ -77,6 +77,7 @@ const FIELD_TYPE_STYLES: Record<string, string> = {
   select: "border-slate-300 bg-white text-slate-700",
   checkbox: "border-slate-300 bg-white text-slate-700",
   file: "border-slate-300 bg-white text-slate-700",
+  date: "border-slate-300 bg-white text-slate-700",
 };
 
 const FORM_FIELD_TYPE_OPTIONS: Array<{ value: FormFieldType; label: string }> = [
@@ -85,6 +86,7 @@ const FORM_FIELD_TYPE_OPTIONS: Array<{ value: FormFieldType; label: string }> = 
   { value: "tel", label: "Phone" },
   { value: "url", label: "URL" },
   { value: "number", label: "Number" },
+  { value: "date", label: "Date" },
   { value: "textarea", label: "Long text" },
   { value: "select", label: "Select / dropdown" },
   { value: "checkbox", label: "Checkbox" },

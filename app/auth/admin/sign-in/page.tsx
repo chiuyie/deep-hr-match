@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Shield } from "lucide-react";
 import { PublicNav } from "@/components/layout/public-nav";
 import { PublicFooter } from "@/components/layout/public-footer";
@@ -8,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { signInAsAdmin } from "@/lib/auth/actions";
+import { signInAsAdmin, signOutToPortalSignIn } from "@/lib/auth/actions";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 const errorMessages: Record<string, { title: string; description: string }> = {
@@ -20,6 +19,11 @@ const errorMessages: Record<string, { title: string; description: string }> = {
     title: "Admin access required",
     description:
       "This account does not have admin privileges. Use candidate or employer login instead, or ask an existing admin to promote your account.",
+  },
+  "use-admin-portal": {
+    title: "Use this admin portal",
+    description:
+      "That email belongs to a platform admin account. Sign in here, or switch to candidate / employer login with a different account.",
   },
 };
 
@@ -78,12 +82,18 @@ export default async function AdminSignInPage({
               </fieldset>
             </form>
 
-            <p className="mt-4 text-center text-sm text-muted-foreground">
-              Not an admin?{" "}
-              <Link href="/auth/sign-in" className="text-primary hover:underline dark:text-primary/80">
+            <form
+              action={signOutToPortalSignIn}
+              className="mt-4 text-center text-sm text-muted-foreground"
+            >
+              <span>Not an admin? </span>
+              <button
+                type="submit"
+                className="text-primary hover:underline dark:text-primary/80"
+              >
                 Candidate or employer login
-              </Link>
-            </p>
+              </button>
+            </form>
           </CardContent>
         </Card>
       </div>

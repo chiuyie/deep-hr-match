@@ -54,7 +54,7 @@ interface JobTextFieldProps {
   required?: boolean;
   icon?: ReactNode;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-  type?: "text" | "tel" | "url" | "email";
+  type?: "text" | "tel" | "url" | "email" | "date" | "number";
   maxLength?: number;
   pattern?: string;
   hint?: string;

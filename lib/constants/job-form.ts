@@ -2,7 +2,7 @@ import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 
 export const JOB_FORM_NO_FILTER_VALUE = "No preference" as const;
 
-/** FormData key for optional 7^7 answers submitted with create/edit job. */
+/** FormData key for 7^7 answers submitted with create/edit job. */
 export const JOB_MATRIX_ANSWERS_FORM_KEY = "_matrix_answers";
 
 export const JOB_FORM_SECTIONS = [
@@ -13,7 +13,7 @@ export const JOB_FORM_SECTIONS = [
   { id: "background-information-questions", title: "Role requirements" },
   {
     id: "preferred-selection-by-the-employer",
-    title: `${FRAMEWORK_MATCHING_LANGUAGE} (optional)`,
+    title: FRAMEWORK_MATCHING_LANGUAGE,
   },
 ] as const;
 

@@ -94,7 +94,7 @@ export const formFieldSchema = z.object({
   field_key: z.string().min(1),
   label: z.string().min(1),
   field_type: z
-    .enum(["text", "email", "number", "textarea", "tel", "url", "select", "checkbox", "file"])
+    .enum(["text", "email", "number", "textarea", "tel", "url", "select", "checkbox", "file", "date"])
     .default("text"),
   placeholder: z.string().optional().nullable(),
   options: z.array(z.string().min(1)).nullable().optional().default(null),
