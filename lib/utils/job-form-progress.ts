@@ -44,7 +44,7 @@ const SECTION_FIELD_KEYS: Record<JobFormSectionId, readonly string[]> = {
     "language_needs",
   ],
   "background-information-questions": JOB_BACKGROUND_QUESTIONS.map((question) => question.name),
-  "preferred-selection-by-the-employer": JOB_PREFERRED_FIELDS.map((field) => field.name),
+  "preferred-selection-by-the-employer": [],
 };
 
 export function getJobFormSectionFieldKeys(sectionId: JobFormSectionId): readonly string[] {

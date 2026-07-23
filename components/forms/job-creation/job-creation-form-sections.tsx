@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback } from "react";
 import {
   Briefcase,
   Car,
@@ -13,7 +13,7 @@ import {
   MapPin,
   Plane,
   Shield,
-  Sparkles,
+  Grid3X3,
   User,
   Users,
 } from "lucide-react";
@@ -21,25 +21,20 @@ import {
   JobFaqField,
   JobFormSection,
   JobMoneyField,
-  JobSearchSelectField,
   JobSelectField,
   JobTextField,
   JobTextareaField,
 } from "./job-form-fields";
+import { MatrixForm } from "@/components/forms/matrix-form";
 import {
-  groupPreferredFields,
-  getPreferredCategoryGuidance,
   JOB_BACKGROUND_QUESTIONS,
   JOB_BENEFIT_OPTIONS,
   JOB_ELIMINATION_FIELDS,
   JOB_FORM_NO_FILTER_VALUE,
   JOB_IMPORTANCE_LEVEL_OPTIONS,
 } from "@/lib/constants/job-form";
-import jobFormDomains from "@/lib/constants/job-form-data/domains.json";
-import jobFormFunctions from "@/lib/constants/job-form-data/functions.json";
-import jobFormRoles from "@/lib/constants/job-form-data/roles.json";
-import jobFormStructuralSkills from "@/lib/constants/job-form-data/structural-skills.json";
-import { flattenMultilevelOptions, type JobFormState } from "@/lib/utils/job-form";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import type { JobFormState } from "@/lib/utils/job-form";
 import type { JobFormSectionId } from "@/lib/utils/job-form-progress";
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
 import type { JobFieldMetaMap } from "@/lib/form-fields/job-field-meta";
@@ -50,12 +45,17 @@ import {
   jobFieldRequired,
 } from "@/lib/form-fields/job-field-meta";
 import { JobCustomFieldsBlock } from "./job-custom-fields";
+import type { MatrixCategory, MatrixOption, MatrixQuestion } from "@/types/database";
 
-const multilevelOptions = {
-  roles: flattenMultilevelOptions(jobFormRoles),
-  domains: flattenMultilevelOptions(jobFormDomains),
-  functions: flattenMultilevelOptions(jobFormFunctions),
-  structuralSkills: flattenMultilevelOptions(jobFormStructuralSkills),
+export type JobMatrixCategoryTree = MatrixCategory & {
+  matrix_questions: (MatrixQuestion & { matrix_options: MatrixOption[] })[];
+};
+
+export type JobMatrixAnswerRow = {
+  question_id: string;
+  option_id?: string;
+  answer_text?: string;
+  matrix_column: number;
 };
 
 export interface JobCreationFormSectionBodyProps {
@@ -64,6 +64,9 @@ export interface JobCreationFormSectionBodyProps {
   preferredCategoryIndex?: number;
   fieldMeta?: JobFieldMetaMap;
   jobFields?: FormFieldDefinition[];
+  matrixCategories?: JobMatrixCategoryTree[];
+  matrixExistingAnswers?: JobMatrixAnswerRow[];
+  onMatrixAnswersChange?: (answers: JobMatrixAnswerRow[]) => void;
   onChange: (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => void;
@@ -74,17 +77,23 @@ export interface JobCreationFormSectionBodyProps {
 export function JobCreationFormSectionBody({
   sectionId,
   values,
-  preferredCategoryIndex = 0,
   fieldMeta,
   jobFields = [],
+  matrixCategories = [],
+  matrixExistingAnswers = [],
+  onMatrixAnswersChange,
   onChange,
-  onSearchChange,
   onToggleBenefit,
 }: JobCreationFormSectionBodyProps) {
-  const preferredGroups = useMemo(() => groupPreferredFields(), []);
   const selectedBenefits = Array.isArray(values.benefits_package) ? values.benefits_package : [];
-  const preferredCategory = preferredGroups[preferredCategoryIndex];
   const customForSection = customJobFieldsForSection(jobFields, sectionId);
+  const handleMatrixSave = useCallback(
+    async (answers: JobMatrixAnswerRow[]) => {
+      onMatrixAnswersChange?.(answers);
+      return { success: true as const };
+    },
+    [onMatrixAnswersChange]
+  );
 
   switch (sectionId) {
     case "job-identification":
@@ -429,63 +438,45 @@ export function JobCreationFormSectionBody({
       );
 
     case "preferred-selection-by-the-employer":
-      if (!preferredCategory) return null;
-      {
-        const guidance = getPreferredCategoryGuidance(preferredCategory[0]);
-        return (
+      return (
         <JobFormSection
           id="preferred-selection-by-the-employer"
-          title="Improve match ranking"
+          title={FRAMEWORK_MATCHING_LANGUAGE}
           description=""
-          gradient="from-amber-500 to-amber-600"
-          icon={<Sparkles className="h-6 w-6 text-white" />}
+          gradient="from-violet-500 to-violet-600"
+          icon={<Grid3X3 className="h-6 w-6 text-white" />}
           className="mb-0 pb-24 shadow-md"
           hideHeader
         >
           <p className="mb-4 text-sm text-slate-600">
-            <strong>Optional.</strong> These answers do not block candidates—they only help rank who
-            appears higher on your match list (+3 points when a candidate profile aligns with a field
-            you fill in). Skip anything that does not matter for this hire.
+            <strong>Optional.</strong> Answer the same {FRAMEWORK_MATCHING_LANGUAGE} questions
+            candidates complete. Matching compares these word choices to rank who fits this role.
+            Skip this step if you want to finish it later from the job workflow.
           </p>
-          <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-              {guidance?.shortTitle ?? preferredCategory[0]} · {preferredCategoryIndex + 1} of{" "}
-              {preferredGroups.length}
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-700">
-              {guidance?.intro ??
-                "Tell us what you would like to see in strong candidates for this role."}
-            </p>
-          </div>
-          <div className="space-y-4">
-            {preferredCategory[1].map((field) =>
-              isJobFieldVisible(fieldMeta, field.name) ? (
-                field.type === "multilevel" && field.multilevelKey ? (
-                  <JobSearchSelectField
-                    key={field.name}
-                    label={jobFieldLabel(fieldMeta, field.name, field.label)}
-                    name={field.name}
-                    value={String(values[field.name] ?? "")}
-                    options={multilevelOptions[field.multilevelKey]}
-                    onChange={onSearchChange}
-                  />
-                ) : (
-                  <JobTextField
-                    key={field.name}
-                    label={jobFieldLabel(fieldMeta, field.name, field.label)}
-                    name={field.name}
-                    value={String(values[field.name] ?? "")}
-                    placeholder={field.placeholder ?? "Optional"}
-                    onChange={onChange}
-                  />
-                )
-              ) : null
-            )}
-          </div>
+          {matrixCategories.length > 0 ? (
+            <MatrixForm
+              categories={matrixCategories}
+              existingAnswers={matrixExistingAnswers}
+              onSave={handleMatrixSave}
+              onAnswersChange={onMatrixAnswersChange}
+              targetLabel={FRAMEWORK_MATCHING_LANGUAGE}
+              headerIcon={<Grid3X3 className="h-6 w-6" />}
+              hideFooterActions
+              wizard={{
+                badgeLabel: FRAMEWORK_MATCHING_LANGUAGE,
+                instructionText:
+                  "Only choose one word that best describes the ideal candidate for this role.",
+              }}
+            />
+          ) : (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              The {FRAMEWORK_MATCHING_LANGUAGE} form is not configured yet. Ask an administrator to
+              publish the matrix, or continue and complete it later from the job workflow.
+            </div>
+          )}
           <JobCustomFieldsBlock fields={customForSection} values={values} onChange={onChange} />
         </JobFormSection>
-        );
-      }
+      );
 
     default:
       return null;

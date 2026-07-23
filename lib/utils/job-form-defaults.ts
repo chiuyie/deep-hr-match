@@ -47,6 +47,8 @@ export function mergeJobFormInitialValues(initialValues: JobFormState = {}): Job
 }
 
 export const JOB_CREATION_DRAFT_STORAGE_KEY = "deep-hr-match:employer-job-draft";
+export const JOB_CREATION_MATRIX_DRAFT_STORAGE_KEY =
+  "deep-hr-match:employer-job-matrix-draft";
 
 export function readJobCreationDraft(): JobFormState | null {
   if (typeof window === "undefined") return null;
@@ -68,9 +70,41 @@ export function writeJobCreationDraft(values: JobFormState): void {
   }
 }
 
+export type JobMatrixDraftAnswer = {
+  question_id: string;
+  option_id?: string;
+  answer_text?: string;
+  matrix_column: number;
+};
+
+export function readJobCreationMatrixDraft(): JobMatrixDraftAnswer[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(JOB_CREATION_MATRIX_DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as JobMatrixDraftAnswer[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeJobCreationMatrixDraft(answers: JobMatrixDraftAnswer[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      JOB_CREATION_MATRIX_DRAFT_STORAGE_KEY,
+      JSON.stringify(answers)
+    );
+  } catch {
+    // ignore quota errors
+  }
+}
+
 export function clearJobCreationDraft(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(JOB_CREATION_DRAFT_STORAGE_KEY);
+  window.localStorage.removeItem(JOB_CREATION_MATRIX_DRAFT_STORAGE_KEY);
 }
 
 export function isEditingExistingJob(initialValues: JobFormState): boolean {

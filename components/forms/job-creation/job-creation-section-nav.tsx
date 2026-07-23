@@ -12,7 +12,7 @@ import {
   FileText,
   Gift,
   HelpCircle,
-  Sparkles,
+  Grid3X3,
   UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ const sectionIcons: Record<string, React.ReactNode> = {
   compensation: <Gift className="h-4 w-4" />,
   "basic-information": <ClipboardList className="h-4 w-4" />,
   "background-information-questions": <HelpCircle className="h-4 w-4" />,
-  "preferred-selection-by-the-employer": <Sparkles className="h-4 w-4" />,
+  "preferred-selection-by-the-employer": <Grid3X3 className="h-4 w-4" />,
 };
 
 const sectionGradients: Record<string, string> = {
@@ -39,7 +39,7 @@ const sectionGradients: Record<string, string> = {
   compensation: "from-emerald-500 to-emerald-600",
   "basic-information": "from-purple-500 to-purple-600",
   "background-information-questions": "from-green-500 to-green-600",
-  "preferred-selection-by-the-employer": "from-amber-500 to-amber-600",
+  "preferred-selection-by-the-employer": "from-violet-500 to-violet-600",
 };
 
 interface JobCreationSectionNavProps {
@@ -47,6 +47,7 @@ interface JobCreationSectionNavProps {
   visitedThroughIndex: number;
   values: JobFormState;
   onSectionSelect: (index: number) => void;
+  matrixFillPercent?: number;
 }
 
 function SectionNavButton({
@@ -129,6 +130,7 @@ export function JobCreationSectionNav({
   visitedThroughIndex,
   values,
   onSectionSelect,
+  matrixFillPercent = 0,
 }: JobCreationSectionNavProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -136,6 +138,11 @@ export function JobCreationSectionNav({
 
   const activeSection = JOB_FORM_SECTIONS[currentSectionIndex];
   const activeTitle = activeSection?.title ?? "Sections";
+
+  const fillPercentFor = (sectionId: string) => {
+    if (sectionId === "preferred-selection-by-the-employer") return matrixFillPercent;
+    return getSectionFillStats(values, sectionId as JobFormSectionId).percent;
+  };
 
   const handleSelect = (index: number) => {
     onSectionSelect(index);
@@ -174,7 +181,7 @@ export function JobCreationSectionNav({
           >
             <div className="space-y-1">
               {JOB_FORM_SECTIONS.map((section, index) => {
-                const stats = getSectionFillStats(values, section.id);
+                const fillPercent = fillPercentFor(section.id);
                 const complete = isSectionMarkedComplete(
                   values,
                   section.id,
@@ -189,7 +196,7 @@ export function JobCreationSectionNav({
                     title={section.title}
                     active={currentSectionIndex === index}
                     complete={complete}
-                    fillPercent={stats.percent}
+                    fillPercent={fillPercent}
                     collapsed={false}
                     onSelect={() => handleSelect(index)}
                     onHover={setHoveredSection}
@@ -220,7 +227,7 @@ export function JobCreationSectionNav({
           )}
           <div className={cn("py-3", collapsed && "px-1.5")}>
             {JOB_FORM_SECTIONS.map((section, index) => {
-              const stats = getSectionFillStats(values, section.id);
+              const fillPercent = fillPercentFor(section.id);
               const complete = isSectionMarkedComplete(
                 values,
                 section.id,
@@ -235,7 +242,7 @@ export function JobCreationSectionNav({
                   title={section.title}
                   active={currentSectionIndex === index}
                   complete={complete}
-                  fillPercent={stats.percent}
+                  fillPercent={fillPercent}
                   collapsed={collapsed}
                   onSelect={() => handleSelect(index)}
                   onHover={setHoveredSection}

@@ -5,19 +5,26 @@ import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { JobCreationSectionNav } from "./job-creation-section-nav";
 import { JobCreationStepNav } from "./job-creation-step-nav";
 import { JobCreationProgressHeader } from "./job-creation-progress-header";
-import { JobCreationFormSectionBody } from "./job-creation-form-sections";
-import { groupPreferredFields, getPreferredCategoryGuidance, JOB_FORM_SECTIONS } from "@/lib/constants/job-form";
+import {
+  JobCreationFormSectionBody,
+  type JobMatrixAnswerRow,
+  type JobMatrixCategoryTree,
+} from "./job-creation-form-sections";
+import { JOB_FORM_SECTIONS, JOB_MATRIX_ANSWERS_FORM_KEY } from "@/lib/constants/job-form";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { MATRIX_WORDS_PER_LEVEL } from "@/lib/matching/matrix-constants";
 import {
   clearJobCreationDraft,
   isEditingExistingJob,
   mergeJobFormInitialValues,
   readJobCreationDraft,
+  readJobCreationMatrixDraft,
   writeJobCreationDraft,
+  writeJobCreationMatrixDraft,
 } from "@/lib/utils/job-form-defaults";
 import {
   findSectionIndexForField,
   getJobFormSectionsProgress,
-  getPreferredCategoryFieldKeys,
   getSectionFillStats,
   validateJobFormForSubmit,
   validateJobFormSection,
@@ -40,6 +47,8 @@ interface JobCreationFormProps {
   action: (formData: FormData) => Promise<void>;
   persistDraft?: boolean;
   jobFields?: FormFieldDefinition[];
+  matrixCategories?: JobMatrixCategoryTree[];
+  matrixExistingAnswers?: JobMatrixAnswerRow[];
 }
 
 function scrollDashboardToTop() {
@@ -51,12 +60,29 @@ function scrollDashboardToTop() {
   }
 }
 
+function matrixFillStats(answers: JobMatrixAnswerRow[]) {
+  const columns = new Set(
+    answers
+      .map((answer) => answer.matrix_column)
+      .filter((column) => typeof column === "number" && column >= 1)
+  );
+  const filled = Math.min(columns.size, MATRIX_WORDS_PER_LEVEL);
+  const total = MATRIX_WORDS_PER_LEVEL;
+  return {
+    filled,
+    total,
+    percent: total ? Math.round((filled / total) * 100) : 0,
+  };
+}
+
 export function JobCreationForm({
   initialValues = {},
   submitLabel = "Save Job",
   action,
   persistDraft = true,
   jobFields = [],
+  matrixCategories = [],
+  matrixExistingAnswers = [],
 }: JobCreationFormProps) {
   const fieldMeta = useMemo(() => buildJobFieldMetaMap(jobFields), [jobFields]);
   const customFieldKeys = useMemo(
@@ -64,8 +90,6 @@ export function JobCreationForm({
     [jobFields]
   );
   const editingExisting = isEditingExistingJob(initialValues);
-  const preferredGroups = useMemo(() => groupPreferredFields(), []);
-  const preferredCategoryCount = preferredGroups.length;
 
   const [values, setValues] = useState<JobFormState>(() => {
     const base = mergeJobFormInitialValues(initialValues);
@@ -75,8 +99,13 @@ export function JobCreationForm({
     }
     return base;
   });
+  const [matrixAnswers, setMatrixAnswers] = useState<JobMatrixAnswerRow[]>(() => {
+    if (persistDraft && !editingExisting) {
+      return readJobCreationMatrixDraft() ?? matrixExistingAnswers;
+    }
+    return matrixExistingAnswers;
+  });
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [preferredCategoryIndex, setPreferredCategoryIndex] = useState(0);
   const [visitedThroughIndex, setVisitedThroughIndex] = useState(0);
   const [sectionError, setSectionError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -85,28 +114,19 @@ export function JobCreationForm({
 
   const sectionCount = JOB_FORM_SECTIONS.length;
   const currentSection = JOB_FORM_SECTIONS[currentSectionIndex];
-  const isPreferredSection = currentSection.id === "preferred-selection-by-the-employer";
-  const isFirstSection = currentSectionIndex === 0 && preferredCategoryIndex === 0;
-  const isLastPreferredCategory =
-    isPreferredSection && preferredCategoryIndex >= preferredCategoryCount - 1;
-  const isLastSection = currentSectionIndex === sectionCount - 1 && isLastPreferredCategory;
+  const isMatrixSection = currentSection.id === "preferred-selection-by-the-employer";
+  const isFirstSection = currentSectionIndex === 0;
+  const isLastSection = currentSectionIndex === sectionCount - 1;
 
   const sectionsProgress = useMemo(
     () => getJobFormSectionsProgress(values, visitedThroughIndex, fieldMeta),
     [values, visitedThroughIndex, fieldMeta]
   );
 
-  const sectionFieldKeys = useMemo(() => {
-    if (isPreferredSection && preferredGroups[preferredCategoryIndex]) {
-      return getPreferredCategoryFieldKeys(preferredGroups[preferredCategoryIndex][0]);
-    }
-    return undefined;
-  }, [isPreferredSection, preferredCategoryIndex, preferredGroups]);
-
-  const sectionStats = useMemo(
-    () => getSectionFillStats(values, currentSection.id, sectionFieldKeys),
-    [values, currentSection.id, sectionFieldKeys]
-  );
+  const sectionStats = useMemo(() => {
+    if (isMatrixSection) return matrixFillStats(matrixAnswers);
+    return getSectionFillStats(values, currentSection.id);
+  }, [values, currentSection.id, isMatrixSection, matrixAnswers]);
 
   const markDirty = () => {
     dirtyRef.current = true;
@@ -114,24 +134,15 @@ export function JobCreationForm({
   };
 
   const goToSection = useCallback(
-    (index: number, preferredIndex = 0) => {
+    (index: number) => {
       const next = Math.max(0, Math.min(sectionCount - 1, index));
       setCurrentSectionIndex(next);
-      setPreferredCategoryIndex(
-        JOB_FORM_SECTIONS[next].id === "preferred-selection-by-the-employer"
-          ? Math.max(0, Math.min(preferredCategoryCount - 1, preferredIndex))
-          : 0
-      );
+      setVisitedThroughIndex((prev) => Math.max(prev, next));
       setSectionError(null);
       scrollDashboardToTop();
     },
-    [preferredCategoryCount, sectionCount]
+    [sectionCount]
   );
-
-  useEffect(() => {
-    setVisitedThroughIndex((prev) => Math.max(prev, currentSectionIndex));
-  }, [currentSectionIndex]);
-
   useEffect(() => {
     if (!persistDraft || editingExisting) return;
     const timer = window.setTimeout(() => {
@@ -139,6 +150,14 @@ export function JobCreationForm({
     }, 400);
     return () => window.clearTimeout(timer);
   }, [values, persistDraft, editingExisting]);
+
+  useEffect(() => {
+    if (!persistDraft || editingExisting) return;
+    const timer = window.setTimeout(() => {
+      writeJobCreationMatrixDraft(matrixAnswers);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [matrixAnswers, persistDraft, editingExisting]);
 
   useEffect(() => {
     if (!persistDraft || editingExisting) return;
@@ -196,6 +215,15 @@ export function JobCreationForm({
     setValues((current) => ({ ...current, [name]: value }));
   };
 
+  const handleMatrixAnswersChange = useCallback((answers: JobMatrixAnswerRow[]) => {
+    setMatrixAnswers((prev) => {
+      if (JSON.stringify(prev) === JSON.stringify(answers)) return prev;
+      dirtyRef.current = true;
+      setIsDirty(true);
+      return answers;
+    });
+  }, []);
+
   const toggleBenefit = (benefit: string) => {
     markDirty();
     setSectionError(null);
@@ -223,6 +251,7 @@ export function JobCreationForm({
         formData.set(formKey, value);
       }
     }
+    formData.set(JOB_MATRIX_ANSWERS_FORM_KEY, JSON.stringify(matrixAnswers));
     return formData;
   };
 
@@ -243,23 +272,10 @@ export function JobCreationForm({
       return;
     }
 
-    if (isPreferredSection && !isLastPreferredCategory) {
-      setPreferredCategoryIndex((index) => index + 1);
-      setSectionError(null);
-      scrollDashboardToTop();
-      return;
-    }
-
     goToSection(currentSectionIndex + 1);
   };
 
   const handleBack = () => {
-    if (isPreferredSection && preferredCategoryIndex > 0) {
-      setPreferredCategoryIndex((index) => index - 1);
-      setSectionError(null);
-      scrollDashboardToTop();
-      return;
-    }
     goToSection(currentSectionIndex - 1);
   };
 
@@ -284,15 +300,6 @@ export function JobCreationForm({
     });
   };
 
-  const preferredPartLabel =
-    isPreferredSection && preferredGroups[preferredCategoryIndex]
-      ? (() => {
-          const category = preferredGroups[preferredCategoryIndex][0];
-          const guidance = getPreferredCategoryGuidance(category);
-          return `${guidance?.shortTitle ?? category} (${preferredCategoryIndex + 1}/${preferredCategoryCount})`;
-        })()
-      : undefined;
-
   return (
     <>
       <JobCreationStepNav
@@ -314,7 +321,8 @@ export function JobCreationForm({
               currentSectionIndex={currentSectionIndex}
               visitedThroughIndex={visitedThroughIndex}
               values={values}
-              onSectionSelect={(index) => goToSection(index, 0)}
+              onSectionSelect={(index) => goToSection(index)}
+              matrixFillPercent={matrixFillStats(matrixAnswers).percent}
             />
           </div>
         </aside>
@@ -327,20 +335,26 @@ export function JobCreationForm({
             sectionTotal={sectionStats.total}
             sectionsCompleted={sectionsProgress.completed}
             sectionCount={sectionsProgress.total}
-            preferredPartLabel={preferredPartLabel}
+            preferredPartLabel={
+              isMatrixSection
+                ? `${FRAMEWORK_MATCHING_LANGUAGE} (${sectionStats.filled}/${sectionStats.total} factors)`
+                : undefined
+            }
           />
 
           <form onSubmit={handleSubmit} className="space-y-0">
             <div
-              key={`${currentSection.id}-${preferredCategoryIndex}`}
+              key={currentSection.id}
               className="animate-in fade-in slide-in-from-right-4 duration-300"
             >
               <JobCreationFormSectionBody
                 sectionId={currentSection.id}
                 values={values}
-                preferredCategoryIndex={preferredCategoryIndex}
                 fieldMeta={fieldMeta}
                 jobFields={jobFields}
+                matrixCategories={matrixCategories}
+                matrixExistingAnswers={matrixAnswers}
+                onMatrixAnswersChange={handleMatrixAnswersChange}
                 onChange={handleChange}
                 onSearchChange={handleSearchChange}
                 onToggleBenefit={toggleBenefit}
@@ -361,9 +375,9 @@ export function JobCreationForm({
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-center text-xs text-slate-500 sm:text-left">
                   {isLastSection
-                    ? "Review your answers, then save. You can still jump to earlier steps."
-                    : isPreferredSection && !isLastPreferredCategory
-                      ? "Continue through each preference group, or skip empty fields."
+                    ? `Review your answers, then save. ${FRAMEWORK_MATCHING_LANGUAGE} is optional.`
+                    : isMatrixSection
+                      ? `Optional · same ${FRAMEWORK_MATCHING_LANGUAGE} candidates complete.`
                       : "Required fields are marked with * · Other steps are optional."}
                 </p>
                 <div className="flex flex-wrap justify-end gap-2">

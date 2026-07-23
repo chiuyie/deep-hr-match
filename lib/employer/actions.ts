@@ -20,6 +20,7 @@ import {
   formStateToJobPayload,
   parseJobFormState,
 } from "@/lib/utils/job-form";
+import { JOB_MATRIX_ANSWERS_FORM_KEY } from "@/lib/constants/job-form";
 import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategory } from "@/lib/matching/matrix-queries";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 import {
@@ -34,6 +35,40 @@ import { triggerMatchRun } from "@/lib/matching/trigger";
 import { fulfillUnlockPayment } from "@/lib/payments/fulfill-unlock";
 import { isMockPayments } from "@/lib/payments/mode";
 import { getStripe, getAppUrl } from "@/lib/stripe/client";
+
+type MatrixAnswerPayload = {
+  question_id: string;
+  option_id?: string;
+  answer_text?: string;
+  matrix_column?: number;
+};
+
+function parseMatrixAnswersFromFormData(formData: FormData): MatrixAnswerPayload[] {
+  const raw = formData.get(JOB_MATRIX_ANSWERS_FORM_KEY);
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (row): row is MatrixAnswerPayload =>
+          Boolean(row) &&
+          typeof row === "object" &&
+          typeof (row as MatrixAnswerPayload).question_id === "string"
+      )
+      .map((row) => ({
+        question_id: row.question_id,
+        option_id: row.option_id || undefined,
+        answer_text: row.answer_text || undefined,
+        matrix_column:
+          typeof row.matrix_column === "number" && row.matrix_column >= 1
+            ? row.matrix_column
+            : 0,
+      }));
+  } catch {
+    return [];
+  }
+}
 
 async function getEmployerId(userId: string) {
   const supabase = await createClient();
@@ -78,6 +113,7 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
   const fields = await loadFormFields({ audience: "employer", formGroup: "job" });
 
   const formState = parseJobFormState(formData);
+  const matrixAnswers = parseMatrixAnswersFromFormData(formData);
   const customFromForm = extractCustomFields(formData);
   const fieldValidation = validateJobStateAgainstFormFields(formState, fields, customFromForm);
   if (fieldValidation.ok === false) {
@@ -101,6 +137,8 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
     employer_id: employerId,
   };
 
+  let savedJobId = jobId;
+
   if (jobId) {
     const { data: existing } = await supabase
       .from("jobs")
@@ -122,8 +160,32 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
   } else {
     const { data, error } = await supabase.from("jobs").insert(payload).select("id").single();
     if (error) throw new Error(error.message);
+    savedJobId = data.id;
     revalidatePath("/employer/jobs");
-    redirect(`/employer/jobs/${data.id}`);
+  }
+
+  if (savedJobId && matrixAnswers.length > 0) {
+    for (const answer of matrixAnswers) {
+      const matrixColumn =
+        answer.matrix_column && answer.matrix_column >= 1 ? answer.matrix_column : 0;
+      const { error: matrixError } = await supabase.from("job_matrix_answers").upsert(
+        {
+          job_id: savedJobId,
+          question_id: answer.question_id,
+          option_id: answer.option_id ?? null,
+          answer_text: answer.answer_text ?? null,
+          matrix_column: matrixColumn,
+        },
+        { onConflict: "job_id,question_id,matrix_column" }
+      );
+      if (matrixError) throw new Error(matrixError.message);
+    }
+    revalidatePath(`/employer/jobs/${savedJobId}/matrix`);
+    revalidatePath(`/employer/jobs/${savedJobId}/matching`);
+  }
+
+  if (!jobId && savedJobId) {
+    redirect(`/employer/jobs/${savedJobId}`);
   }
 
   revalidatePath("/employer/jobs");

@@ -61,36 +61,36 @@ export function PlatformDisclosureSection({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800/80">
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Platform data · before unlock
           </p>
-          <p className="mt-1 text-2xl font-semibold text-slate-800">{beforeCount}</p>
-          <p className="mt-1 text-sm text-slate-600">scores, matrix teasers, etc.</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-900">{beforeCount}</p>
+          <p className="mt-1 text-sm text-slate-600">Scores, matrix teasers, and ranking data</p>
         </div>
-        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-800/80">
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Platform data · after unlock
           </p>
-          <p className="mt-1 text-2xl font-semibold text-slate-800">{afterCount}</p>
-          <p className="mt-1 text-sm text-slate-600">7^7 answers, report, CV</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-900">{afterCount}</p>
+          <p className="mt-1 text-sm text-slate-600">7^7 answers, match report, and CV</p>
         </div>
       </div>
 
       {grouped.map((group) => (
         <details
           key={group.category}
-          className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm"
+          className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
           open={group.category !== "report"}
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3 marker:content-none">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3.5 marker:content-none">
             <div>
-              <p className="text-sm font-semibold text-slate-800">{group.title}</p>
-              <p className="text-xs text-slate-500">{group.hint}</p>
+              <p className="text-sm font-semibold text-slate-900">{group.title}</p>
+              <p className="mt-0.5 text-sm text-slate-600">{group.hint}</p>
             </div>
-            <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-180" />
+            <ChevronDown className="h-4 w-4 shrink-0 text-slate-500 transition group-open:rotate-180" />
           </summary>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-200">
             {group.rows.map((item) => {
               const shownAfter = isShownAfterUnlock(item.employer_disclosure_mode);
               return (
@@ -99,8 +99,8 @@ export function PlatformDisclosureSection({
                   className="grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)] lg:items-start"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-800">{item.label}</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">{item.description}</p>
+                    <p className="text-sm font-semibold text-slate-900">{item.label}</p>
+                    <p className="mt-1 text-sm leading-5 text-slate-600">{item.description}</p>
                   </div>
 
                   <div className="space-y-2">
@@ -108,7 +108,7 @@ export function PlatformDisclosureSection({
                       type="button"
                       size="sm"
                       variant={item.show_on_anonymous_match ? "secondary" : "outline"}
-                      className="h-9 w-full justify-start rounded-xl text-xs sm:w-auto"
+                      className="h-9 w-full justify-start rounded-xl text-sm sm:w-auto"
                       disabled={pending}
                       onClick={() =>
                         onRunAction(
@@ -134,6 +134,12 @@ export function PlatformDisclosureSection({
                         </>
                       )}
                     </Button>
+                    <Badge
+                      variant="secondary"
+                      className="border border-slate-200 bg-slate-50 text-[11px] font-medium text-slate-700"
+                    >
+                      {item.show_on_anonymous_match ? "Visible before unlock" : "Hidden before unlock"}
+                    </Badge>
                   </div>
 
                   <div className="space-y-2">
@@ -142,7 +148,7 @@ export function PlatformDisclosureSection({
                         type="button"
                         size="sm"
                         variant={shownAfter ? "secondary" : "outline"}
-                        className="h-9 justify-start rounded-xl text-xs"
+                        className="h-9 justify-start rounded-xl text-sm"
                         disabled={pending}
                         onClick={() => {
                           const nextMode: EmployerDisclosureMode = shownAfter
@@ -159,10 +165,23 @@ export function PlatformDisclosureSection({
                           );
                         }}
                       >
-                        {shownAfter ? "Included after unlock" : "Private after unlock"}
+                        {shownAfter ? (
+                          <>
+                            <Eye className="mr-1.5 h-3.5 w-3.5" />
+                            Include after unlock
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="mr-1.5 h-3.5 w-3.5" />
+                            Keep private
+                          </>
+                        )}
                       </Button>
                       {shownAfter && item.employer_disclosure_mode === "candidate_optional" ? (
-                        <Badge variant="outline" className="w-fit text-[10px]">
+                        <Badge
+                          variant="outline"
+                          className="w-fit border-slate-300 text-[11px] font-medium text-slate-700"
+                        >
                           Only if available
                         </Badge>
                       ) : null}
@@ -182,13 +201,19 @@ export function PlatformDisclosureSection({
                             "After-unlock visibility updated"
                           );
                         }}
-                        className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-xs"
+                        className="h-9 rounded-xl border border-slate-300 bg-white px-2 text-sm text-slate-800"
                         aria-label="Match narrative visibility"
                       >
                         <option value="always_visible">Always include</option>
                         <option value="candidate_optional">Only if generated</option>
                       </select>
                     ) : null}
+                    <Badge
+                      variant="secondary"
+                      className="border border-slate-200 bg-slate-50 text-[11px] font-medium text-slate-700"
+                    >
+                      {shownAfter ? "Visible after unlock" : "Private after unlock"}
+                    </Badge>
                   </div>
                 </div>
               );

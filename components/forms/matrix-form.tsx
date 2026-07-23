@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -57,10 +57,20 @@ interface MatrixFormProps {
     }[],
     submit: boolean
   ) => Promise<{ error?: string; success?: boolean; redirectTo?: string }>;
+  /** Fires whenever local answers change (flattened rows). */
+  onAnswersChange?: (
+    answers: {
+      question_id: string;
+      option_id?: string;
+      answer_text?: string;
+      matrix_column: number;
+    }[]
+  ) => void;
   targetLabel?: string;
   headerIcon?: React.ReactNode;
   wizard?: {
     instructionText?: string;
+    badgeLabel?: string;
     /** True when the candidate has already submitted this form. */
     alreadySubmitted?: boolean;
     continueHref?: string;
@@ -120,6 +130,7 @@ export function MatrixForm({
   categories,
   existingAnswers,
   onSave,
+  onAnswersChange,
   targetLabel = FRAMEWORK_MATCHING_LANGUAGE,
   headerIcon = <Grid3X3 className="h-6 w-6" />,
   wizard,
@@ -133,6 +144,10 @@ export function MatrixForm({
   const [submitted, setSubmitted] = useState(Boolean(wizard?.alreadySubmitted));
 
   const category = useMemo(() => prepareCategory(categories), [categories]);
+
+  useEffect(() => {
+    onAnswersChange?.(flattenColumnAnswers(answers));
+  }, [answers, onAnswersChange]);
 
   const flow = useMemo(
     () =>
@@ -513,7 +528,7 @@ export function MatrixForm({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
-                Candidate assessment
+                {wizard.badgeLabel ?? "Candidate assessment"}
               </Badge>
               <div className="space-y-1">
                 <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
@@ -565,7 +580,9 @@ export function MatrixForm({
                   <p className="text-sm text-emerald-900/80 dark:text-emerald-200/90">
                     {showSubmittedState
                       ? "You can review with Back if you want to change anything, then continue."
-                      : "Review with Back if needed, or submit your responses to continue."}
+                      : hideFooterActions
+                        ? "Review with Back if needed. Your answers are kept with this job form until you save."
+                        : "Review with Back if needed, or submit your responses to continue."}
                   </p>
                 </div>
               </div>
@@ -587,7 +604,7 @@ export function MatrixForm({
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                ) : (
+                ) : hideFooterActions ? null : (
                   <Button
                     type="button"
                     className="rounded-xl"

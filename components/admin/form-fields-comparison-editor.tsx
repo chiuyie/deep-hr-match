@@ -56,16 +56,29 @@ interface FormFieldsComparisonEditorProps {
 }
 
 const FIELD_TYPE_STYLES: Record<string, string> = {
-  text: "border-slate-200 bg-slate-50 text-slate-600",
-  email: "border-blue-200 bg-blue-50 text-blue-700",
-  tel: "border-teal-200 bg-teal-50 text-teal-700",
-  url: "border-indigo-200 bg-indigo-50 text-indigo-700",
-  number: "border-amber-200 bg-amber-50 text-amber-700",
-  textarea: "border-violet-200 bg-violet-50 text-violet-700",
-  select: "border-cyan-200 bg-cyan-50 text-cyan-700",
-  checkbox: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  file: "border-rose-200 bg-rose-50 text-rose-700",
+  text: "border-slate-300 bg-white text-slate-700",
+  email: "border-slate-300 bg-white text-slate-700",
+  tel: "border-slate-300 bg-white text-slate-700",
+  url: "border-slate-300 bg-white text-slate-700",
+  number: "border-slate-300 bg-white text-slate-700",
+  textarea: "border-slate-300 bg-white text-slate-700",
+  select: "border-slate-300 bg-white text-slate-700",
+  checkbox: "border-slate-300 bg-white text-slate-700",
+  file: "border-slate-300 bg-white text-slate-700",
 };
+
+const FORM_TAB_TRIGGER_CLASS =
+  "inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-2 rounded-md border border-transparent px-3 py-0 text-sm font-medium text-slate-600 shadow-none after:hidden " +
+  "hover:bg-white/80 hover:text-slate-900 " +
+  "focus-visible:border-sky-300 focus-visible:ring-2 focus-visible:ring-sky-500/25 focus-visible:outline-none " +
+  "data-active:border-slate-200 data-active:bg-white data-active:font-semibold data-active:text-slate-900 data-active:shadow-none " +
+  "group-data-[variant=default]/tabs-list:data-active:shadow-none";
+
+const FORM_TAB_BADGE_CLASS =
+  "h-5 min-w-5 shrink-0 justify-center rounded-md border border-slate-200 bg-white px-1.5 text-[11px] font-medium tabular-nums leading-none text-slate-600";
+
+const FORM_TAB_LIST_CLASS =
+  "flex !h-auto min-h-0 w-full flex-nowrap items-center justify-start gap-2.5 rounded-lg border border-slate-200/80 bg-slate-100 p-0.5 shadow-none";
 
 const DISCLOSURE_MODE_OPTIONS: Array<{
   value: EmployerDisclosureMode;
@@ -193,22 +206,22 @@ export function FormFieldsComparisonEditor({
           </p>
         </div>
       ) : null}
-      <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-lg">
-        <div className="border-b border-slate-100 bg-gradient-to-r from-violet-50/80 via-white to-cyan-50/80 px-6 py-6 sm:px-8">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-6 sm:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg">
-                <ListTree className="h-6 w-6" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-white">
+                <ListTree className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-xl font-bold tracking-tight text-slate-800 sm:text-2xl">
+                <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                   Form Fields &amp; Match Disclosure
                 </h2>
-                <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500">
-                  Use this page to manage the live fields on the <strong>candidate profile</strong>,{" "}
-                  <strong>employer profile</strong>, and <strong>employer create-job</strong> forms.
-                  Candidate fields also control what employers can see on anonymized match rankings
-                  and unlocked candidate profiles / match reports.
+                <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-slate-600">
+                  Manage fields on the <strong className="font-semibold text-slate-800">candidate profile</strong>,{" "}
+                  <strong className="font-semibold text-slate-800">employer profile</strong>, and{" "}
+                  <strong className="font-semibold text-slate-800">create-job</strong> forms. Candidate fields also
+                  control what employers see on anonymized rankings and unlocked profiles.
                 </p>
               </div>
             </div>
@@ -216,7 +229,7 @@ export function FormFieldsComparisonEditor({
               <Button
                 type="button"
                 size="sm"
-                variant={showHidden ? "secondary" : "outline"}
+                variant={showHidden ? "default" : "outline"}
                 className="rounded-lg"
                 onClick={() => setShowHidden((value) => !value)}
               >
@@ -232,62 +245,55 @@ export function FormFieldsComparisonEditor({
             label="Candidate profile"
             value={candidateCount}
             icon={User}
-            accent="from-blue-500/15 to-blue-500/5 text-blue-700"
+            accent="from-sky-500 to-sky-600 text-white"
           />
           <AdminStatCard
             label="Employer profile"
             value={employerProfileCount}
             icon={Building2}
-            accent="from-cyan-500/15 to-cyan-500/5 text-cyan-700"
+            accent="from-teal-500 to-teal-600 text-white"
           />
           <AdminStatCard
             label="Employer job form"
             value={employerJobCount}
             icon={Briefcase}
-            accent="from-violet-500/15 to-indigo-500/10 text-violet-700"
+            accent="from-indigo-500 to-indigo-600 text-white"
           />
         </div>
       </section>
 
-      <Tabs defaultValue="profile" className="gap-5">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-2 rounded-2xl border border-slate-100 bg-white p-2 shadow-sm">
-          <TabsTrigger
-            value="profile"
-            className="rounded-xl px-4 py-2.5 text-sm data-active:bg-blue-50 data-active:text-blue-800"
-          >
-            <User className="mr-2 h-4 w-4" />
-            Profile forms
-            <Badge variant="secondary" className="ml-2 text-[10px]">
-              {candidateCount} / {employerProfileCount}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger
-            value="job"
-            className="rounded-xl px-4 py-2.5 text-sm data-active:bg-violet-50 data-active:text-violet-800"
-          >
-            <Briefcase className="mr-2 h-4 w-4" />
-            Create job form
-            <Badge variant="secondary" className="ml-2 text-[10px]">
-              {employerJobCount}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger
-            value="match"
-            className="rounded-xl px-4 py-2.5 text-sm data-active:bg-emerald-50 data-active:text-emerald-800"
-          >
-            <Target className="mr-2 h-4 w-4" />
-            Match results disclosure
-            <Badge variant="secondary" className="ml-2 text-[10px]">
-              {candidateCount}
-            </Badge>
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="profile" className="min-w-0 gap-4">
+        <div className="w-full min-w-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList className={FORM_TAB_LIST_CLASS}>
+            <TabsTrigger value="profile" className={FORM_TAB_TRIGGER_CLASS}>
+              <User className="size-4 shrink-0" aria-hidden />
+              <span className="truncate">Profile forms</span>
+              <Badge variant="secondary" className={FORM_TAB_BADGE_CLASS}>
+                {candidateCount} / {employerProfileCount}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="job" className={FORM_TAB_TRIGGER_CLASS}>
+              <Briefcase className="size-4 shrink-0" aria-hidden />
+              <span className="truncate">Create job form</span>
+              <Badge variant="secondary" className={FORM_TAB_BADGE_CLASS}>
+                {employerJobCount}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="match" className={FORM_TAB_TRIGGER_CLASS}>
+              <Target className="size-4 shrink-0" aria-hidden />
+              <span className="truncate">Match results disclosure</span>
+              <Badge variant="secondary" className={FORM_TAB_BADGE_CLASS}>
+                {candidateCount}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="profile" className="mt-0 space-y-4">
-          <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-blue-900">
-            Edit fields shown on the <strong>candidate profile page</strong> and{" "}
-            <strong>employer profile page</strong>. Candidate-side visibility badges here also feed
-            unlocked match reports.
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+            Edit fields on the <strong className="font-semibold text-slate-900">candidate</strong> and{" "}
+            <strong className="font-semibold text-slate-900">employer profile</strong> pages. Candidate
+            visibility settings also feed unlocked match reports.
           </div>
           <Toolbar
             search={profileSearch}
@@ -308,9 +314,9 @@ export function FormFieldsComparisonEditor({
         </TabsContent>
 
         <TabsContent value="job" className="mt-0 space-y-4">
-          <div className="rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3 text-sm text-violet-900">
-            Edit fields employers fill when creating or editing a job. These inputs also filter
-            candidate-job matches (for example required availability, age range, or ethnicity).
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+            Edit fields employers fill when creating or editing a job. These can also filter
+            candidate–job matches.
           </div>
           <Toolbar
             search={jobSearch}
@@ -332,11 +338,11 @@ export function FormFieldsComparisonEditor({
         </TabsContent>
 
         <TabsContent value="match" className="mt-0 space-y-4">
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-4 text-sm text-emerald-950">
-            <p className="font-medium">Control what employers see before and after unlock.</p>
-            <p className="mt-2 text-emerald-900/90">
-              Start with <strong>scores, 7^7 answers, and CV</strong> below, then expand profile
-              fields only when you need finer control. Sensitive contact fields usually stay off
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700">
+            <p className="font-semibold text-slate-900">Control what employers see before and after unlock.</p>
+            <p className="mt-1.5 text-slate-600">
+              Start with <strong className="font-semibold text-slate-800">scores, 7^7 answers, and CV</strong>,
+              then expand profile fields when you need finer control. Keep sensitive contact fields off
               anonymized rankings.
             </p>
           </div>
@@ -345,17 +351,17 @@ export function FormFieldsComparisonEditor({
             pending={pending}
             onRunAction={runAction}
           />
-          <details className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3 marker:content-none">
+          <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3.5 marker:content-none">
               <div>
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-sm font-semibold text-slate-900">
                   Candidate profile fields ({candidateCount})
                 </p>
-                <p className="text-xs text-slate-500">
-                  Per-field control for profile data the candidate submitted on signup.
+                <p className="mt-0.5 text-sm text-slate-600">
+                  Per-field control for profile data the candidate submitted.
                 </p>
               </div>
-              <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-180" />
+              <ChevronDown className="h-4 w-4 shrink-0 text-slate-500 transition group-open:rotate-180" />
             </summary>
             <div className="space-y-4 p-4">
               <Toolbar
@@ -400,22 +406,22 @@ function Toolbar({
   pending: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
       <div className="relative min-w-0 flex-1">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
         <Input
           value={search}
           disabled={pending}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={placeholder}
-          className="h-10 rounded-xl border-slate-200 pl-9"
+          className="h-10 rounded-xl border-slate-300 bg-white pl-9 text-slate-900 placeholder:text-slate-400"
           aria-label="Search fields"
         />
       </div>
-      <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-        <LegendItem color="bg-blue-100 text-blue-700" label="Candidate" />
-        <LegendItem color="bg-cyan-100 text-cyan-700" label="Employer" />
-        <LegendItem color="bg-amber-100 text-amber-700" label="Custom field" />
+      <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+        <LegendItem color="bg-sky-600" label="Candidate" />
+        <LegendItem color="bg-teal-600" label="Employer" />
+        <LegendItem color="bg-amber-500" label="Custom field" />
       </div>
     </div>
   );
@@ -423,8 +429,8 @@ function Toolbar({
 
 function LegendItem({ color, label }: { color: string; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1">
-      <span className={cn("h-2 w-2 rounded-full", color.split(" ")[0])} />
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-700">
+      <span className={cn("h-2 w-2 rounded-full", color)} />
       {label}
     </span>
   );
@@ -517,24 +523,24 @@ function MatchDisclosurePanel({
                 key={field.id}
                 className={cn(
                   "grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)] lg:items-start",
-                  !field.is_active && "bg-slate-50/70 opacity-70"
+                  !field.is_active && "bg-slate-50"
                 )}
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="text-sm font-semibold text-slate-800">{field.label}</p>
+                    <p className="text-sm font-semibold text-slate-900">{field.label}</p>
                     {!field.is_active && (
-                      <Badge className="h-4 border-0 bg-slate-200 px-1.5 text-[10px] text-slate-600 hover:bg-slate-200">
+                      <Badge className="h-5 border border-slate-300 bg-white px-1.5 text-[11px] font-medium text-slate-700 hover:bg-white">
                         Hidden from form
                       </Badge>
                     )}
                     {isSensitiveContact && (
-                      <Badge className="h-4 border-0 bg-rose-100 px-1.5 text-[10px] text-rose-700 hover:bg-rose-100">
+                      <Badge className="h-5 border border-rose-300 bg-rose-50 px-1.5 text-[11px] font-medium text-rose-800 hover:bg-rose-50">
                         Sensitive
                       </Badge>
                     )}
                   </div>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                  <p className="mt-1 text-sm leading-5 text-slate-600">
                     {isSensitiveContact
                       ? "Usually keep this private until an employer unlocks the candidate."
                       : "Choose whether employers can use this detail when reviewing matches."}
@@ -546,7 +552,7 @@ function MatchDisclosurePanel({
                     type="button"
                     size="sm"
                     variant={field.show_on_anonymous_match ? "secondary" : "outline"}
-                    className="h-9 w-full justify-start rounded-xl text-xs sm:w-auto"
+                    className="h-9 w-full justify-start rounded-xl text-sm sm:w-auto"
                     disabled={pending}
                     onClick={() =>
                       onRunAction(
@@ -570,7 +576,7 @@ function MatchDisclosurePanel({
                       </>
                     )}
                   </Button>
-                  <p className="text-xs leading-5 text-slate-500">
+                  <p className="text-sm leading-5 text-slate-600">
                     {field.show_on_anonymous_match
                       ? "Visible next to the anonymous candidate ID and match score."
                       : "Not shown while the candidate is still locked."}
@@ -583,7 +589,7 @@ function MatchDisclosurePanel({
                       type="button"
                       size="sm"
                       variant={shownAfterUnlock ? "secondary" : "outline"}
-                      className="h-9 justify-start rounded-xl text-xs"
+                      className="h-9 justify-start rounded-xl text-sm"
                       disabled={pending}
                       onClick={() => {
                         const nextMode: EmployerDisclosureMode = shownAfterUnlock
@@ -621,7 +627,7 @@ function MatchDisclosurePanel({
                             "After-unlock visibility updated"
                           );
                         }}
-                        className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-xs"
+                        className="h-9 rounded-xl border border-slate-300 bg-white px-2 text-sm text-slate-800"
                         aria-label={`How to show ${field.label} after unlock`}
                       >
                         <option value="always_visible">Always include</option>
@@ -629,7 +635,7 @@ function MatchDisclosurePanel({
                       </select>
                     ) : null}
                   </div>
-                  <p className="text-xs leading-5 text-slate-500">{unlockedCopy.helper}</p>
+                  <p className="text-sm leading-5 text-slate-600">{unlockedCopy.helper}</p>
                 </div>
               </div>
             );
@@ -697,26 +703,26 @@ function SideBySideColumns({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
-      <div className="hidden border-b border-slate-200 bg-slate-50/90 md:grid md:grid-cols-[3rem_1fr_auto_1fr] md:divide-x md:divide-slate-200">
-        <div className="flex items-center justify-center px-2 py-4 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+      <div className="hidden border-b border-slate-200 bg-white md:grid md:grid-cols-[3rem_1fr_auto_1fr] md:divide-x md:divide-slate-200">
+        <div className="flex items-center justify-center px-2 py-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
           #
         </div>
         <ColumnHeader
           title={leftTitle}
           count={leftCount}
           icon={User}
-          accent="from-blue-500 to-blue-600"
-          badgeClass="bg-blue-100 text-blue-700"
+          accent="bg-sky-600"
+          badgeClass="border border-sky-200 bg-sky-50 text-sky-800"
         />
-        <div className="flex w-10 items-center justify-center bg-white px-1">
-          <Sparkles className="h-4 w-4 text-slate-300" aria-hidden />
+        <div className="flex w-10 items-center justify-center bg-slate-50 px-1">
+          <Sparkles className="h-4 w-4 text-slate-400" aria-hidden />
         </div>
         <ColumnHeader
           title={rightTitle}
           count={rightCount}
           icon={Building2}
-          accent="from-cyan-500 to-cyan-600"
-          badgeClass="bg-cyan-100 text-cyan-700"
+          accent="bg-teal-600"
+          badgeClass="border border-teal-200 bg-teal-50 text-teal-800"
         />
       </div>
 
@@ -756,7 +762,7 @@ function SideBySideColumns({
         </>
       )}
 
-      <div className="hidden border-t border-slate-200 bg-slate-50/70 md:grid md:grid-cols-[3rem_1fr_auto_1fr] md:items-stretch md:divide-x md:divide-slate-200">
+      <div className="hidden border-t border-slate-200 bg-slate-50 md:grid md:grid-cols-[3rem_1fr_auto_1fr] md:items-stretch md:divide-x md:divide-slate-200">
         <div aria-hidden />
         <div className="flex items-stretch p-4">
           <AddFieldButton
@@ -764,7 +770,7 @@ function SideBySideColumns({
             audience="candidate"
             formGroup="profile"
             section={leftSection}
-            accent="border-blue-200 bg-blue-50/50 hover:bg-blue-50"
+            accent="border-slate-300 bg-white hover:bg-slate-50"
             onRunAction={onRunAction}
           />
         </div>
@@ -775,18 +781,18 @@ function SideBySideColumns({
             audience="employer"
             formGroup="profile"
             section={rightSection}
-            accent="border-cyan-200 bg-cyan-50/50 hover:bg-cyan-50"
+            accent="border-slate-300 bg-white hover:bg-slate-50"
             onRunAction={onRunAction}
           />
         </div>
       </div>
-      <div className="grid gap-3 border-t border-slate-200 bg-slate-50/70 p-4 md:hidden sm:grid-cols-2">
+      <div className="grid gap-3 border-t border-slate-200 bg-slate-50 p-4 md:hidden sm:grid-cols-2">
         <AddFieldButton
           pending={pending}
           audience="candidate"
           formGroup="profile"
           section={leftSection}
-          accent="border-blue-200 bg-blue-50/50 hover:bg-blue-50"
+          accent="border-slate-300 bg-white hover:bg-slate-50"
           onRunAction={onRunAction}
         />
         <AddFieldButton
@@ -794,7 +800,7 @@ function SideBySideColumns({
           audience="employer"
           formGroup="profile"
           section={rightSection}
-          accent="border-cyan-200 bg-cyan-50/50 hover:bg-cyan-50"
+          accent="border-slate-300 bg-white hover:bg-slate-50"
           onRunAction={onRunAction}
         />
       </div>
@@ -819,17 +825,17 @@ function ColumnHeader({
     <div className="flex items-center gap-3 px-4 py-4">
       <div
         className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm",
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white",
           accent
         )}
       >
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-slate-800">{title}</p>
-        <p className="text-xs text-slate-500">{count} fields</p>
+        <p className="font-semibold text-slate-900">{title}</p>
+        <p className="text-xs text-slate-600">{count} fields</p>
       </div>
-      <Badge className={cn("shrink-0 border-0", badgeClass)}>{count}</Badge>
+      <Badge className={cn("shrink-0", badgeClass)}>{count}</Badge>
     </div>
   );
 }
@@ -888,13 +894,13 @@ function MobileComparisonCard({
       </div>
       <div className="space-y-3 p-3">
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-blue-700">
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-sky-700">
             Candidate
           </p>
           <PairedFieldCell field={row.left} pending={pending} side="candidate" onRunAction={onRunAction} mobile />
         </div>
         <div className="border-t border-dashed border-slate-200 pt-3">
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-cyan-700">
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
             Employer
           </p>
           <PairedFieldCell field={row.right} pending={pending} side="employer" onRunAction={onRunAction} mobile />
@@ -987,14 +993,16 @@ function SingleColumnPanel({
   const totalVisible = filteredSections.reduce((n, group) => n + group.fields.length, 0);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
-      <div className="border-b border-slate-200 bg-gradient-to-r from-violet-50/70 to-white px-5 py-4 sm:px-6">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 bg-white px-5 py-4 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="font-semibold text-slate-800">{title}</p>
-            <p className="mt-0.5 text-sm text-slate-500">{description}</p>
+            <p className="font-semibold text-slate-900">{title}</p>
+            <p className="mt-0.5 text-sm text-slate-600">{description}</p>
           </div>
-          <Badge variant="secondary">{totalVisible} fields shown</Badge>
+          <Badge variant="secondary" className="border border-slate-200 bg-slate-50 text-slate-800">
+            {totalVisible} fields shown
+          </Badge>
         </div>
       </div>
 
@@ -1018,13 +1026,13 @@ function SingleColumnPanel({
         ))
       )}
 
-      <div className="border-t border-slate-200 bg-slate-50/70 p-4">
+      <div className="border-t border-slate-200 bg-slate-50 p-4">
         <AddFieldButton
           pending={pending}
           audience={audience}
           formGroup={formGroup}
           section={sections[0]?.section ?? "Job Fields"}
-          accent="border-violet-200 bg-violet-50/50 hover:bg-violet-50"
+          accent="border-slate-300 bg-white hover:bg-slate-50"
           onRunAction={onRunAction}
           pickSection={sections.map((s) => s.section)}
         />
@@ -1052,14 +1060,14 @@ function JobSectionGroup({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-3 bg-slate-50/80 px-5 py-3 text-left transition-colors hover:bg-slate-100/80 sm:px-6"
+        className="flex w-full items-center justify-between gap-3 bg-slate-50 px-5 py-3 text-left transition-colors hover:bg-slate-100 sm:px-6"
       >
         <div>
-          <p className="text-sm font-semibold text-slate-700">{group.section}</p>
-          <p className="text-xs text-slate-500">{group.fields.length} fields</p>
+          <p className="text-sm font-semibold text-slate-900">{group.section}</p>
+          <p className="text-sm text-slate-600">{group.fields.length} fields</p>
         </div>
         <ChevronDown
-          className={cn("h-4 w-4 shrink-0 text-slate-400 transition-transform", open && "rotate-180")}
+          className={cn("h-4 w-4 shrink-0 text-slate-500 transition-transform", open && "rotate-180")}
         />
       </button>
       {open && (
@@ -1095,7 +1103,7 @@ function FieldTypeBadge({ type }: { type: string }) {
   return (
     <Badge
       variant="outline"
-      className={cn("border px-1.5 py-0 text-[10px] font-medium", FIELD_TYPE_STYLES[type] ?? FIELD_TYPE_STYLES.text)}
+      className={cn("border px-1.5 py-0 text-[11px] font-medium", FIELD_TYPE_STYLES[type] ?? FIELD_TYPE_STYLES.text)}
     >
       {type}
     </Badge>
@@ -1129,8 +1137,8 @@ function FieldRow({
 
   const sideAccent =
     side === "candidate"
-      ? "border-l-blue-400 hover:border-blue-200"
-      : "border-l-cyan-400 hover:border-cyan-200";
+      ? "border-l-sky-500 hover:border-sky-300"
+      : "border-l-teal-500 hover:border-teal-300";
 
   function cancel() {
     setLabel(field.label);
@@ -1164,23 +1172,23 @@ function FieldRow({
     return (
       <div
         className={cn(
-          "flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-3 py-2 opacity-70",
+          "flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5",
           compact && "border-l-4",
           compact && sideAccent
         )}
       >
         <div className="min-w-0">
-          <p className="break-words text-sm text-slate-500 line-through">{field.label}</p>
-          <p className="mt-0.5 text-[10px] text-slate-400">Hidden from form</p>
+          <p className="break-words text-sm font-medium text-slate-700">{field.label}</p>
+          <p className="mt-0.5 text-xs font-medium text-slate-500">Hidden from form</p>
         </div>
         <Button
           size="sm"
           variant="outline"
-          className="h-7 shrink-0 rounded-lg px-2 text-[10px]"
+          className="h-8 shrink-0 rounded-lg px-2.5 text-xs"
           disabled={pending}
           onClick={() => onRunAction(() => toggleFormFieldActive(field.id, true), "Field shown")}
         >
-          <Eye className="mr-1 h-3 w-3" />
+          <Eye className="mr-1 h-3.5 w-3.5" />
           Show
         </Button>
       </div>
@@ -1259,35 +1267,35 @@ function FieldRow({
           "group rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all hover:-translate-y-px hover:shadow-md",
           "border-l-4",
           sideAccent,
-          !field.is_active && "opacity-60",
+          !field.is_active && "border-dashed bg-slate-50",
           className
         )}
       >
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <p className="break-words text-sm font-semibold leading-snug text-slate-800">
+              <p className="break-words text-sm font-semibold leading-snug text-slate-900">
                 {field.label}
               </p>
               {field.is_required && (
-                <Badge className="h-4 border-0 bg-rose-100 px-1.5 text-[10px] text-rose-700 hover:bg-rose-100">
+                <Badge className="h-5 border border-rose-300 bg-rose-50 px-1.5 text-[11px] font-medium text-rose-800 hover:bg-rose-50">
                   Required
                 </Badge>
               )}
               {field.is_custom && (
-                <Badge className="h-4 border-0 bg-amber-100 px-1.5 text-[10px] text-amber-700 hover:bg-amber-100">
+                <Badge className="h-5 border border-amber-300 bg-amber-50 px-1.5 text-[11px] font-medium text-amber-900 hover:bg-amber-50">
                   Custom
                 </Badge>
               )}
               {side === "candidate" && (
                 <Badge
                   className={cn(
-                    "h-4 border-0 px-1.5 text-[10px]",
+                    "h-5 border px-1.5 text-[11px] font-medium",
                     field.employer_disclosure_mode === "admin_removed"
-                      ? "bg-slate-200 text-slate-700 hover:bg-slate-200"
+                      ? "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-50"
                       : field.employer_disclosure_mode === "always_visible"
-                        ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
-                        : "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-50"
+                        : "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-50"
                   )}
                 >
                   {unlockedVisibilityCopy(field.employer_disclosure_mode).badge}
@@ -1296,10 +1304,10 @@ function FieldRow({
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <FieldTypeBadge type={field.field_type} />
-              <span className="font-mono text-[10px] text-slate-400">{field.field_key}</span>
+              <span className="font-mono text-[11px] text-slate-500">{field.field_key}</span>
             </div>
           </div>
-          <div className="flex shrink-0 gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
+          <div className="flex shrink-0 gap-0.5">
             <IconActionButton
               pending={pending}
               title="Edit label"
@@ -1362,32 +1370,32 @@ function FieldRow({
     <div
       className={cn(
         "group rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-all hover:-translate-y-px hover:shadow-md",
-        !field.is_active && "opacity-60"
+        !field.is_active && "border-dashed bg-slate-50"
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="text-sm font-semibold text-slate-800">{field.label}</p>
+            <p className="text-sm font-semibold text-slate-900">{field.label}</p>
             {field.is_required && (
-              <Badge className="h-4 border-0 bg-rose-100 px-1.5 text-[10px] text-rose-700 hover:bg-rose-100">
+              <Badge className="h-5 border border-rose-300 bg-rose-50 px-1.5 text-[11px] font-medium text-rose-800 hover:bg-rose-50">
                 Required
               </Badge>
             )}
             {field.is_custom && (
-              <Badge className="h-4 border-0 bg-amber-100 px-1.5 text-[10px] text-amber-700 hover:bg-amber-100">
+              <Badge className="h-5 border border-amber-300 bg-amber-50 px-1.5 text-[11px] font-medium text-amber-900 hover:bg-amber-50">
                 Custom
               </Badge>
             )}
             {side === "candidate" && (
               <Badge
                 className={cn(
-                  "h-4 border-0 px-1.5 text-[10px]",
+                  "h-5 border px-1.5 text-[11px] font-medium",
                   field.employer_disclosure_mode === "admin_removed"
-                    ? "bg-slate-200 text-slate-700 hover:bg-slate-200"
+                    ? "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-50"
                     : field.employer_disclosure_mode === "always_visible"
-                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
-                      : "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-50"
+                      : "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-50"
                 )}
               >
                 {unlockedVisibilityCopy(field.employer_disclosure_mode).badge}
@@ -1396,7 +1404,7 @@ function FieldRow({
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <FieldTypeBadge type={field.field_type} />
-            <span className="font-mono text-[10px] text-slate-400">{field.field_key}</span>
+            <span className="font-mono text-[11px] text-slate-500">{field.field_key}</span>
           </div>
         </div>
       </div>

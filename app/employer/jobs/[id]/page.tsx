@@ -12,6 +12,8 @@ import { saveJob } from "@/lib/employer/actions";
 import { canEditJob } from "@/lib/employer/job-rules";
 import { jobRecordToFormState } from "@/lib/utils/job-form";
 import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
+import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
+import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
 
 export default async function EditJobPage({
   params,
@@ -63,7 +65,28 @@ export default async function EditJobPage({
   }
 
   await ensureFormFieldsReady();
-  const jobFields = await loadFormFields({ audience: "employer", formGroup: "job" });
+  const [jobFields, { data: categories }, { data: matrixAnswers }] = await Promise.all([
+    loadFormFields({ audience: "employer", formGroup: "job" }),
+    supabase
+      .from("matrix_categories")
+      .select(MATRIX_CATEGORY_TREE_SELECT)
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase
+      .from("job_matrix_answers")
+      .select("question_id, option_id, answer_text, matrix_column")
+      .eq("job_id", id),
+  ]);
+
+  const matrixCategories = filterSharedMatrixCategories(categories ?? []);
+  const matrixExistingAnswers = (matrixAnswers ?? [])
+    .map((a) => ({
+      question_id: a.question_id,
+      option_id: a.option_id ?? undefined,
+      answer_text: a.answer_text ?? undefined,
+      matrix_column: a.matrix_column ?? 0,
+    }))
+    .filter((a) => a.matrix_column >= 1);
 
   async function updateJob(formData: FormData) {
     "use server";
@@ -94,6 +117,8 @@ export default async function EditJobPage({
         action={updateJob}
         persistDraft={false}
         jobFields={jobFields}
+        matrixCategories={matrixCategories}
+        matrixExistingAnswers={matrixExistingAnswers}
       />
     </>
   );
