@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type HTMLAttributes, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Briefcase,
@@ -13,7 +13,6 @@ import {
   Pencil,
   Plus,
   Search,
-  Sparkles,
   Target,
   Trash2,
   User,
@@ -27,14 +26,24 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   createFormField,
+  createFormSection,
   deleteFormField,
+  deleteFormSection,
+  reorderFormFields,
+  reorderFormSections,
+  renameFormSection,
   saveFormField,
   toggleFormFieldActive,
   updateEmployerDisclosureMode,
   updateShowOnAnonymousMatch,
 } from "@/lib/admin/form-field-actions";
+import { isProtectedJobSectionTitle } from "@/lib/form-fields/section-defaults";
 import {
-  buildPairedFieldRows,
+  FieldDragHandle,
+  SortableFormFieldSections,
+  formFieldGroupsSignature,
+} from "@/components/admin/sortable-form-fields";
+import {
   countSectionFields,
   flattenSectionFields,
 } from "@/lib/form-fields/grouping";
@@ -42,7 +51,10 @@ import type {
   EmployerDisclosureMode,
   FormFieldDefinition,
   FormFieldSectionGroup,
+  FormFieldType,
 } from "@/lib/form-fields/types";
+import { optionsToText, parseOptionsText, resolveSelectOptions } from "@/lib/form-fields/select-options";
+import { Textarea } from "@/components/ui/textarea";
 import type { PlatformDisclosureItem } from "@/lib/employer/platform-disclosure";
 import { PlatformDisclosureSection } from "@/components/admin/platform-disclosure-section";
 import { cn } from "@/lib/utils";
@@ -66,6 +78,18 @@ const FIELD_TYPE_STYLES: Record<string, string> = {
   checkbox: "border-slate-300 bg-white text-slate-700",
   file: "border-slate-300 bg-white text-slate-700",
 };
+
+const FORM_FIELD_TYPE_OPTIONS: Array<{ value: FormFieldType; label: string }> = [
+  { value: "text", label: "Text" },
+  { value: "email", label: "Email" },
+  { value: "tel", label: "Phone" },
+  { value: "url", label: "URL" },
+  { value: "number", label: "Number" },
+  { value: "textarea", label: "Long text" },
+  { value: "select", label: "Select / dropdown" },
+  { value: "checkbox", label: "Checkbox" },
+  { value: "file", label: "File" },
+];
 
 const FORM_TAB_TRIGGER_CLASS =
   "inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-2 rounded-md border border-transparent px-3 py-0 text-sm font-medium text-slate-600 shadow-none after:hidden " +
@@ -138,6 +162,10 @@ function buildFormData(field: FormFieldDefinition, overrides: Partial<FormFieldD
   formData.set("label", merged.label);
   formData.set("field_type", merged.field_type);
   formData.set("placeholder", merged.placeholder ?? "");
+  formData.set(
+    "options",
+    merged.field_type === "select" ? JSON.stringify(merged.options ?? []) : ""
+  );
   formData.set("sort_order", String(merged.sort_order));
   formData.set("is_required", String(merged.is_required));
   formData.set("is_active", String(merged.is_active));
@@ -292,8 +320,10 @@ export function FormFieldsComparisonEditor({
         <TabsContent value="profile" className="mt-0 space-y-4">
           <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
             Edit fields on the <strong className="font-semibold text-slate-900">candidate</strong> and{" "}
-            <strong className="font-semibold text-slate-900">employer profile</strong> pages. Candidate
-            visibility settings also feed unlocked match reports.
+            <strong className="font-semibold text-slate-900">employer profile</strong> pages, using the
+            same sections those users see. Rename, delete, or drag sections to reorder; drag fields
+            to reorder or move between sections; and choose an input type when adding a field.
+            Candidate visibility settings also feed unlocked match reports.
           </div>
           <Toolbar
             search={profileSearch}
@@ -316,7 +346,8 @@ export function FormFieldsComparisonEditor({
         <TabsContent value="job" className="mt-0 space-y-4">
           <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
             Edit fields employers fill when creating or editing a job. These can also filter
-            candidate–job matches.
+            candidate–job matches. You can rename sections and add custom ones; built-in job
+            sections can’t be deleted while they still hold system fields.
           </div>
           <Toolbar
             search={jobSearch}
@@ -668,45 +699,43 @@ function SideBySideColumns({
     successMsg: string
   ) => void;
 }) {
-  const pairedRows = useMemo(() => {
-    const filterField = (field: FormFieldDefinition) => {
-      if (!showHidden && !field.is_active) return false;
-      if (search && !fieldMatchesSearch(field, search)) return false;
-      return true;
-    };
+  const leftGroups = useMemo(
+    () =>
+      leftSections
+        .map((group) => ({
+          ...group,
+          fields: group.fields.filter((field) => {
+            if (!showHidden && !field.is_active) return false;
+            if (search && !fieldMatchesSearch(field, search)) return false;
+            return true;
+          }),
+        }))
+        .filter((group) => group.fields.length > 0 || !search),
+    [leftSections, search, showHidden]
+  );
+  const rightGroups = useMemo(
+    () =>
+      rightSections
+        .map((group) => ({
+          ...group,
+          fields: group.fields.filter((field) => {
+            if (!showHidden && !field.is_active) return false;
+            if (search && !fieldMatchesSearch(field, search)) return false;
+            return true;
+          }),
+        }))
+        .filter((group) => group.fields.length > 0 || !search),
+    [rightSections, search, showHidden]
+  );
 
-    const leftFields = flattenSectionFields(leftSections).filter(filterField);
-    const rightFields = flattenSectionFields(rightSections).filter(filterField);
-
-    if (!search) {
-      return buildPairedFieldRows(leftSections, rightSections).filter((row) => {
-        const leftOk = !row.left || filterField(row.left);
-        const rightOk = !row.right || filterField(row.right);
-        if (!showHidden) {
-          return (row.left && row.left.is_active) || (row.right && row.right.is_active);
-        }
-        return leftOk || rightOk;
-      });
-    }
-
-    const rowCount = Math.max(leftFields.length, rightFields.length);
-    return Array.from({ length: rowCount }, (_, index) => ({
-      left: leftFields[index],
-      right: rightFields[index],
-    }));
-  }, [leftSections, rightSections, search, showHidden]);
-
-  const leftSection = leftSections[0]?.section ?? "Candidate Profile";
-  const rightSection = rightSections[0]?.section ?? "Company Profile";
-  const leftCount = flattenSectionFields(leftSections).filter((f) => showHidden || f.is_active).length;
-  const rightCount = flattenSectionFields(rightSections).filter((f) => showHidden || f.is_active).length;
+  const leftCount = leftGroups.reduce((sum, group) => sum + group.fields.length, 0);
+  const rightCount = rightGroups.reduce((sum, group) => sum + group.fields.length, 0);
+  const leftSectionOptions = leftSections.map((group) => group.section);
+  const rightSectionOptions = rightSections.map((group) => group.section);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
-      <div className="hidden border-b border-slate-200 bg-white md:grid md:grid-cols-[3rem_1fr_auto_1fr] md:divide-x md:divide-slate-200">
-        <div className="flex items-center justify-center px-2 py-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          #
-        </div>
+      <div className="grid gap-0 border-b border-slate-200 md:grid-cols-2 md:divide-x md:divide-slate-200">
         <ColumnHeader
           title={leftTitle}
           count={leftCount}
@@ -714,9 +743,6 @@ function SideBySideColumns({
           accent="bg-sky-600"
           badgeClass="border border-sky-200 bg-sky-50 text-sky-800"
         />
-        <div className="flex w-10 items-center justify-center bg-slate-50 px-1">
-          <Sparkles className="h-4 w-4 text-slate-400" aria-hidden />
-        </div>
         <ColumnHeader
           title={rightTitle}
           count={rightCount}
@@ -726,83 +752,408 @@ function SideBySideColumns({
         />
       </div>
 
-      {pairedRows.length === 0 ? (
-        <EmptyState
-          title="No matching fields"
-          description={
+      <div className="grid gap-0 md:grid-cols-2 md:divide-x md:divide-slate-200">
+        <ProfileSectionColumn
+          audience="candidate"
+          groups={leftGroups}
+          sectionOptions={leftSectionOptions}
+          pending={pending}
+          searchActive={Boolean(search)}
+          onRunAction={onRunAction}
+          emptyTitle="No candidate fields"
+          emptyDescription={
             search
               ? "Try a different search term or clear the filter."
-              : "No fields configured yet. Add fields using the buttons below."
+              : "Add fields into the sections candidates see on their profile."
           }
         />
-      ) : (
-        <>
-          <div className="hidden md:block">
-            {pairedRows.map((row, index) => (
-              <ComparisonRow
-                key={`desktop-${index}`}
-                index={index}
-                row={row}
-                pending={pending}
-                onRunAction={onRunAction}
-              />
-            ))}
-          </div>
-          <div className="space-y-3 p-4 md:hidden">
-            {pairedRows.map((row, index) => (
-              <MobileComparisonCard
-                key={`mobile-${index}`}
-                index={index}
-                row={row}
-                pending={pending}
-                onRunAction={onRunAction}
-              />
-            ))}
-          </div>
-        </>
-      )}
+        <ProfileSectionColumn
+          audience="employer"
+          groups={rightGroups}
+          sectionOptions={rightSectionOptions}
+          pending={pending}
+          searchActive={Boolean(search)}
+          onRunAction={onRunAction}
+          emptyTitle="No employer fields"
+          emptyDescription={
+            search
+              ? "Try a different search term or clear the filter."
+              : "Add fields into the sections employers see on company profile."
+          }
+        />
+      </div>
+    </div>
+  );
+}
 
-      <div className="hidden border-t border-slate-200 bg-slate-50 md:grid md:grid-cols-[3rem_1fr_auto_1fr] md:items-stretch md:divide-x md:divide-slate-200">
-        <div aria-hidden />
-        <div className="flex items-stretch p-4">
-          <AddFieldButton
+function ProfileSectionColumn({
+  audience,
+  groups,
+  sectionOptions,
+  pending,
+  searchActive,
+  onRunAction,
+  emptyTitle,
+  emptyDescription,
+}: {
+  audience: "candidate" | "employer";
+  groups: FormFieldSectionGroup[];
+  sectionOptions: string[];
+  pending: boolean;
+  searchActive: boolean;
+  onRunAction: (
+    action: () => Promise<{ error?: string; success?: boolean }>,
+    successMsg: string
+  ) => void;
+  emptyTitle: string;
+  emptyDescription: string;
+}) {
+  const hasAnyFields = groups.some((group) => group.fields.length > 0);
+  const dragDisabled = pending || searchActive;
+
+  return (
+    <div className="min-w-0 border-b border-slate-200 md:border-b-0">
+      {!hasAnyFields ? (
+        <EmptyState title={emptyTitle} description={emptyDescription} />
+      ) : null}
+      {searchActive ? (
+        <p className="border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-900">
+          Clear search to drag sections or fields.
+        </p>
+      ) : null}
+      <SortableFormFieldSections
+        key={formFieldGroupsSignature(groups)}
+        groups={groups}
+        disabled={dragDisabled}
+        onReorder={(updates) =>
+          onRunAction(() => reorderFormFields(updates), "Field order saved")
+        }
+        onSectionReorder={(titles) =>
+          onRunAction(
+            () =>
+              reorderFormSections({
+                audience,
+                form_group: "profile",
+                titles,
+              }),
+            "Section order saved"
+          )
+        }
+        renderSectionChrome={({ section, fieldCount, children, sectionDragHandle }) => (
+          <CollapsibleSectionShell
+            key={`${audience}-${section}`}
+            title={section}
+            fieldCount={fieldCount}
             pending={pending}
-            audience="candidate"
-            formGroup="profile"
-            section={leftSection}
-            accent="border-slate-300 bg-white hover:bg-slate-50"
+            sectionDragHandle={sectionDragHandle}
+            dragDisabled={dragDisabled}
+            canDelete
+            onRename={(nextTitle) =>
+              onRunAction(
+                () =>
+                  renameFormSection({
+                    audience,
+                    form_group: "profile",
+                    from: section,
+                    to: nextTitle,
+                  }),
+                "Section renamed"
+              )
+            }
+            onDelete={() => {
+              const moveTo =
+                sectionOptions.find((name) => name !== section) ?? "Additional information";
+              if (
+                !window.confirm(
+                  fieldCount > 0
+                    ? `Delete section "${section}"? Its ${fieldCount} field(s) will move to "${moveTo}".`
+                    : `Delete section "${section}"?`
+                )
+              ) {
+                return;
+              }
+              onRunAction(
+                () =>
+                  deleteFormSection({
+                    audience,
+                    form_group: "profile",
+                    title: section,
+                    moveTo,
+                  }),
+                "Section deleted"
+              );
+            }}
+            footer={
+              <AddFieldButton
+                pending={pending}
+                audience={audience}
+                formGroup="profile"
+                section={section}
+                accent="border-slate-300 bg-white hover:bg-slate-50"
+                onRunAction={onRunAction}
+                pickSection={sectionOptions}
+              />
+            }
+          >
+            {children}
+          </CollapsibleSectionShell>
+        )}
+        renderField={(field, { dragHandleProps, isDragging }) => (
+          <FieldRow
+            field={field}
+            pending={pending}
+            side={audience}
+            isDragging={isDragging}
+            dragHandle={
+              <FieldDragHandle {...dragHandleProps} disabled={dragDisabled} />
+            }
             onRunAction={onRunAction}
           />
-        </div>
-        <div className="w-10 shrink-0" aria-hidden />
-        <div className="flex items-stretch p-4">
-          <AddFieldButton
-            pending={pending}
-            audience="employer"
-            formGroup="profile"
-            section={rightSection}
-            accent="border-slate-300 bg-white hover:bg-slate-50"
-            onRunAction={onRunAction}
+        )}
+      />
+      <div className="space-y-3 border-t border-slate-100 bg-slate-50 p-4">
+        <AddSectionButton
+          pending={pending}
+          audience={audience}
+          formGroup="profile"
+          onRunAction={onRunAction}
+        />
+        <AddFieldButton
+          pending={pending}
+          audience={audience}
+          formGroup="profile"
+          section={sectionOptions[0] ?? "Additional information"}
+          accent="border-slate-300 bg-white hover:bg-slate-50"
+          onRunAction={onRunAction}
+          pickSection={sectionOptions}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CollapsibleSectionShell({
+  title,
+  fieldCount,
+  children,
+  footer,
+  pending = false,
+  canDelete = true,
+  deleteDisabledReason,
+  sectionDragHandle,
+  dragDisabled = false,
+  onRename,
+  onDelete,
+}: {
+  title: string;
+  fieldCount: number;
+  children: ReactNode;
+  footer?: ReactNode;
+  pending?: boolean;
+  canDelete?: boolean;
+  deleteDisabledReason?: string;
+  sectionDragHandle?: HTMLAttributes<HTMLButtonElement>;
+  dragDisabled?: boolean;
+  onRename?: (nextTitle: string) => void;
+  onDelete?: () => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(title);
+
+  function cancelEdit() {
+    setDraftTitle(title);
+    setEditing(false);
+  }
+
+  function saveEdit() {
+    const next = draftTitle.trim();
+    if (!next) {
+      toast.error("Section name cannot be empty.");
+      return;
+    }
+    if (next === title) {
+      setEditing(false);
+      return;
+    }
+    onRename?.(next);
+    setEditing(false);
+  }
+
+  return (
+    <div className="border-b border-slate-100 last:border-b-0">
+      <div className="flex items-start gap-2 bg-slate-50/80 px-4 py-3 sm:px-5">
+        {sectionDragHandle ? (
+          <FieldDragHandle
+            {...sectionDragHandle}
+            disabled={dragDisabled || pending}
+            className="mt-0.5"
+            title="Drag to reorder section"
           />
+        ) : null}
+        {editing ? (
+          <div className="min-w-0 flex-1 space-y-2">
+            <Input
+              value={draftTitle}
+              disabled={pending}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveEdit();
+                if (e.key === "Escape") cancelEdit();
+              }}
+              className="h-9 rounded-lg text-sm"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="h-7 rounded-lg px-2 text-xs"
+                disabled={pending}
+                onClick={saveEdit}
+              >
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 rounded-lg px-2 text-xs"
+                disabled={pending}
+                onClick={cancelEdit}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="min-w-0 flex-1 text-left transition-colors hover:opacity-90"
+          >
+            <p className="text-sm font-semibold text-slate-900">{title}</p>
+            <p className="text-sm text-slate-600">{fieldCount} fields</p>
+          </button>
+        )}
+        <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
+          {onRename ? (
+            <IconActionButton
+              pending={pending}
+              title="Rename section"
+              onClick={() => {
+                setDraftTitle(title);
+                setEditing(true);
+                setOpen(true);
+              }}
+              icon={Pencil}
+            />
+          ) : null}
+          {onDelete ? (
+            <IconActionButton
+              pending={pending || !canDelete}
+              title={canDelete ? "Delete section" : deleteDisabledReason || "Cannot delete section"}
+              destructive
+              onClick={onDelete}
+              icon={Trash2}
+            />
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-200/70"
+            title={open ? "Collapse" : "Expand"}
+          >
+            <ChevronDown
+              className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
+            />
+          </button>
         </div>
       </div>
-      <div className="grid gap-3 border-t border-slate-200 bg-slate-50 p-4 md:hidden sm:grid-cols-2">
-        <AddFieldButton
-          pending={pending}
-          audience="candidate"
-          formGroup="profile"
-          section={leftSection}
-          accent="border-slate-300 bg-white hover:bg-slate-50"
-          onRunAction={onRunAction}
-        />
-        <AddFieldButton
-          pending={pending}
-          audience="employer"
-          formGroup="profile"
-          section={rightSection}
-          accent="border-slate-300 bg-white hover:bg-slate-50"
-          onRunAction={onRunAction}
-        />
+      {open ? (
+        <div className="space-y-3 p-4">
+          {children}
+          {footer}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AddSectionButton({
+  pending,
+  audience,
+  formGroup,
+  onRunAction,
+}: {
+  pending: boolean;
+  audience: "candidate" | "employer";
+  formGroup: "profile" | "job";
+  onRunAction: (
+    action: () => Promise<{ error?: string; success?: boolean }>,
+    successMsg: string
+  ) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+
+  function add() {
+    const trimmed = title.trim();
+    if (!trimmed) {
+      toast.error("Enter a section name.");
+      return;
+    }
+    onRunAction(
+      () =>
+        createFormSection({
+          audience,
+          form_group: formGroup,
+          title: trimmed,
+        }),
+      "Section added"
+    );
+    setTitle("");
+    setOpen(false);
+  }
+
+  if (!open) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-10 w-full justify-center rounded-xl border-dashed text-sm"
+        disabled={pending}
+        onClick={() => setOpen(true)}
+      >
+        <Plus className="mr-1.5 h-4 w-4" />
+        Add section
+      </Button>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4">
+      <p className="mb-3 text-sm font-semibold text-slate-700">New section</p>
+      <Input
+        value={title}
+        disabled={pending}
+        placeholder="Section name, e.g. Licenses"
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && add()}
+        className="mb-3 h-9 rounded-lg text-sm"
+        autoFocus
+      />
+      <div className="flex gap-2">
+        <Button size="sm" className="h-8 flex-1 rounded-lg" disabled={pending} onClick={add}>
+          Add section
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 rounded-lg"
+          disabled={pending}
+          onClick={() => setOpen(false)}
+        >
+          Cancel
+        </Button>
       </div>
     </div>
   );
@@ -836,119 +1187,6 @@ function ColumnHeader({
         <p className="text-xs text-slate-600">{count} fields</p>
       </div>
       <Badge className={cn("shrink-0", badgeClass)}>{count}</Badge>
-    </div>
-  );
-}
-
-function ComparisonRow({
-  index,
-  row,
-  pending,
-  onRunAction,
-}: {
-  index: number;
-  row: { left?: FormFieldDefinition; right?: FormFieldDefinition };
-  pending: boolean;
-  onRunAction: (
-    action: () => Promise<{ error?: string; success?: boolean }>,
-    successMsg: string
-  ) => void;
-}) {
-  return (
-    <div
-      className={cn(
-        "grid grid-cols-[3rem_1fr_auto_1fr] items-stretch border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/70",
-        index % 2 === 1 && "bg-slate-50/30"
-      )}
-    >
-      <div className="flex items-start justify-center px-2 py-4 text-xs font-semibold tabular-nums text-slate-400">
-        {index + 1}
-      </div>
-      <PairedFieldCell field={row.left} pending={pending} side="candidate" onRunAction={onRunAction} />
-      <div className="flex w-10 shrink-0 items-stretch justify-center bg-gradient-to-b from-transparent via-slate-100/80 to-transparent">
-        <div className="w-px bg-slate-200" />
-      </div>
-      <PairedFieldCell field={row.right} pending={pending} side="employer" onRunAction={onRunAction} />
-    </div>
-  );
-}
-
-function MobileComparisonCard({
-  index,
-  row,
-  pending,
-  onRunAction,
-}: {
-  index: number;
-  row: { left?: FormFieldDefinition; right?: FormFieldDefinition };
-  pending: boolean;
-  onRunAction: (
-    action: () => Promise<{ error?: string; success?: boolean }>,
-    successMsg: string
-  ) => void;
-}) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
-        Row {index + 1}
-      </div>
-      <div className="space-y-3 p-3">
-        <div>
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-sky-700">
-            Candidate
-          </p>
-          <PairedFieldCell field={row.left} pending={pending} side="candidate" onRunAction={onRunAction} mobile />
-        </div>
-        <div className="border-t border-dashed border-slate-200 pt-3">
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
-            Employer
-          </p>
-          <PairedFieldCell field={row.right} pending={pending} side="employer" onRunAction={onRunAction} mobile />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PairedFieldCell({
-  field,
-  pending,
-  side,
-  mobile = false,
-  onRunAction,
-}: {
-  field?: FormFieldDefinition;
-  pending: boolean;
-  side: "candidate" | "employer";
-  mobile?: boolean;
-  onRunAction: (
-    action: () => Promise<{ error?: string; success?: boolean }>,
-    successMsg: string
-  ) => void;
-}) {
-  if (!field) {
-    return (
-      <div
-        className={cn(
-          "flex h-full min-h-[5rem] items-center justify-center self-stretch",
-          mobile ? "rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-3 py-4" : "px-4 py-4"
-        )}
-      >
-        <span className="text-xs font-medium text-slate-300">No matching field</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn("flex h-full min-h-[5rem] self-stretch items-stretch px-3 py-3", !mobile && "md:px-4")}>
-      <FieldRow
-        field={field}
-        pending={pending}
-        compact
-        side={side}
-        className="h-full w-full"
-        onRunAction={onRunAction}
-      />
     </div>
   );
 }
@@ -987,10 +1225,12 @@ function SingleColumnPanel({
           return true;
         }),
       }))
-      .filter((group) => group.fields.length > 0);
+      .filter((group) => group.fields.length > 0 || !search);
   }, [sections, search, showHidden]);
 
   const totalVisible = filteredSections.reduce((n, group) => n + group.fields.length, 0);
+  const dragDisabled = pending || Boolean(search);
+  const sectionOptions = sections.map((group) => group.section);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -1006,6 +1246,12 @@ function SingleColumnPanel({
         </div>
       </div>
 
+      {search ? (
+        <p className="border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-900">
+          Clear search to drag sections or fields.
+        </p>
+      ) : null}
+
       {filteredSections.length === 0 ? (
         <EmptyState
           title="No matching job fields"
@@ -1016,17 +1262,120 @@ function SingleColumnPanel({
           }
         />
       ) : (
-        filteredSections.map((group) => (
-          <JobSectionGroup
-            key={group.section}
-            group={group}
-            pending={pending}
-            onRunAction={onRunAction}
-          />
-        ))
+        <SortableFormFieldSections
+          key={formFieldGroupsSignature(filteredSections)}
+          groups={filteredSections}
+          disabled={dragDisabled}
+          onReorder={(updates) =>
+            onRunAction(() => reorderFormFields(updates), "Field order saved")
+          }
+          onSectionReorder={(titles) =>
+            onRunAction(
+              () =>
+                reorderFormSections({
+                  audience,
+                  form_group: formGroup,
+                  titles,
+                }),
+              "Section order saved"
+            )
+          }
+          renderSectionChrome={({ section, fieldCount, children, sectionDragHandle }) => {
+            const hasBuiltIn = sections
+              .find((group) => group.section === section)
+              ?.fields.some((field) => !field.is_custom);
+            const protectedJob = formGroup === "job" && (isProtectedJobSectionTitle(section) || hasBuiltIn);
+            return (
+              <CollapsibleSectionShell
+                key={section}
+                title={section}
+                fieldCount={fieldCount}
+                pending={pending}
+                sectionDragHandle={sectionDragHandle}
+                dragDisabled={dragDisabled}
+                canDelete={!protectedJob}
+                deleteDisabledReason={
+                  protectedJob
+                    ? "Built-in job sections can’t be deleted"
+                    : undefined
+                }
+                onRename={(nextTitle) =>
+                  onRunAction(
+                    () =>
+                      renameFormSection({
+                        audience,
+                        form_group: formGroup,
+                        from: section,
+                        to: nextTitle,
+                      }),
+                    "Section renamed"
+                  )
+                }
+                onDelete={
+                  protectedJob
+                    ? undefined
+                    : () => {
+                        const moveTo =
+                          sectionOptions.find((name) => name !== section) ??
+                          sectionOptions[0] ??
+                          "Additional fields";
+                        if (
+                          !window.confirm(
+                            fieldCount > 0
+                              ? `Delete section "${section}"? Its ${fieldCount} field(s) will move to "${moveTo}".`
+                              : `Delete section "${section}"?`
+                          )
+                        ) {
+                          return;
+                        }
+                        onRunAction(
+                          () =>
+                            deleteFormSection({
+                              audience,
+                              form_group: formGroup,
+                              title: section,
+                              moveTo,
+                            }),
+                          "Section deleted"
+                        );
+                      }
+                }
+                footer={
+                  <AddFieldButton
+                    pending={pending}
+                    audience={audience}
+                    formGroup={formGroup}
+                    section={section}
+                    accent="border-slate-300 bg-white hover:bg-slate-50"
+                    onRunAction={onRunAction}
+                    pickSection={sectionOptions}
+                  />
+                }
+              >
+                {children}
+              </CollapsibleSectionShell>
+            );
+          }}
+          renderField={(field, { dragHandleProps, isDragging }) => (
+            <FieldRow
+              field={field}
+              pending={pending}
+              side={audience}
+              isDragging={isDragging}
+              dragHandle={<FieldDragHandle {...dragHandleProps} disabled={dragDisabled} />}
+              onRunAction={onRunAction}
+            />
+          )}
+        />
       )}
 
-      <div className="border-t border-slate-200 bg-slate-50 p-4">
+      <div className="space-y-3 border-t border-slate-200 bg-slate-50 p-4">
+        <AddSectionButton
+          pending={pending}
+          audience={audience}
+          formGroup={formGroup}
+          onRunAction={onRunAction}
+        />
         <AddFieldButton
           pending={pending}
           audience={audience}
@@ -1034,55 +1383,9 @@ function SingleColumnPanel({
           section={sections[0]?.section ?? "Job Fields"}
           accent="border-slate-300 bg-white hover:bg-slate-50"
           onRunAction={onRunAction}
-          pickSection={sections.map((s) => s.section)}
+          pickSection={sectionOptions}
         />
       </div>
-    </div>
-  );
-}
-
-function JobSectionGroup({
-  group,
-  pending,
-  onRunAction,
-}: {
-  group: FormFieldSectionGroup;
-  pending: boolean;
-  onRunAction: (
-    action: () => Promise<{ error?: string; success?: boolean }>,
-    successMsg: string
-  ) => void;
-}) {
-  const [open, setOpen] = useState(true);
-
-  return (
-    <div className="border-b border-slate-100 last:border-b-0">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-3 bg-slate-50 px-5 py-3 text-left transition-colors hover:bg-slate-100 sm:px-6"
-      >
-        <div>
-          <p className="text-sm font-semibold text-slate-900">{group.section}</p>
-          <p className="text-sm text-slate-600">{group.fields.length} fields</p>
-        </div>
-        <ChevronDown
-          className={cn("h-4 w-4 shrink-0 text-slate-500 transition-transform", open && "rotate-180")}
-        />
-      </button>
-      {open && (
-        <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
-          {group.fields.map((field) => (
-            <FieldRow
-              key={field.id}
-              field={field}
-              pending={pending}
-              side="employer"
-              onRunAction={onRunAction}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -1110,12 +1413,60 @@ function FieldTypeBadge({ type }: { type: string }) {
   );
 }
 
+function DropdownOptionsPreview({ field }: { field: FormFieldDefinition }) {
+  const options = resolveSelectOptions(field);
+  const [expanded, setExpanded] = useState(false);
+
+  if (field.field_type !== "select") return null;
+
+  if (options.length === 0) {
+    return (
+      <p className="mt-2 rounded-lg border border-dashed border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900">
+        No dropdown options set yet. Edit this field to add them.
+      </p>
+    );
+  }
+
+  const visible = expanded ? options : options.slice(0, 6);
+  const hiddenCount = options.length - visible.length;
+
+  return (
+    <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2">
+      <p className="mb-1.5 text-[11px] font-medium text-slate-600">
+        Dropdown options ({options.length})
+      </p>
+      <ul className="flex flex-wrap gap-1.5">
+        {visible.map((option) => (
+          <li
+            key={option}
+            className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-700"
+          >
+            {option}
+          </li>
+        ))}
+      </ul>
+      {options.length > 6 ? (
+        <button
+          type="button"
+          className="mt-1.5 text-[11px] font-medium text-sky-700 hover:text-sky-900"
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? "Show fewer" : `Show all ${options.length} options`}
+          {!expanded && hiddenCount > 0 ? ` (+${hiddenCount})` : ""}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function FieldRow({
   field,
   pending,
   compact = false,
   side = "candidate",
   className,
+  dragHandle,
+  isDragging = false,
   onRunAction,
 }: {
   field: FormFieldDefinition;
@@ -1123,6 +1474,8 @@ function FieldRow({
   compact?: boolean;
   side?: "candidate" | "employer";
   className?: string;
+  dragHandle?: ReactNode;
+  isDragging?: boolean;
   onRunAction: (
     action: () => Promise<{ error?: string; success?: boolean }>,
     successMsg: string
@@ -1130,6 +1483,10 @@ function FieldRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(field.label);
+  const [fieldType, setFieldType] = useState<FormFieldType>(field.field_type);
+  const [optionsText, setOptionsText] = useState(
+    optionsToText(resolveSelectOptions(field))
+  );
   const [isRequired, setIsRequired] = useState(field.is_required);
   const [employerDisclosureMode, setEmployerDisclosureMode] = useState(
     field.employer_disclosure_mode
@@ -1142,6 +1499,8 @@ function FieldRow({
 
   function cancel() {
     setLabel(field.label);
+    setFieldType(field.field_type);
+    setOptionsText(optionsToText(resolveSelectOptions(field)));
     setIsRequired(field.is_required);
     setEmployerDisclosureMode(field.employer_disclosure_mode);
     setEditing(false);
@@ -1153,11 +1512,18 @@ function FieldRow({
       toast.error("Label cannot be empty.");
       return;
     }
+    const options = fieldType === "select" ? parseOptionsText(optionsText) : null;
+    if (fieldType === "select" && options.length === 0) {
+      toast.error("Add at least one dropdown option (one per line).");
+      return;
+    }
     onRunAction(
       () =>
         saveFormField(
           buildFormData(field, {
             label: trimmed,
+            field_type: fieldType,
+            options,
             is_required: isRequired,
             employer_disclosure_mode: employerDisclosureMode,
           }),
@@ -1174,12 +1540,16 @@ function FieldRow({
         className={cn(
           "flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5",
           compact && "border-l-4",
-          compact && sideAccent
+          compact && sideAccent,
+          isDragging && "opacity-60"
         )}
       >
-        <div className="min-w-0">
-          <p className="break-words text-sm font-medium text-slate-700">{field.label}</p>
-          <p className="mt-0.5 text-xs font-medium text-slate-500">Hidden from form</p>
+        <div className="flex min-w-0 items-center gap-2">
+          {dragHandle}
+          <div className="min-w-0">
+            <p className="break-words text-sm font-medium text-slate-700">{field.label}</p>
+            <p className="mt-0.5 text-xs font-medium text-slate-500">Hidden from form</p>
+          </div>
         </div>
         <Button
           size="sm"
@@ -1204,13 +1574,46 @@ function FieldRow({
           compact && sideAccent
         )}
       >
-        <Input
-          value={label}
-          disabled={pending}
-          onChange={(e) => setLabel(e.target.value)}
-          className="mb-3 h-9 rounded-lg text-sm"
-          autoFocus
-        />
+        <label className="mb-3 block space-y-1.5">
+          <span className="text-xs font-medium text-slate-600">Label</span>
+          <Input
+            value={label}
+            disabled={pending}
+            onChange={(e) => setLabel(e.target.value)}
+            className="h-9 rounded-lg text-sm"
+            autoFocus
+          />
+        </label>
+        <label className="mb-3 block space-y-1.5">
+          <span className="text-xs font-medium text-slate-600">Input type</span>
+          <select
+            value={fieldType}
+            onChange={(e) => setFieldType(e.target.value as FormFieldType)}
+            disabled={pending}
+            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+          >
+            {FORM_FIELD_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {fieldType === "select" && (
+          <label className="mb-3 block space-y-1.5">
+            <span className="text-xs font-medium text-slate-600">
+              Dropdown options (one per line)
+            </span>
+            <Textarea
+              value={optionsText}
+              disabled={pending}
+              onChange={(e) => setOptionsText(e.target.value)}
+              rows={5}
+              placeholder={"Option A\nOption B\nOption C"}
+              className="rounded-lg text-sm"
+            />
+          </label>
+        )}
         <label className="mb-3 flex items-center gap-2 text-sm text-slate-600">
           <input
             type="checkbox"
@@ -1268,10 +1671,12 @@ function FieldRow({
           "border-l-4",
           sideAccent,
           !field.is_active && "border-dashed bg-slate-50",
+          isDragging && "opacity-60",
           className
         )}
       >
         <div className="flex items-start gap-2">
+          {dragHandle}
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
               <p className="break-words text-sm font-semibold leading-snug text-slate-900">
@@ -1304,13 +1709,19 @@ function FieldRow({
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <FieldTypeBadge type={field.field_type} />
+              {field.field_type === "select" && (
+                <span className="text-[11px] text-slate-500">
+                  {resolveSelectOptions(field).length} options
+                </span>
+              )}
               <span className="font-mono text-[11px] text-slate-500">{field.field_key}</span>
             </div>
+            <DropdownOptionsPreview field={field} />
           </div>
           <div className="flex shrink-0 gap-0.5">
             <IconActionButton
               pending={pending}
-              title="Edit label"
+              title="Edit field"
               onClick={() => setEditing(true)}
               icon={Pencil}
             />
@@ -1370,41 +1781,52 @@ function FieldRow({
     <div
       className={cn(
         "group rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-all hover:-translate-y-px hover:shadow-md",
-        !field.is_active && "border-dashed bg-slate-50"
+        !field.is_active && "border-dashed bg-slate-50",
+        isDragging && "opacity-60",
+        className
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <p className="text-sm font-semibold text-slate-900">{field.label}</p>
-            {field.is_required && (
-              <Badge className="h-5 border border-rose-300 bg-rose-50 px-1.5 text-[11px] font-medium text-rose-800 hover:bg-rose-50">
-                Required
-              </Badge>
-            )}
-            {field.is_custom && (
-              <Badge className="h-5 border border-amber-300 bg-amber-50 px-1.5 text-[11px] font-medium text-amber-900 hover:bg-amber-50">
-                Custom
-              </Badge>
-            )}
-            {side === "candidate" && (
-              <Badge
-                className={cn(
-                  "h-5 border px-1.5 text-[11px] font-medium",
-                  field.employer_disclosure_mode === "admin_removed"
-                    ? "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-50"
-                    : field.employer_disclosure_mode === "always_visible"
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-50"
-                      : "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-50"
-                )}
-              >
-                {unlockedVisibilityCopy(field.employer_disclosure_mode).badge}
-              </Badge>
-            )}
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <FieldTypeBadge type={field.field_type} />
-            <span className="font-mono text-[11px] text-slate-500">{field.field_key}</span>
+        <div className="flex min-w-0 flex-1 items-start gap-2">
+          {dragHandle}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="text-sm font-semibold text-slate-900">{field.label}</p>
+              {field.is_required && (
+                <Badge className="h-5 border border-rose-300 bg-rose-50 px-1.5 text-[11px] font-medium text-rose-800 hover:bg-rose-50">
+                  Required
+                </Badge>
+              )}
+              {field.is_custom && (
+                <Badge className="h-5 border border-amber-300 bg-amber-50 px-1.5 text-[11px] font-medium text-amber-900 hover:bg-amber-50">
+                  Custom
+                </Badge>
+              )}
+              {side === "candidate" && (
+                <Badge
+                  className={cn(
+                    "h-5 border px-1.5 text-[11px] font-medium",
+                    field.employer_disclosure_mode === "admin_removed"
+                      ? "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-50"
+                      : field.employer_disclosure_mode === "always_visible"
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-50"
+                        : "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-50"
+                  )}
+                >
+                  {unlockedVisibilityCopy(field.employer_disclosure_mode).badge}
+                </Badge>
+              )}
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <FieldTypeBadge type={field.field_type} />
+              {field.field_type === "select" && (
+                <span className="text-[11px] text-slate-500">
+                  {resolveSelectOptions(field).length} options
+                </span>
+              )}
+              <span className="font-mono text-[11px] text-slate-500">{field.field_key}</span>
+            </div>
+            <DropdownOptionsPreview field={field} />
           </div>
         </div>
       </div>
@@ -1539,12 +1961,19 @@ function AddFieldButton({
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [targetSection, setTargetSection] = useState(section);
+  const [fieldType, setFieldType] = useState<FormFieldType>("text");
+  const [optionsText, setOptionsText] = useState("");
   const [isRequired, setIsRequired] = useState(false);
 
   function add() {
     const trimmed = label.trim();
     if (!trimmed) {
       toast.error("Enter a field label first.");
+      return;
+    }
+    const options = fieldType === "select" ? parseOptionsText(optionsText) : null;
+    if (fieldType === "select" && options.length === 0) {
+      toast.error("Add at least one dropdown option (one per line).");
       return;
     }
     onRunAction(
@@ -1554,11 +1983,17 @@ function AddFieldButton({
           form_group: formGroup,
           section: targetSection,
           label: trimmed,
+          field_type: fieldType,
+          options,
           is_required: isRequired,
         }),
       "Field added"
     );
     setLabel("");
+    setFieldType("text");
+    setOptionsText("");
+    setIsRequired(false);
+    setTargetSection(section);
     setOpen(false);
   }
 
@@ -1569,7 +2004,10 @@ function AddFieldButton({
         variant="outline"
         className={cn("h-10 min-h-10 w-full flex-1 justify-center rounded-xl border-dashed text-sm", accent)}
         disabled={pending}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setTargetSection(section);
+          setOpen(true);
+        }}
       >
         <Plus className="mr-1.5 h-4 w-4" />
         Add field
@@ -1581,27 +2019,62 @@ function AddFieldButton({
     <div className={cn("flex w-full flex-col rounded-xl border border-dashed p-4", accent)}>
       <p className="mb-3 text-sm font-semibold text-slate-700">New custom field</p>
       {pickSection && pickSection.length > 1 && (
+        <label className="mb-3 block space-y-1.5">
+          <span className="text-xs font-medium text-slate-600">Section</span>
+          <select
+            value={targetSection}
+            onChange={(e) => setTargetSection(e.target.value)}
+            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+          >
+            {pickSection.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <label className="mb-3 block space-y-1.5">
+        <span className="text-xs font-medium text-slate-600">Label</span>
+        <Input
+          value={label}
+          disabled={pending}
+          placeholder="Field label, e.g. Portfolio URL"
+          onChange={(e) => setLabel(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && add()}
+          className="h-9 rounded-lg text-sm"
+          autoFocus
+        />
+      </label>
+      <label className="mb-3 block space-y-1.5">
+        <span className="text-xs font-medium text-slate-600">Input type</span>
         <select
-          value={targetSection}
-          onChange={(e) => setTargetSection(e.target.value)}
-          className="mb-3 h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+          value={fieldType}
+          onChange={(e) => setFieldType(e.target.value as FormFieldType)}
+          className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
         >
-          {pickSection.map((s) => (
-            <option key={s} value={s}>
-              {s}
+          {FORM_FIELD_TYPE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </select>
+      </label>
+      {fieldType === "select" && (
+        <label className="mb-3 block space-y-1.5">
+          <span className="text-xs font-medium text-slate-600">
+            Dropdown options (one per line)
+          </span>
+          <Textarea
+            value={optionsText}
+            disabled={pending}
+            onChange={(e) => setOptionsText(e.target.value)}
+            rows={4}
+            placeholder={"Option A\nOption B\nOption C"}
+            className="rounded-lg text-sm"
+          />
+        </label>
       )}
-      <Input
-        value={label}
-        disabled={pending}
-        placeholder="Field label, e.g. Portfolio URL"
-        onChange={(e) => setLabel(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && add()}
-        className="mb-3 h-9 rounded-lg text-sm"
-        autoFocus
-      />
       <label className="mb-3 flex items-center gap-2 text-sm text-slate-600">
         <input
           type="checkbox"
@@ -1617,13 +2090,10 @@ function AddFieldButton({
         </Button>
         <Button
           size="sm"
-          variant="outline"
-          className="h-8 flex-1 rounded-lg"
+          variant="ghost"
+          className="h-8 rounded-lg"
           disabled={pending}
-          onClick={() => {
-            setOpen(false);
-            setLabel("");
-          }}
+          onClick={() => setOpen(false)}
         >
           Cancel
         </Button>

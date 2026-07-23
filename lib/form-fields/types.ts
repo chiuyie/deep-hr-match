@@ -21,6 +21,8 @@ export interface FormFieldDefinition {
   label: string;
   field_type: FormFieldType;
   placeholder: string | null;
+  /** Select/dropdown choices; null when not a select or not configured. */
+  options: string[] | null;
   is_required: boolean;
   is_active: boolean;
   is_custom: boolean;

@@ -4,7 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CandidateProfileForm } from "@/components/candidate/candidate-profile-form";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { loadFormFields, ensureFormFieldsReady } from "@/lib/form-fields/queries";
+import { loadFormFields, ensureFormFieldsReady, loadFormSectionTitles } from "@/lib/form-fields/queries";
 import { groupCandidateProfileFields } from "@/lib/candidate/profile-sections";
 import {
   fetchCandidateOnboardingState,
@@ -26,7 +26,10 @@ export default async function CandidateProfilePage({
   const params = await searchParams;
 
   await ensureFormFieldsReady();
-  const fields = await loadFormFields({ audience: "candidate", formGroup: "profile" });
+  const [fields, sectionOrder] = await Promise.all([
+    loadFormFields({ audience: "candidate", formGroup: "profile" }),
+    loadFormSectionTitles("candidate", "profile"),
+  ]);
 
   const { data: profile } = await supabase
     .from("candidate_profiles")
@@ -45,7 +48,7 @@ export default async function CandidateProfilePage({
       ? Number(params.completion) || completion.percentage
       : profile?.completion_percentage ?? completion.percentage;
 
-  const sections = groupCandidateProfileFields(fields).map((section) => ({
+  const sections = groupCandidateProfileFields(fields, sectionOrder).map((section) => ({
     title: section.title,
     description: section.description,
     fields: section.fields,

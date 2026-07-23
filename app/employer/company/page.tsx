@@ -6,7 +6,8 @@ import {
 } from "@/components/employer/employer-ui";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { loadFormFields, ensureFormFieldsReady } from "@/lib/form-fields/queries";
+import { loadFormFields, ensureFormFieldsReady, loadFormSectionTitles } from "@/lib/form-fields/queries";
+import { groupEmployerProfileFieldsByUiSections } from "@/lib/form-fields/profile-sections";
 import { saveEmployerProfile } from "@/lib/employer/actions";
 
 export default async function EmployerCompanyPage() {
@@ -14,7 +15,10 @@ export default async function EmployerCompanyPage() {
   const supabase = await createClient();
 
   await ensureFormFieldsReady();
-  const fields = await loadFormFields({ audience: "employer", formGroup: "profile" });
+  const [fields, sectionOrder] = await Promise.all([
+    loadFormFields({ audience: "employer", formGroup: "profile" }),
+    loadFormSectionTitles("employer", "profile"),
+  ]);
 
   const { data: profile } = await supabase
     .from("employer_profiles")
@@ -23,6 +27,11 @@ export default async function EmployerCompanyPage() {
     .single();
 
   const p = profile ?? {};
+  const sections = groupEmployerProfileFieldsByUiSections(fields, sectionOrder).map((section) => ({
+    title: section.title,
+    description: section.description,
+    fields: section.fields,
+  }));
 
   return (
     <div className="space-y-6">
@@ -39,7 +48,12 @@ export default async function EmployerCompanyPage() {
         gradient="from-cyan-500 to-cyan-600"
       >
         <form action={saveEmployerProfile} className="space-y-5">
-          <DynamicProfileFields fields={fields} values={p} variant="employer" />
+          <DynamicProfileFields
+            fields={fields}
+            values={p}
+            variant="employer"
+            sections={sections}
+          />
           <Button type="submit" className="rounded-xl">
             Save company profile
           </Button>

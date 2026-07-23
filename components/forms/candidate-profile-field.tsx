@@ -28,6 +28,7 @@ import {
   validateLanguagesList,
 } from "@/lib/form-fields/profile-tags";
 import { matchListedOption } from "@/lib/form-fields/candidate-field-validation";
+import { resolveSelectOptions } from "@/lib/form-fields/select-options";
 import {
   YEARS_OF_EXPERIENCE_MAX,
   YEARS_OF_EXPERIENCE_MIN,
@@ -37,12 +38,8 @@ import {
 } from "@/lib/form-fields/years-of-experience";
 import { cn } from "@/lib/utils";
 import {
-  AVAILABILITY_OPTIONS,
   CANDIDATE_COUNTRIES,
-  EMPLOYMENT_TYPE_OPTIONS,
-  HIGHEST_EDUCATION_OPTIONS,
   SALARY_CURRENCY_OPTIONS,
-  WORK_ARRANGEMENT_OPTIONS,
   countrySelectOptions,
   dialCodeForCountry,
   fetchCitiesForCountry,
@@ -941,42 +938,42 @@ export function CandidateProfileField({ field, defaultValue }: Props) {
   if (field.field_key === "languages") {
     return <LanguagesField field={field} defaultValue={defaultValue} />;
   }
-  if (field.field_key === "highest_education") {
+  if (field.field_key === "highest_education" && field.field_type === "select") {
     return (
       <SimpleSelectField
         field={field}
         defaultValue={defaultValue}
-        options={HIGHEST_EDUCATION_OPTIONS}
+        options={resolveSelectOptions(field)}
         placeholder="Select education level"
       />
     );
   }
-  if (field.field_key === "employment_type_preference") {
+  if (field.field_key === "employment_type_preference" && field.field_type === "select") {
     return (
       <SimpleSelectField
         field={field}
         defaultValue={defaultValue}
-        options={EMPLOYMENT_TYPE_OPTIONS}
+        options={resolveSelectOptions(field)}
         placeholder="Select employment type"
       />
     );
   }
-  if (field.field_key === "work_arrangement_preference") {
+  if (field.field_key === "work_arrangement_preference" && field.field_type === "select") {
     return (
       <SimpleSelectField
         field={field}
         defaultValue={defaultValue}
-        options={WORK_ARRANGEMENT_OPTIONS}
+        options={resolveSelectOptions(field)}
         placeholder="Select work arrangement"
       />
     );
   }
-  if (field.field_key === "availability") {
+  if (field.field_key === "availability" && field.field_type === "select") {
     return (
       <SimpleSelectField
         field={field}
         defaultValue={defaultValue}
-        options={AVAILABILITY_OPTIONS}
+        options={resolveSelectOptions(field)}
         placeholder="Select availability"
       />
     );
@@ -986,6 +983,17 @@ export function CandidateProfileField({ field, defaultValue }: Props) {
   }
   if (field.field_key === "current_salary" || field.field_key === "expected_salary") {
     return <SalaryField field={field} defaultValue={defaultValue} />;
+  }
+
+  if (field.field_type === "select") {
+    return (
+      <SimpleSelectField
+        field={field}
+        defaultValue={defaultValue}
+        options={resolveSelectOptions(field)}
+        placeholder={field.placeholder ?? "Select an option"}
+      />
+    );
   }
 
   const useTextarea = field.field_type === "textarea";

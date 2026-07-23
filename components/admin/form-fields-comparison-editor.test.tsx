@@ -37,12 +37,17 @@ vi.mock("@/lib/admin/form-field-actions", () => ({
   deleteFormField: vi.fn(async () => ({ success: true })),
   toggleFormFieldActive: vi.fn(async () => ({ success: true })),
   createFormField: vi.fn(async () => ({ success: true })),
+  createFormSection: vi.fn(async () => ({ success: true })),
+  renameFormSection: vi.fn(async () => ({ success: true })),
+  deleteFormSection: vi.fn(async () => ({ success: true })),
+  reorderFormFields: vi.fn(async () => ({ success: true })),
+  reorderFormSections: vi.fn(async () => ({ success: true })),
   updateEmployerDisclosureMode: vi.fn(async () => ({ success: true })),
   updateShowOnAnonymousMatch: vi.fn(async () => ({ success: true })),
 }));
 
 describe("FormFieldsComparisonEditor", () => {
-  it("renders paired profile rows with counts and placeholders", () => {
+  it("renders profile sections with field counts", () => {
     render(
       <FormFieldsComparisonEditor
         candidate={sampleCandidateSections}
@@ -58,7 +63,7 @@ describe("FormFieldsComparisonEditor", () => {
     expect(screen.getAllByText("Full Name").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Company Name").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Phone").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("No matching field").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole("button", { name: /Add section/i }).length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows employer job fields on the job tab", async () => {
@@ -89,7 +94,7 @@ describe("FormFieldsComparisonEditor", () => {
     expect(screen.getByText("Job Title")).toBeInTheDocument();
   });
 
-  it("opens inline edit for a paired field", async () => {
+  it("opens inline edit for a field", async () => {
     const user = userEvent.setup();
     render(
       <FormFieldsComparisonEditor
@@ -103,7 +108,7 @@ describe("FormFieldsComparisonEditor", () => {
     const fullNameRow = screen.getAllByText("Full Name")[0]!.closest("div.group");
     expect(fullNameRow).toBeTruthy();
     const editButton = within(fullNameRow as HTMLElement).getByRole("button", {
-      name: "Edit label",
+      name: /Edit( field)?/i,
     });
     await user.click(editButton);
 

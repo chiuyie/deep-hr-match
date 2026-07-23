@@ -12,6 +12,7 @@ export function makeFormField(
     label: overrides.label,
     field_type: overrides.field_type ?? "text",
     placeholder: overrides.placeholder ?? null,
+    options: overrides.options ?? null,
     is_required: overrides.is_required ?? false,
     is_active: overrides.is_active ?? true,
     is_custom: overrides.is_custom ?? false,

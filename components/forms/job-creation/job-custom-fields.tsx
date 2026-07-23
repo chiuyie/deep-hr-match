@@ -1,8 +1,9 @@
 "use client";
 
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
+import { resolveSelectOptions } from "@/lib/form-fields/select-options";
 import type { JobFormState } from "@/lib/utils/job-form";
-import { JobTextField, JobTextareaField } from "./job-form-fields";
+import { JobSelectField, JobTextField, JobTextareaField } from "./job-form-fields";
 
 export function JobCustomFieldsBlock({
   fields,
@@ -36,6 +37,20 @@ export function JobCustomFieldsBlock({
                   onChange={onChange}
                 />
               </div>
+            );
+          }
+          if (field.field_type === "select") {
+            return (
+              <JobSelectField
+                key={field.id}
+                label={field.label}
+                name={name}
+                placeholder={field.placeholder ?? "Select an option"}
+                options={resolveSelectOptions(field)}
+                value={value}
+                required={field.is_required}
+                onChange={onChange}
+              />
             );
           }
           return (

@@ -4,6 +4,11 @@ import {
   JOB_FORM_SECTIONS,
   JOB_PREFERRED_FIELDS,
 } from "@/lib/constants/job-form";
+import {
+  CANDIDATE_PROFILE_SECTIONS,
+  EMPLOYER_PROFILE_SECTIONS,
+} from "@/lib/form-fields/profile-sections";
+import { DEFAULT_SELECT_OPTIONS_BY_KEY } from "@/lib/form-fields/select-options";
 import type { FormFieldAudience, FormFieldGroup, FormFieldType } from "@/lib/form-fields/types";
 
 export type DefaultFormFieldInput = {
@@ -13,46 +18,89 @@ export type DefaultFormFieldInput = {
   field_key: string;
   label: string;
   field_type?: FormFieldType;
+  options?: string[];
   placeholder?: string;
   is_required?: boolean;
   sort_order: number;
 };
 
 function candidateProfileFields(): DefaultFormFieldInput[] {
-  const section = "Candidate Profile";
-  return [
-    { audience: "candidate", form_group: "profile", section, field_key: "full_name", label: "Full Name", is_required: true, sort_order: 1 },
-    { audience: "candidate", form_group: "profile", section, field_key: "email", label: "Email", field_type: "email", is_required: true, sort_order: 2 },
-    { audience: "candidate", form_group: "profile", section, field_key: "phone", label: "Phone", field_type: "tel", sort_order: 3 },
-    { audience: "candidate", form_group: "profile", section, field_key: "country", label: "Country", field_type: "select", sort_order: 4 },
-    { audience: "candidate", form_group: "profile", section, field_key: "city", label: "City", field_type: "select", sort_order: 5 },
-    { audience: "candidate", form_group: "profile", section, field_key: "current_job_title", label: "Current Job Title", sort_order: 6 },
-    { audience: "candidate", form_group: "profile", section, field_key: "years_of_experience", label: "Years of Experience", field_type: "number", sort_order: 7 },
-    { audience: "candidate", form_group: "profile", section, field_key: "highest_education", label: "Highest Education", field_type: "select", sort_order: 8 },
-    { audience: "candidate", form_group: "profile", section, field_key: "skills", label: "Skills", field_type: "textarea", sort_order: 9 },
-    { audience: "candidate", form_group: "profile", section, field_key: "certifications", label: "Certifications", field_type: "textarea", sort_order: 10 },
-    { audience: "candidate", form_group: "profile", section, field_key: "languages", label: "Languages", field_type: "textarea", sort_order: 11 },
-    { audience: "candidate", form_group: "profile", section, field_key: "current_salary", label: "Current Salary", sort_order: 12 },
-    { audience: "candidate", form_group: "profile", section, field_key: "expected_salary", label: "Expected Salary", sort_order: 13 },
-    { audience: "candidate", form_group: "profile", section, field_key: "employment_type_preference", label: "Employment Type Preference", field_type: "select", sort_order: 14 },
-    { audience: "candidate", form_group: "profile", section, field_key: "work_arrangement_preference", label: "Work Arrangement", field_type: "select", sort_order: 15 },
-    { audience: "candidate", form_group: "profile", section, field_key: "availability", label: "Availability", field_type: "select", sort_order: 16 },
-  ];
+  const labelByKey: Record<string, { label: string; field_type?: FormFieldType; is_required?: boolean }> = {
+    full_name: { label: "Full Name", is_required: true },
+    email: { label: "Email", field_type: "email", is_required: true },
+    phone: { label: "Phone", field_type: "tel" },
+    country: { label: "Country", field_type: "select" },
+    city: { label: "City", field_type: "select" },
+    current_job_title: { label: "Current Job Title" },
+    years_of_experience: { label: "Years of Experience", field_type: "number" },
+    highest_education: { label: "Highest Education", field_type: "select" },
+    skills: { label: "Skills", field_type: "textarea" },
+    certifications: { label: "Certifications", field_type: "textarea" },
+    languages: { label: "Languages", field_type: "textarea" },
+    current_salary: { label: "Current Salary" },
+    expected_salary: { label: "Expected Salary" },
+    employment_type_preference: { label: "Employment Type Preference", field_type: "select" },
+    work_arrangement_preference: { label: "Work Arrangement", field_type: "select" },
+    availability: { label: "Availability", field_type: "select" },
+  };
+
+  let order = 1;
+  const fields: DefaultFormFieldInput[] = [];
+  for (const section of CANDIDATE_PROFILE_SECTIONS) {
+    for (const field_key of section.fieldKeys) {
+      const meta = labelByKey[field_key];
+      if (!meta) continue;
+      fields.push({
+        audience: "candidate",
+        form_group: "profile",
+        section: section.title,
+        field_key,
+        label: meta.label,
+        field_type: meta.field_type,
+        options:
+          meta.field_type === "select"
+            ? [...(DEFAULT_SELECT_OPTIONS_BY_KEY[field_key] ?? [])]
+            : undefined,
+        is_required: meta.is_required,
+        sort_order: order++,
+      });
+    }
+  }
+  return fields;
 }
 
 function employerProfileFields(): DefaultFormFieldInput[] {
-  const section = "Company Profile";
-  return [
-    { audience: "employer", form_group: "profile", section, field_key: "company_name", label: "Company Name", is_required: true, sort_order: 1 },
-    { audience: "employer", form_group: "profile", section, field_key: "registration_number", label: "UEN / Registration Number", sort_order: 2 },
-    { audience: "employer", form_group: "profile", section, field_key: "industry", label: "Industry", sort_order: 3 },
-    { audience: "employer", form_group: "profile", section, field_key: "company_size", label: "Company Size", sort_order: 4 },
-    { audience: "employer", form_group: "profile", section, field_key: "website", label: "Website", field_type: "url", sort_order: 5 },
-    { audience: "employer", form_group: "profile", section, field_key: "company_description", label: "Description", field_type: "textarea", sort_order: 6 },
-    { audience: "employer", form_group: "profile", section, field_key: "contact_person_name", label: "Contact Person", sort_order: 7 },
-    { audience: "employer", form_group: "profile", section, field_key: "contact_person_email", label: "Contact Email", field_type: "email", sort_order: 8 },
-    { audience: "employer", form_group: "profile", section, field_key: "contact_person_phone", label: "Contact Phone", field_type: "tel", sort_order: 9 },
-  ];
+  const labelByKey: Record<string, { label: string; field_type?: FormFieldType; is_required?: boolean }> = {
+    company_name: { label: "Company Name", is_required: true },
+    registration_number: { label: "UEN / Registration Number" },
+    industry: { label: "Industry" },
+    company_size: { label: "Company Size" },
+    website: { label: "Website", field_type: "url" },
+    company_description: { label: "Description", field_type: "textarea" },
+    contact_person_name: { label: "Contact Person" },
+    contact_person_email: { label: "Contact Email", field_type: "email" },
+    contact_person_phone: { label: "Contact Phone", field_type: "tel" },
+  };
+
+  let order = 1;
+  const fields: DefaultFormFieldInput[] = [];
+  for (const section of EMPLOYER_PROFILE_SECTIONS) {
+    for (const field_key of section.fieldKeys) {
+      const meta = labelByKey[field_key];
+      if (!meta) continue;
+      fields.push({
+        audience: "employer",
+        form_group: "profile",
+        section: section.title,
+        field_key,
+        label: meta.label,
+        field_type: meta.field_type,
+        is_required: meta.is_required,
+        sort_order: order++,
+      });
+    }
+  }
+  return fields;
 }
 
 function employerJobFields(): DefaultFormFieldInput[] {
@@ -101,6 +149,7 @@ function employerJobFields(): DefaultFormFieldInput[] {
     push("basic-information", field.name, field.label, {
       field_type: "select",
       placeholder: field.placeholder,
+      options: [...field.options],
     });
   }
   push("basic-information", "language_needs", "Language Needs", { field_type: "textarea" });

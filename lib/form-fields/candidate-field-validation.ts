@@ -4,16 +4,13 @@
  */
 
 import {
-  AVAILABILITY_OPTIONS,
   CANDIDATE_COUNTRIES,
-  EMPLOYMENT_TYPE_OPTIONS,
-  HIGHEST_EDUCATION_OPTIONS,
-  WORK_ARRANGEMENT_OPTIONS,
   isValidEmail,
   isValidSalaryAmount,
   parseSalaryValue,
 } from "@/lib/constants/candidate-profile-options";
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
+import { resolveSelectOptions } from "@/lib/form-fields/select-options";
 import {
   normalizePhoneToE164,
   validateSubmittedPhone,
@@ -355,7 +352,7 @@ export function validateCandidateField(
         asString,
         label,
         required,
-        HIGHEST_EDUCATION_OPTIONS,
+        resolveSelectOptions(field),
         true,
         FIELD_MAX_LENGTH.highest_education
       );
@@ -364,7 +361,7 @@ export function validateCandidateField(
         asString,
         label,
         required,
-        EMPLOYMENT_TYPE_OPTIONS,
+        resolveSelectOptions(field),
         false,
         FIELD_MAX_LENGTH.employment_type_preference
       );
@@ -373,7 +370,7 @@ export function validateCandidateField(
         asString,
         label,
         required,
-        WORK_ARRANGEMENT_OPTIONS,
+        resolveSelectOptions(field),
         false,
         FIELD_MAX_LENGTH.work_arrangement_preference
       );
@@ -382,7 +379,7 @@ export function validateCandidateField(
         asString,
         label,
         required,
-        AVAILABILITY_OPTIONS,
+        resolveSelectOptions(field),
         false,
         FIELD_MAX_LENGTH.availability
       );
@@ -411,6 +408,9 @@ export function validateCandidateField(
     default: {
       if (field.field_type === "email") return validateEmail(asString, label, required);
       if (field.field_type === "tel") return validatePhone(asString, label, required);
+      if (field.field_type === "select") {
+        return validateSelect(asString, label, required, resolveSelectOptions(field), false);
+      }
       return validateGenericText(asString, label, required, maxForKey(key));
     }
   }

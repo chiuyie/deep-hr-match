@@ -1,4 +1,3 @@
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { employerInputClassName, employerLabelClassName } from "@/components/employer/employer-ui";
 import {
@@ -6,6 +5,7 @@ import {
   CandidateProfileField,
 } from "@/components/forms/candidate-profile-field";
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
+import { resolveSelectOptions } from "@/lib/form-fields/select-options";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -44,6 +44,27 @@ function renderEmployerInput(field: FormFieldDefinition, defaultValue: string) {
       />
     );
   }
+
+  if (field.field_type === "select") {
+    const options = resolveSelectOptions(field);
+    return (
+      <select
+        id={common.id}
+        name={common.name}
+        defaultValue={defaultValue}
+        required={field.is_required}
+        className={employerInputClassName}
+      >
+        <option value="">{field.placeholder ?? "Select an option"}</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
   return (
     <input
       {...common}
