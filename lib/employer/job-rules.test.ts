@@ -11,6 +11,7 @@ import {
   matchingRunButtonLabel,
   refreshMatchingWarning,
   runMatchingBlockedReason,
+  shouldAutoGenerateInitialMatches,
 } from "@/lib/employer/job-rules";
 
 describe("job lifecycle rules", () => {
@@ -76,5 +77,57 @@ describe("job lifecycle rules", () => {
     expect(canOpenMatchingPage({ status: "active", hasMatches: false })).toBe(true);
     expect(canOpenMatchingPage({ status: "active", hasMatches: true })).toBe(true);
     expect(canOpenMatchingPage({ status: "closed", hasMatches: true })).toBe(true);
+  });
+});
+
+describe("shouldAutoGenerateInitialMatches", () => {
+  it("runs for a new job created as active with no matches yet", () => {
+    expect(
+      shouldAutoGenerateInitialMatches({
+        status: "active",
+        previousStatus: null,
+        hasExistingMatches: false,
+      })
+    ).toBe(true);
+  });
+
+  it("runs when a draft is posted as active", () => {
+    expect(
+      shouldAutoGenerateInitialMatches({
+        status: "active",
+        previousStatus: "draft",
+        hasExistingMatches: false,
+      })
+    ).toBe(true);
+  });
+
+  it("does not run for draft saves", () => {
+    expect(
+      shouldAutoGenerateInitialMatches({
+        status: "draft",
+        previousStatus: null,
+        hasExistingMatches: false,
+      })
+    ).toBe(false);
+  });
+
+  it("does not re-run when matches already exist (refresh stays manual)", () => {
+    expect(
+      shouldAutoGenerateInitialMatches({
+        status: "active",
+        previousStatus: "draft",
+        hasExistingMatches: true,
+      })
+    ).toBe(false);
+  });
+
+  it("does not run for closed jobs", () => {
+    expect(
+      shouldAutoGenerateInitialMatches({
+        status: "closed",
+        previousStatus: "active",
+        hasExistingMatches: false,
+      })
+    ).toBe(false);
   });
 });

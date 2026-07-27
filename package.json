@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "create-admin": "node --env-file=.env.local scripts/create-admin.mjs",
     "seed-employer-jobs": "node scripts/seed-employer-jobs.mjs",
+    "cleanup-jobs-without-matrix": "node scripts/cleanup-jobs-without-matrix.mjs",
     "seed-dummy-users": "node scripts/seed-dummy-users.mjs",
     "seed-matrix-77": "node scripts/seed-matrix-77-placeholder.mjs",
     "generate-geo": "node scripts/generate-world-countries.mjs"

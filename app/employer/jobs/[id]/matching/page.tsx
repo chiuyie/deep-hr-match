@@ -116,7 +116,7 @@ export default async function JobMatchingPage({
       <EmployerJobContext
         jobTitle={job.title}
         jobId={id}
-        description="Anonymous ranked snapshot — unlock profiles to view full details ($49 each)"
+        description="Anonymous ranked snapshot — first run happens when you post the job; refresh anytime for new candidates ($49 to unlock each profile)"
       />
       <JobWorkflowNav jobId={id} currentStep="matching" canEdit={canEditJob(lifecycle)} />
 

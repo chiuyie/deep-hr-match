@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Lock, Target, Unlock, Users } from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, Target, Unlock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,6 +51,58 @@ function PreviewFieldsList({
   );
 }
 
+function ScoreBreakdown({
+  match,
+}: {
+  match: AnonymousCandidateMatch;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (!match.match_summary && !match.strengths?.length && !match.gaps?.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1 text-xs text-primary/80 hover:text-primary"
+      >
+        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        {open ? "Hide details" : "Score details"}
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs text-slate-700">
+          {match.match_summary && (
+            <p className="leading-relaxed">{match.match_summary}</p>
+          )}
+          {match.strengths && match.strengths.length > 0 && (
+            <div>
+              <p className="font-medium text-emerald-700">Strengths</p>
+              <ul className="mt-0.5 list-inside list-disc space-y-0.5 text-emerald-600">
+                {match.strengths.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {match.gaps && match.gaps.length > 0 && (
+            <div>
+              <p className="font-medium text-amber-700">Gaps</p>
+              <ul className="mt-0.5 list-inside list-disc space-y-0.5 text-amber-600">
+                {match.gaps.map((g, i) => (
+                  <li key={i}>{g}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MatchingResultsTable({
   jobId,
   results,
@@ -89,12 +141,16 @@ export function MatchingResultsTable({
     }
   }
 
+  const hasPlaceholderScores = results.some((row) => row.is_placeholder);
+
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
-        All scores shown are <strong>DEMO / Placeholder</strong> only. Final matching
-        algorithm pending confirmation.
-      </div>
+      {hasPlaceholderScores ? (
+        <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
+          Some scores are <strong>DEMO / Placeholder</strong> because this job has no
+          7^7 matching language answers yet. Complete the form and refresh matches.
+        </div>
+      ) : null}
 
       {mockPayments ? (
         <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-950 shadow-sm">
@@ -166,6 +222,7 @@ export function MatchingResultsTable({
                       )}
                     </div>
                   </div>
+                  {showMatchScore && <ScoreBreakdown match={row} />}
                   <div className="mt-3">
                     <PreviewFieldsList fields={row.preview_fields} />
                   </div>
@@ -228,6 +285,7 @@ export function MatchingResultsTable({
                                 </Badge>
                               )}
                             </div>
+                            <ScoreBreakdown match={row} />
                           </TableCell>
                         ) : null}
                         {previewColumns.map((column) => (

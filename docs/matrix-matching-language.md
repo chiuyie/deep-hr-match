@@ -39,16 +39,17 @@ The 7^7 form contains **only** the seven matching factors at Level 1. Levels 2+ 
 | Employer | `job_matrix_answers` | Ideal / required profile for the role |
 | Candidate | `candidate_matrix_answers` | Self-assessment |
 
-## Scoring (Phase 1)
+## Scoring (platform default)
 
-Implemented in `lib/matching/matrix-score.ts`:
+Implemented in `lib/matching/matrix-score.ts` (same app repo):
 
-1. For each word level where **both** sides picked a word (`option_id`)
-2. **Exact same `option_id`** → perfect match for that cell (1 point)
-3. Different word → 0 for that cell
-4. **Matrix score** = `(matched cells / comparable cells) × 100`
+1. Answers are compared per **factor column** (`matrix_column` 1–7), not by `question_id` alone
+2. Within a column, exact same `option_id` at the same `question_id` → match
+3. Each comparable column gets a 0–100 column score
+4. **Platform default weights:** equal across the 7 factors (`1/7` each, renormalized over columns both sides answered)
+5. **Matrix / overall score** = weighted average of column scores
 
-Overall ranking in the inline placeholder engine uses `matrix_score` as `overall_score` when the job form has answers. Sub-scores (profile, skills, etc.) remain demo offsets until the external engine ships.
+Employer-custom weights are out of scope for now. Profile / skills / experience / education sub-scores stay unset until those signals are scored.
 
 ## Requirements
 

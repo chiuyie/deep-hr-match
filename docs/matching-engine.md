@@ -1,13 +1,13 @@
 # Matching Engine
 
-Phase 1 uses a **placeholder matching engine** in this repo for local dev. The **production algorithm** is planned to run in a **separate repository/service** that writes to the same Supabase database.
+**Default:** scoring runs **in this repo** (`lib/matching/`). An optional external service can take over later via `MATCHING_ENGINE_URL` (same Supabase `match_results` writes).
 
 **Integration guide:** [Matching Engine Integration (External Service)](./matching-engine-integration.md)
 
 **Files (this repo):**
-- `lib/matching/trigger.ts` — dispatches inline placeholder or external HTTP service
-- `lib/matching/engine.ts` — Phase 1 placeholder scoring (dev/demo; uses matrix word match when available)
-- `lib/matching/matrix-score.ts` — exact word match per word level
+- `lib/matching/trigger.ts` — dispatches inline engine or external HTTP service
+- `lib/matching/engine.ts` — snapshot generation + ranking into `match_results`
+- `lib/matching/matrix-score.ts` — platform-default equal column weights (7^7)
 - `lib/matching/snapshot.ts` — snapshot metadata helpers
 - `lib/employer/job-rules.ts` — when employers can generate/refresh
 
@@ -15,12 +15,12 @@ See also [Job Lifecycle & Matching Snapshots](./job-lifecycle.md) for business r
 
 ## Status
 
-| Aspect | Phase 1 |
+| Aspect | Current |
 |--------|---------|
-| Algorithm | Placeholder / demo scores |
-| `is_placeholder` flag | Always `true` |
-| UI labeling | `[DEMO]` prefixes on summaries |
-| Job matrix answers | Used for **7^7 word match** when job form is filled (`lib/matching/matrix-score.ts`) |
+| Algorithm | Platform-default **equal column weights** (1/7) when job has matrix answers |
+| `is_placeholder` flag | `false` for matrix-scored rows; `true` only for empty-job demo fallback |
+| UI labeling | DEMO banner only when placeholder rows are present |
+| Job matrix answers | **Required** for active jobs and for any match run |
 | Candidate filter | `status = 'ready_for_matching'` only |
 | Display limit | Top **25** per snapshot (`MATCH_DISPLAY_LIMIT`) |
 | Snapshot model | Point-in-time; stale until employer refreshes |
@@ -59,19 +59,21 @@ triggerMatchRun(supabase, { jobId, employerId })
 generatePlaceholderMatches(supabase, { jobId, employerId })
 ```
 
-**Triggered by:** `generateMatchingResults()` server action from `/employer/jobs/[id]/matching`
+**Triggered by:**
+- Auto on job post: `saveJob()` when status becomes `active` and no matches exist yet
+- Manual: `generateMatchingResults()` from **Generate / Refresh Matches** on `/employer/jobs/[id]/matching`
 
 ## Algorithm Flow
 
 1. **Validate job** — must exist and belong to `employerId`
-2. **Load job matrix answers** — stored for future use, not scored yet
+2. **Load job + candidate matrix answers** — including `matrix_column`
 3. **Query candidates** — all `candidate_profiles` where `status = 'ready_for_matching'`
 4. **Clear previous results** — `DELETE FROM match_results WHERE job_id = ?`
-5. **Generate scores** — one placeholder score per candidate
+5. **Generate scores** — equal-weight column match when job has answers; demo fallback otherwise
 6. **Sort** — by `overall_score` descending
 7. **Assign ranks** — `ranking_position` 1, 2, 3, ...
 8. **Truncate** — keep top `MATCH_DISPLAY_LIMIT` (25) rows
-9. **Insert** — batch insert into `match_results` with `is_placeholder: true`
+9. **Insert** — batch insert into `match_results`
 
 Returns `{ count, results }`.
 
@@ -83,16 +85,13 @@ export const UNLOCK_PRICE_CENTS = 4900;  // $49.00 USD
 export const UNLOCK_CURRENCY = "usd";
 ```
 
-## Placeholder Scoring
+## Scoring
 
-`generatePlaceholderScore(index)`:
+When the job has 7^7 answers, `scoreMatrixMatch()` applies **equal column weights** (see [matrix matching language](./matrix-matching-language.md)). `overall_score` = `matrix_score`. Non-matrix sub-scores are left null.
 
-- Base score: `95 - index * 7 + random(0..4)`
-- Clamped to range `[45, 98]`
-- Sub-scores derived as offsets from overall (matrix -3, profile -5, etc.)
-- Fixed demo `strengths` and `gaps` arrays with `[DEMO]` prefix
+### Empty-job fallback
 
-Scores are **not deterministic** across runs due to random jitter.
+If the job has no matrix answers, ranks use non-deterministic demo scores (`is_placeholder: true`) until the form is completed.
 
 ## Snapshot Helpers
 

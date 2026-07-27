@@ -5,25 +5,25 @@ This document defines employer-facing job rules and how matching snapshots work.
 ## Overview
 
 ```text
-Create job (draft) → Post job (active) → Generate match snapshot → Unlock profiles (paid)
+Create job (draft) → Post job (active) → Auto first match snapshot → Unlock profiles (paid)
                                               ↓
-                                    Refresh snapshot (optional)
+                                    Refresh snapshot (manual, optional)
 ```
 
 | Concept | Rule |
 |---------|------|
 | **Job posting** | Free, unlimited |
 | **Job edit** | Draft only — posted jobs are read-only |
-| **Match generation** | Free — produces an anonymous ranked snapshot |
+| **First match generation** | Free — auto-runs when a job becomes `active` |
 | **Profile unlock** | Paid ($49/candidate) — reveals full PII + CV |
-| **Refresh matches** | Free — replaces snapshot with a new run against the current pool |
+| **Refresh matches** | Free, **manual** — replaces snapshot with a new run against the current pool |
 
 ## Job States
 
 | Status | Edit job | Generate matches | Refresh matches | View past matches |
 |--------|----------|------------------|-----------------|-------------------|
 | `draft` | Yes | No (must post first) | No | No |
-| `active` | No | Yes (first time) | Yes (if results exist) | Yes |
+| `active` | No | Auto on post; Generate if auto failed | Yes (if results exist) | Yes |
 | `closed` | No | No | No | Yes (frozen snapshot) |
 
 ### Why posted jobs cannot be edited
@@ -51,12 +51,13 @@ This excludes draft/incomplete candidates. The pool is **global** (not employer-
 
 ### Snapshot behaviour
 
-1. Employer clicks **Generate Matches** (first run) or **Refresh Matches** (subsequent run).
-2. This app calls `triggerMatchRun()` — inline placeholder locally, or HTTP to **external matching service** when configured (see [integration doc](./matching-engine-integration.md)).
-3. The engine (inline or external) scores ready candidates and writes to `match_results`.
-4. Previous `match_results` rows for that job are **deleted** before insert.
-5. Top **25** candidates are stored (`MATCH_DISPLAY_LIMIT`).
-6. All rows share the same `generated_at` timestamp.
+1. **First snapshot:** when `saveJob()` posts a job as `active` (new create or draft → active), the app auto-calls `triggerMatchRun()` once if no `match_results` exist yet (`shouldAutoGenerateInitialMatches`).
+2. **Later snapshots:** employer clicks **Refresh Matches** (or **Generate Matches** if the auto-run failed). New candidates do **not** auto-trigger a re-run.
+3. This app calls `triggerMatchRun()` — inline engine locally, or HTTP to **external matching service** when configured (see [integration doc](./matching-engine-integration.md)).
+4. The engine scores ready candidates and writes to `match_results`.
+5. Previous `match_results` rows for that job are **deleted** before insert.
+6. Top **25** candidates are stored (`MATCH_DISPLAY_LIMIT`).
+7. All rows share the same `generated_at` timestamp.
 
 ### Staleness — new candidates after a snapshot
 

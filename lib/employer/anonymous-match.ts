@@ -8,6 +8,9 @@ type MatchResultLike = {
   ranking_position: number;
   overall_score: number | string;
   is_placeholder: boolean;
+  match_summary?: string | null;
+  strengths?: string[] | null;
+  gaps?: string[] | null;
 };
 
 export function buildAnonymousCandidateMatches(options: {
@@ -28,6 +31,9 @@ export function buildAnonymousCandidateMatches(options: {
       is_placeholder: match.is_placeholder,
       preview_fields: buildAnonymousPreviewFields(candidateFields, profile),
       is_unlocked: unlockedIds.includes(match.candidate_id),
+      match_summary: match.match_summary ?? null,
+      strengths: match.strengths ?? null,
+      gaps: match.gaps ?? null,
     };
   });
 }

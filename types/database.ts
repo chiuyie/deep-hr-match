@@ -188,6 +188,9 @@ export interface AnonymousCandidateMatch {
   /** Admin-configured preview fields for anonymized rankings. */
   preview_fields: Array<{ key: string; label: string; value: string | null }>;
   is_unlocked: boolean;
+  match_summary: string | null;
+  strengths: string[] | null;
+  gaps: string[] | null;
 }
 
 export interface UnlockedCandidateView {

@@ -6,6 +6,7 @@ import {
   canRunMatching,
   getEmployerMatrixSubmitRedirect,
   runMatchingBlockedReason,
+  shouldAutoGenerateInitialMatches,
 } from "@/lib/employer/job-rules";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
@@ -20,6 +21,7 @@ import {
   formStateToJobPayload,
   parseJobFormState,
 } from "@/lib/utils/job-form";
+import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { JOB_MATRIX_ANSWERS_FORM_KEY } from "@/lib/constants/job-form";
 import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategory } from "@/lib/matching/matrix-queries";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
@@ -121,6 +123,40 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
   }
 
   const jobPayload = formStateToJobPayload(formState);
+
+  // Active jobs must include a complete 7^7 Matching Language form.
+  if (jobPayload.status === "active") {
+    const { data: categories } = await supabase
+      .from("matrix_categories")
+      .select(MATRIX_CATEGORY_TREE_SELECT)
+      .eq("is_active", true)
+      .order("sort_order");
+
+    const primary = pickPrimaryMatrixCategory(
+      filterSharedMatrixCategories(categories ?? [])
+    );
+    if (!primary) {
+      throw new Error(
+        `${FRAMEWORK_MATCHING_LANGUAGE} is not configured yet. Ask an administrator to publish it before posting.`
+      );
+    }
+
+    const answerMap = toColumnAnswersMap(
+      matrixAnswers.map((a) => ({
+        question_id: a.question_id,
+        option_id: a.option_id,
+        answer_text: a.answer_text,
+        matrix_column: a.matrix_column,
+      }))
+    );
+    const matrixError = validateMatrixColumnSubmission(primary, answerMap);
+    if (matrixError) {
+      throw new Error(
+        `Complete all ${FRAMEWORK_MATCHING_LANGUAGE} factors before posting this job.`
+      );
+    }
+  }
+
   const payload = {
     title: jobPayload.title,
     description: jobPayload.description,
@@ -138,6 +174,7 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
   };
 
   let savedJobId = jobId;
+  let previousStatus: "draft" | "active" | "closed" | null = null;
 
   if (jobId) {
     const { data: existing } = await supabase
@@ -154,6 +191,7 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
       );
     }
 
+    previousStatus = existing.status;
     const { error } = await supabase.from("jobs").update(payload).eq("id", jobId);
     if (error) throw new Error(error.message);
     revalidatePath(`/employer/jobs/${jobId}`);
@@ -161,6 +199,7 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
     const { data, error } = await supabase.from("jobs").insert(payload).select("id").single();
     if (error) throw new Error(error.message);
     savedJobId = data.id;
+    previousStatus = null;
     revalidatePath("/employer/jobs");
   }
 
@@ -184,7 +223,38 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
     revalidatePath(`/employer/jobs/${savedJobId}/matching`);
   }
 
+  let didAutoMatch = false;
+  if (savedJobId && payload.status === "active") {
+    const { count: matchCount } = await supabase
+      .from("match_results")
+      .select("*", { count: "exact", head: true })
+      .eq("job_id", savedJobId);
+
+    const hasExistingMatches = (matchCount ?? 0) > 0;
+    if (
+      shouldAutoGenerateInitialMatches({
+        status: payload.status,
+        previousStatus,
+        hasExistingMatches,
+      })
+    ) {
+      try {
+        await triggerMatchRun(supabase, {
+          jobId: savedJobId,
+          employerId,
+        });
+        didAutoMatch = true;
+        revalidatePath(`/employer/jobs/${savedJobId}/matching`);
+      } catch {
+        // Job is posted; employer can still click Generate Matches manually.
+      }
+    }
+  }
+
   if (!jobId && savedJobId) {
+    if (didAutoMatch) {
+      redirect(`/employer/jobs/${savedJobId}/matching`);
+    }
     redirect(`/employer/jobs/${savedJobId}`);
   }
 
@@ -319,6 +389,19 @@ export async function generateMatchingResults(jobId: string): Promise<void> {
     .single();
 
   if (!job) throw new Error("Job not found");
+
+  const { count: matrixAnswerCount } = await supabase
+    .from("job_matrix_answers")
+    .select("*", { count: "exact", head: true })
+    .eq("job_id", jobId)
+    .gte("matrix_column", 1)
+    .not("option_id", "is", null);
+
+  if ((matrixAnswerCount ?? 0) === 0) {
+    throw new Error(
+      `Complete the ${FRAMEWORK_MATCHING_LANGUAGE} form on this job before generating matches.`
+    );
+  }
 
   const { count: matchCount } = await supabase
     .from("match_results")

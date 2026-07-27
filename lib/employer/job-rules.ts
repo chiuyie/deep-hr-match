@@ -9,10 +9,25 @@ export interface JobLifecycleState {
 /**
  * Job lifecycle (employer-facing):
  * 1. Create job (draft → active when posted)
- * 2. Generate anonymous match results (active jobs; repeatable = regenerate)
+ * 2. First match snapshot auto-runs on post; later refreshes are manual
  * 3. Pay per candidate to unlock full profiles
  * 4. View job + past results anytime; never edit posted jobs — create a new job instead
  */
+
+/**
+ * Whether posting this job should kick off the first match snapshot.
+ * Refresh / regenerate stays employer-initiated.
+ */
+export function shouldAutoGenerateInitialMatches(options: {
+  status: JobStatus;
+  previousStatus: JobStatus | null;
+  hasExistingMatches: boolean;
+}): boolean {
+  if (options.hasExistingMatches) return false;
+  if (options.status !== "active") return false;
+  // New job created as active, or draft promoted to active.
+  return options.previousStatus === null || options.previousStatus === "draft";
+}
 
 /** Only unfinished drafts can be edited. Posted jobs are locked to their match history. */
 export function canEditJob(state: JobLifecycleState): boolean {
