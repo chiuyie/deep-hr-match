@@ -38,7 +38,7 @@ export function getAdminPageMeta(pathname: string): AdminPageMeta {
   if (pathname === "/admin/employers") {
     return {
       title: "Employers",
-      description: "Company profiles and contact details",
+      description: "Employer profiles and contact details",
       contentClassName,
     };
   }

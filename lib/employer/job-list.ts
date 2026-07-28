@@ -23,7 +23,18 @@ export function countByJobId(rows: { job_id: string }[]): Map<string, number> {
 }
 
 export function toEmployerJobListItems(
-  jobs: Job[],
+  jobs: Array<
+    Pick<
+      Job,
+      | "id"
+      | "title"
+      | "location"
+      | "department"
+      | "employment_type"
+      | "status"
+      | "created_at"
+    >
+  >,
   matchCounts: Map<string, number>,
   unlockCounts: Map<string, number>
 ): EmployerJobListItem[] {

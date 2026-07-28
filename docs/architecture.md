@@ -74,7 +74,7 @@ Deep HR Match is a **Next.js 16 App Router** application backed by **Supabase** 
 | Route | Purpose |
 |-------|---------|
 | `/employer` | Dashboard |
-| `/employer/company` | Employer profile |
+| `/employer/profile` | Employer profile |
 | `/employer/jobs` | Job list |
 | `/employer/jobs/new` | Create job |
 | `/employer/jobs/[id]` | Edit job |

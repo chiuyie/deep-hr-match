@@ -9,12 +9,11 @@ import {
   Phone,
   UserRound,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmployerJobContext, EmployerPageSection } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { UnlockedMatchReportSections } from "@/components/employer/unlocked-match-report";
-import { requireRole } from "@/lib/auth/session";
+import { requireEmployer } from "@/lib/auth/session";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils/profile";
 import { getEmployerUnlockedCandidateView } from "@/lib/employer/unlocked-candidate-view";
@@ -22,11 +21,7 @@ import {
   loadPlatformDisclosureMap,
   shouldShowUnlockedPlatformItem,
 } from "@/lib/employer/platform-disclosure";
-import {
-  buildMatrixComparisonRows,
-  loadCandidateMatrixAnswerSteps,
-  loadJobMatrixAnswerSteps,
-} from "@/lib/matching/candidate-matrix-summary";
+import { loadMatrixComparisonForUnlock } from "@/lib/matching/candidate-matrix-summary";
 import type { EmployerVisibleCandidateField } from "@/lib/employer/unlocked-candidate-view";
 
 function groupFieldsBySection(fields: EmployerVisibleCandidateField[]) {
@@ -50,49 +45,43 @@ export default async function EmployerUnlockedCandidateDetailPage({
   params: Promise<{ id: string; candidateId: string }>;
 }) {
   const { id: jobId, candidateId } = await params;
-  const user = await requireRole("employer");
+  const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
 
-  const { data: employer } = await supabase
-    .from("employer_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
+  if (!employer) notFound();
 
   const { data: job } = await supabase
     .from("jobs")
     .select("title, status")
     .eq("id", jobId)
-    .eq("employer_id", employer?.id ?? "")
+    .eq("employer_id", employer.id)
     .single();
 
-  if (!job || !employer) notFound();
+  if (!job) notFound();
 
-  let candidateView:
-    | (Awaited<ReturnType<typeof getEmployerUnlockedCandidateView>> & {
-        visibleFields: EmployerVisibleCandidateField[];
-      })
-    | null = null;
-  try {
-    candidateView = await getEmployerUnlockedCandidateView(employer.id, jobId, candidateId);
-  } catch {
-    notFound();
-  }
-
-  if (!candidateView) notFound();
-
-  const disclosureMap = await loadPlatformDisclosureMap();
   let matrixClient = supabase;
   try {
     matrixClient = await createServiceClient();
   } catch {
     matrixClient = supabase;
   }
-  const [candidateSteps, jobSteps] = await Promise.all([
-    loadCandidateMatrixAnswerSteps(matrixClient, candidateId),
-    loadJobMatrixAnswerSteps(supabase, jobId),
+
+  let candidateView:
+    | (Awaited<ReturnType<typeof getEmployerUnlockedCandidateView>> & {
+        visibleFields: EmployerVisibleCandidateField[];
+      })
+    | null = null;
+
+  const [candidateViewResult, disclosureMap, matrixComparison] = await Promise.all([
+    getEmployerUnlockedCandidateView(employer.id, jobId, candidateId).catch(() => null),
+    loadPlatformDisclosureMap(),
+    loadMatrixComparisonForUnlock(matrixClient, jobId, candidateId),
   ]);
-  const comparisonRows = buildMatrixComparisonRows(jobSteps, candidateSteps);
+
+  candidateView = candidateViewResult;
+  if (!candidateView) notFound();
+
+  const { candidateSteps, comparisonRows } = matrixComparison;
 
   const showCv = shouldShowUnlockedPlatformItem(
     disclosureMap,
@@ -135,15 +124,15 @@ export default async function EmployerUnlockedCandidateDetailPage({
         icon={<UserRound className="h-6 w-6" />}
         gradient="from-emerald-500 to-emerald-600"
         action={
-          <div className="flex flex-wrap gap-2">
-            <Badge className="bg-emerald-600 hover:bg-emerald-600">
-              <LockOpen className="h-3 w-3" />
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white">
+              <LockOpen className="h-3.5 w-3.5" />
               Unlocked
-            </Badge>
+            </span>
             {showCv && candidateView.cvDownloadUrl && (
-              <Button size="sm" className="rounded-lg" asChild>
+              <Button size="sm" className="h-8 rounded-lg" asChild>
                 <a href={candidateView.cvDownloadUrl} target="_blank" rel="noopener noreferrer">
-                  <Download className="mr-1.5 h-4 w-4" />
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
                   Download CV
                 </a>
               </Button>

@@ -54,7 +54,7 @@ describe("buildPairedFieldRows", () => {
     const rows = buildPairedFieldRows(sampleCandidateSections, sampleEmployerSections);
     expect(rows).toHaveLength(3);
     expect(rows[0].left?.label).toBe("Full Name");
-    expect(rows[0].right?.label).toBe("Company Name");
+    expect(rows[0].right?.label).toBe("Employer name");
     expect(rows[1].left?.label).toBe("Email");
     expect(rows[1].right?.label).toBe("Industry");
     expect(rows[2].left?.label).toBe("Phone");
@@ -69,7 +69,7 @@ describe("buildPairedFieldRows", () => {
     const rows = buildPairedFieldRows([], sampleEmployerSections);
     expect(rows).toHaveLength(2);
     expect(rows[0].left).toBeUndefined();
-    expect(rows[0].right?.label).toBe("Company Name");
+    expect(rows[0].right?.label).toBe("Employer name");
   });
 
   it("flattens multiple sections before pairing", () => {

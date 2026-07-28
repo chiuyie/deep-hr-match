@@ -54,12 +54,12 @@ export const CANDIDATE_ADDITIONAL_SECTION: ProfileSectionDef = {
   fieldKeys: [],
 };
 
-/** Employer company profile sections — must match the employer company UI. */
+/** Employer profile sections — must match the employer profile UI. */
 export const EMPLOYER_PROFILE_SECTIONS: ProfileSectionDef[] = [
   {
     id: "company",
-    title: "Company details",
-    description: "Core company information shown across your jobs.",
+    title: "Employer details",
+    description: "Core employer information shown across your jobs.",
     fieldKeys: [
       "company_name",
       "registration_number",
@@ -80,7 +80,7 @@ export const EMPLOYER_PROFILE_SECTIONS: ProfileSectionDef[] = [
 export const EMPLOYER_ADDITIONAL_SECTION: ProfileSectionDef = {
   id: "additional",
   title: "Additional information",
-  description: "Extra company fields for your employer profile.",
+  description: "Extra employer fields for your employer profile.",
   fieldKeys: [],
 };
 
@@ -121,6 +121,7 @@ export function defaultEmployerSectionForKey(fieldKey: string): string {
 const LEGACY_PROFILE_SECTIONS = new Set([
   "Candidate Profile",
   "Company Profile",
+  "Company details",
   "Employer Information",
 ]);
 
@@ -132,7 +133,7 @@ function resolveSectionTitle(
   if (section && !LEGACY_PROFILE_SECTIONS.has(section)) {
     return section;
   }
-  // Legacy single-bucket seeds ("Candidate Profile" / "Company Profile").
+  // Legacy single-bucket seeds ("Candidate Profile" / "Company Profile" / "Company details").
   return defaultForKey(field.field_key);
 }
 

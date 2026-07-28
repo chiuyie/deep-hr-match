@@ -9,7 +9,7 @@ import {
 } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { UnlockedCandidateCard } from "@/components/employer/unlocked-candidate-card";
-import { requireRole } from "@/lib/auth/session";
+import { requireEmployer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getUnlockedCandidateDetailsBatch } from "@/lib/auth/unlock";
 import {
@@ -31,14 +31,8 @@ export default async function JobUnlockedPage({
 }) {
   const { id: jobId } = await params;
   const { session_id } = await searchParams;
-  const user = await requireRole("employer");
+  const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
-
-  const { data: employer } = await supabase
-    .from("employer_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
 
   const { data: job } = await supabase
     .from("jobs")
@@ -57,14 +51,15 @@ export default async function JobUnlockedPage({
     .order("unlocked_at", { ascending: false });
 
   const unlockOrder = unlocks ?? [];
-  await ensureFormFieldsReady();
   const [details, candidateFields, platformDisclosure] = await Promise.all([
     getUnlockedCandidateDetailsBatch(
       employer!.id,
       jobId,
       unlockOrder.map((unlock) => unlock.candidate_id)
     ),
-    loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
+    ensureFormFieldsReady().then(() =>
+      loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false })
+    ),
     loadPlatformDisclosureMap(),
   ]);
   const detailsMap = new Map(details.map((item) => [item.candidateId, item]));

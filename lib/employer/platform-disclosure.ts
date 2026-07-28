@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { EmployerDisclosureMode } from "@/lib/form-fields/types";
 
@@ -162,7 +163,7 @@ export type PlatformDisclosureMap = Record<
   PlatformDisclosureItem
 >;
 
-export async function loadPlatformDisclosureMap(): Promise<PlatformDisclosureMap> {
+export const loadPlatformDisclosureMap = cache(async function loadPlatformDisclosureMap(): Promise<PlatformDisclosureMap> {
   const { items } = await loadPlatformDisclosureItems();
   const map = {} as PlatformDisclosureMap;
   for (const item of items) {
@@ -174,7 +175,7 @@ export async function loadPlatformDisclosureMap(): Promise<PlatformDisclosureMap
     }
   }
   return map;
-}
+});
 
 export function isShownOnAnonymous(
   map: PlatformDisclosureMap,

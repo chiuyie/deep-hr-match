@@ -38,18 +38,18 @@ export const sampleCandidateSections: FormFieldSectionGroup[] = [
 ];
 
 export const sampleEmployerSections: FormFieldSectionGroup[] = [
-  makeSectionGroup("Company Profile", [
+  makeSectionGroup("Employer details", [
     makeFormField({
       audience: "employer",
-      section: "Company Profile",
+      section: "Employer details",
       field_key: "company_name",
-      label: "Company Name",
+      label: "Employer name",
       sort_order: 1,
       is_required: true,
     }),
     makeFormField({
       audience: "employer",
-      section: "Company Profile",
+      section: "Employer details",
       field_key: "industry",
       label: "Industry",
       sort_order: 2,

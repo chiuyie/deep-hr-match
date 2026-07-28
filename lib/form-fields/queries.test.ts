@@ -148,9 +148,9 @@ describe("form field queries", () => {
     });
     const employerField = makeFormField({
       audience: "employer",
-      section: "Company details",
+      section: "Employer details",
       field_key: "company_name",
-      label: "Company Name",
+      label: "Employer name",
     });
     const jobField = makeFormField({
       audience: "employer",
@@ -165,7 +165,7 @@ describe("form field queries", () => {
         const sectionChain = createAwaitableChain({
           data: [
             { title: "About you", sort_order: 1 },
-            { title: "Company details", sort_order: 1 },
+            { title: "Employer details", sort_order: 1 },
             { title: "Role basics", sort_order: 1 },
           ],
         });

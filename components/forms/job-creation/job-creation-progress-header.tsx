@@ -1,6 +1,5 @@
 "use client";
 
-import { Progress } from "@/components/ui/progress";
 import { JOB_FORM_SECTIONS } from "@/lib/constants/job-form";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +29,7 @@ export function JobCreationProgressHeader({
 
   return (
     <div
-      className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+      className="mb-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
       role="status"
       aria-live="polite"
       aria-label={`Job form step ${sectionIndex + 1} of ${sectionCount}, ${sectionsCompleted} steps complete`}
@@ -65,15 +64,7 @@ export function JobCreationProgressHeader({
         </div>
       </div>
 
-      <div className="mt-5 space-y-2">
-        <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
-          <span>Posting progress (by step)</span>
-          <span className="tabular-nums">{overallPercent}%</span>
-        </div>
-        <Progress value={overallPercent} className="h-2" />
-      </div>
-
-      <div className="mt-4 flex gap-1">
+      <div className="mt-5 flex gap-1">
         {JOB_FORM_SECTIONS.map((item, index) => {
           const done = index < sectionIndex;
           const current = index === sectionIndex;

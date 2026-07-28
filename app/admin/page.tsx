@@ -27,7 +27,7 @@ const peopleActions = [
   },
   {
     title: "Employers",
-    description: "Company profiles and contact information",
+    description: "Employer profiles and contact information",
     href: "/admin/employers",
     icon: Building2,
     accent: "hover:bg-cyan-500/5 text-cyan-600",

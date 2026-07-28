@@ -94,7 +94,7 @@ describe("formFieldSchema", () => {
         form_group: "profile",
         section: "",
         field_key: "company_name",
-        label: "Company Name",
+        label: "Employer name",
       }).success
     ).toBe(false);
   });

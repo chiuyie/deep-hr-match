@@ -45,7 +45,7 @@ describe("DynamicProfileFields", () => {
         fields={[
           makeFormField({
             audience: "employer",
-            section: "Company Profile",
+            section: "Employer details",
             field_key: "company_description",
             label: "Description",
             field_type: "textarea",

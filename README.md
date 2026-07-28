@@ -46,7 +46,7 @@ Three roles, three sign-in experiences:
 - Wait for employer contact outside the platform after matching
 
 ### Employers
-- **Employer Profile** (company + contact details)
+- **Employer Profile** (employer + contact details)
 - Unlimited free job postings via multi-section job creation form
 - JD upload and job-specific 7^7 matrix form
 - Free placeholder matching result generation
@@ -253,7 +253,7 @@ Seed scripts are idempotent — safe to re-run; they update existing records ins
 
 #### Employer flow
 
-- [ ] Employer profile saves at `/employer/company`
+- [ ] Employer profile saves at `/employer/profile`
 - [ ] Job list shows jobs at `/employer/jobs`
 - [ ] New job form saves (all sections; sticky Save button visible)
 - [ ] Edit job loads existing data at `/employer/jobs/[id]`
@@ -335,7 +335,7 @@ app/
     matrix/                   # 7^7 form (step 3)
     status/                   # Readiness checklist
   employer/                   # Employer portal (shared layout shell)
-    company/                  # Employer profile
+    profile/                  # Employer profile
     jobs/                     # Job list, create, edit, JD, matrix, matching, unlocks
     unlocked/                 # All unlocked candidates
   admin/                      # Admin portal
@@ -458,7 +458,7 @@ Posted jobs are **read-only** — create a new job if requirements change. Match
 
 | Route | Purpose |
 |-------|---------|
-| `/employer/company` | Employer profile |
+| `/employer/profile` | Employer profile |
 | `/employer/jobs` | Job list |
 | `/employer/jobs/new` | Create job |
 | `/employer/jobs/[id]` | Edit draft job only |

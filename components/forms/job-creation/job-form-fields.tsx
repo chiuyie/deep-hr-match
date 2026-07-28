@@ -363,26 +363,48 @@ interface JobFaqFieldProps {
   name: string;
   value?: boolean;
   icon?: ReactNode;
+  highlightIncomplete?: boolean;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export function JobFaqField({ label, name, value, icon, onChange }: JobFaqFieldProps) {
+export function JobFaqField({
+  label,
+  name,
+  value,
+  icon,
+  highlightIncomplete = false,
+  onChange,
+}: JobFaqFieldProps) {
   const selected = value === true ? "true" : value === false ? "false" : "";
+  const incomplete = highlightIncomplete && selected === "";
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 transition-all duration-200 hover:shadow-md">
+    <div
+      id={name}
+      data-field={name}
+      className={cn(
+        "scroll-mt-48 rounded-xl border bg-white p-4 transition-all duration-200 hover:shadow-md",
+        incomplete
+          ? "border-red-300 bg-red-50/40 ring-2 ring-red-200"
+          : "border-slate-200"
+      )}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           {icon && <div className="text-slate-400">{icon}</div>}
           <span id={`${name}-label`} className="text-sm font-semibold text-slate-700">
             {label}
             <span className="ml-1 text-red-500">*</span>
+            {incomplete ? (
+              <span className="ml-2 text-xs font-medium text-red-600">Answer required</span>
+            ) : null}
           </span>
         </div>
         <div
           className="flex flex-wrap items-center gap-3"
           role="radiogroup"
           aria-labelledby={`${name}-label`}
+          aria-invalid={incomplete || undefined}
         >
           {(
             [

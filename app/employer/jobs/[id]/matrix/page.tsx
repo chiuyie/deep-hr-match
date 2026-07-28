@@ -3,7 +3,7 @@ import { Grid3X3 } from "lucide-react";
 import { MatrixForm } from "@/components/forms/matrix-form";
 import { EmployerJobContext } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
-import { requireRole } from "@/lib/auth/session";
+import { requireEmployer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveJobMatrixAnswers } from "@/lib/employer/actions";
@@ -16,14 +16,8 @@ export default async function JobMatrixPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await requireRole("employer");
+  const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
-
-  const { data: employer } = await supabase
-    .from("employer_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
 
   const { data: job } = await supabase
     .from("jobs")

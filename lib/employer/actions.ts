@@ -102,14 +102,14 @@ export async function saveEmployerProfile(formData: FormData): Promise<void> {
     .eq("user_id", user.id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/employer/company");
+  revalidatePath("/employer/profile");
 }
 
 export async function saveJob(formData: FormData, jobId?: string): Promise<void> {
   const user = await requireRole("employer");
   const supabase = await createClient();
   const employerId = await getEmployerId(user.id);
-  if (!employerId) throw new Error("Company profile not found");
+  if (!employerId) throw new Error("Employer profile not found");
 
   await ensureFormFieldsReady();
   const fields = await loadFormFields({ audience: "employer", formGroup: "job" });
@@ -265,7 +265,7 @@ export async function uploadJobJD(formData: FormData, jobId: string): Promise<vo
   const user = await requireRole("employer");
   const supabase = await createClient();
   const employerId = await getEmployerId(user.id);
-  if (!employerId) throw new Error("Company profile not found");
+  if (!employerId) throw new Error("Employer profile not found");
 
   const { data: job } = await supabase
     .from("jobs")
@@ -311,7 +311,7 @@ export async function saveJobMatrixAnswers(
   const user = await requireRole("employer");
   const supabase = await createClient();
   const employerId = await getEmployerId(user.id);
-  if (!employerId) return { error: "Company profile not found" };
+  if (!employerId) return { error: "Employer profile not found" };
 
   const { data: job } = await supabase
     .from("jobs")
@@ -379,7 +379,7 @@ export async function generateMatchingResults(jobId: string): Promise<void> {
   const user = await requireRole("employer");
   const supabase = await createClient();
   const employerId = await getEmployerId(user.id);
-  if (!employerId) throw new Error("Company profile not found");
+  if (!employerId) throw new Error("Employer profile not found");
 
   const { data: job } = await supabase
     .from("jobs")
@@ -429,7 +429,7 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
   const user = await requireRole("employer");
   const supabase = await createClient();
   const employerId = await getEmployerId(user.id);
-  if (!employerId) return { error: "Company profile not found" };
+  if (!employerId) return { error: "Employer profile not found" };
 
   if (!candidateIds.length) {
     return { error: "Select at least one candidate" };

@@ -70,7 +70,7 @@ export const employerNav: DashboardNavItem[] = [
     icon: LayoutDashboard,
   },
   {
-    href: "/employer/company",
+    href: "/employer/profile",
     label: "Employer Profile",
     description: "Business and contact details",
     icon: Building2,
@@ -111,7 +111,7 @@ const adminNav: DashboardNavItem[] = [
   {
     href: "/admin/employers",
     label: "Employers",
-    description: "Company accounts and contacts",
+    description: "Employer accounts and contacts",
     icon: Building2,
   },
   {

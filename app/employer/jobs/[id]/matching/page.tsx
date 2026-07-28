@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { EmployerJobContext, EmployerPageSection } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { MatchingResultsTable } from "@/components/matching/matching-results-table";
-import { requireRole } from "@/lib/auth/session";
+import { requireEmployer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { generateMatchingResults } from "@/lib/employer/actions";
@@ -42,14 +42,8 @@ export default async function JobMatchingPage({
 }) {
   const { id } = await params;
   const { matrix } = await searchParams;
-  const user = await requireRole("employer");
+  const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
-
-  const { data: employer } = await supabase
-    .from("employer_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
 
   const { data: job } = await supabase
     .from("jobs")
@@ -86,12 +80,16 @@ export default async function JobMatchingPage({
   const newCandidatesMessage = newCandidatesNotice(newCandidatesSince);
 
   const candidateIds = matchResults?.map((m) => m.candidate_id) ?? [];
-  await ensureFormFieldsReady();
   const [candidateFields, platformDisclosure, candidatesResult] = await Promise.all([
-    loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
+    ensureFormFieldsReady().then(() =>
+      loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false })
+    ),
     loadPlatformDisclosureMap(),
     candidateIds.length
-      ? supabase.from("candidate_profiles").select("*").in("id", candidateIds)
+      ? supabase
+          .from("candidate_profiles")
+          .select("id, full_name, years_of_experience, highest_education, skills, form_data")
+          .in("id", candidateIds)
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
   ]);
 

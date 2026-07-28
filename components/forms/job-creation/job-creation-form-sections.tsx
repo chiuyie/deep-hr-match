@@ -71,6 +71,8 @@ export interface JobCreationFormSectionBodyProps {
   matrixCategories?: JobMatrixCategoryTree[];
   matrixExistingAnswers?: JobMatrixAnswerRow[];
   onMatrixAnswersChange?: (answers: JobMatrixAnswerRow[]) => void;
+  /** When true, unanswered Yes/No requirement questions are highlighted. */
+  highlightIncompleteFaqs?: boolean;
   onChange: (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => void;
@@ -87,6 +89,7 @@ export function JobCreationFormSectionBody({
   matrixCategories = [],
   matrixExistingAnswers = [],
   onMatrixAnswersChange,
+  highlightIncompleteFaqs = false,
   onChange,
   onToggleBenefit,
   onToggleLanguageNeed,
@@ -417,9 +420,21 @@ export function JobCreationFormSectionBody({
           className="mb-0 pb-24 shadow-md"
           hideHeader
         >
-          <p className="mb-4 text-sm text-slate-500">
-            Answer each question with <strong>Yes</strong> or <strong>No</strong> so matching can
-            score candidates accurately.
+          <p
+            className={
+              highlightIncompleteFaqs
+                ? "mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800"
+                : "mb-4 text-sm text-slate-500"
+            }
+          >
+            {highlightIncompleteFaqs
+              ? "Please answer every requirement question with Yes or No before continuing."
+              : (
+                <>
+                  Answer each question with <strong>Yes</strong> or <strong>No</strong> so matching can
+                  score candidates accurately.
+                </>
+              )}
           </p>
           <div className="grid grid-cols-1 gap-4">
             {JOB_BACKGROUND_QUESTIONS.map((question) =>
@@ -433,6 +448,7 @@ export function JobCreationFormSectionBody({
                       ? (values[question.name] as boolean)
                       : undefined
                   }
+                  highlightIncomplete={highlightIncompleteFaqs}
                   icon={
                     question.name === "faq_work_life_balance" ? (
                       <Heart className="h-5 w-5" />

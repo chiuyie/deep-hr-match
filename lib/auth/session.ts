@@ -58,6 +58,13 @@ export async function requireRole(role: UserRole | UserRole[]) {
   return user;
 }
 
+/** Employer session + cached profile (one profile query per request). */
+export async function requireEmployer() {
+  const user = await requireRole("employer");
+  const profile = await getEmployerProfile(user.id);
+  return { user, profile };
+}
+
 export function getDashboardPath(role: UserRole): string {
   switch (role) {
     case "admin":

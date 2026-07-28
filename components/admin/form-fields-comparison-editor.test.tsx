@@ -61,7 +61,7 @@ describe("FormFieldsComparisonEditor", () => {
     expect(screen.getAllByText("Candidate profile").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Employer profile").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Full Name").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Company Name").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Employer name").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Phone").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByRole("button", { name: /Add section/i }).length).toBeGreaterThanOrEqual(1);
   });

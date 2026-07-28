@@ -176,7 +176,7 @@ describe("form-field-actions", () => {
       const result = await createFormField({
         audience: "employer",
         form_group: "profile",
-        section: "Company Profile",
+        section: "Employer details",
         label: "   ",
       });
       expect(result).toEqual({ error: "Field label is required" });
@@ -197,8 +197,8 @@ describe("form-field-actions", () => {
       const result = await createFormField({
         audience: "employer",
         form_group: "profile",
-        section: "Company Profile",
-        label: "Company Name",
+        section: "Employer details",
+        label: "Employer name",
       });
 
       expect(result.error).toBe("A field with that key already exists in this section");

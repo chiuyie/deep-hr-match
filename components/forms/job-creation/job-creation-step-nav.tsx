@@ -10,7 +10,7 @@ const steps = [
     label: "Employer Profile",
     description: "Personalize your employer profile",
     icon: User,
-    href: "/employer/company",
+    href: "/employer/profile",
   },
   {
     id: "job",

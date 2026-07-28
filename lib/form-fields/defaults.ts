@@ -71,10 +71,10 @@ function candidateProfileFields(): DefaultFormFieldInput[] {
 
 function employerProfileFields(): DefaultFormFieldInput[] {
   const labelByKey: Record<string, { label: string; field_type?: FormFieldType; is_required?: boolean }> = {
-    company_name: { label: "Company Name", is_required: true },
+    company_name: { label: "Employer name", is_required: true },
     registration_number: { label: "UEN / Registration Number" },
     industry: { label: "Industry" },
-    company_size: { label: "Company Size" },
+    company_size: { label: "Employer size" },
     website: { label: "Website", field_type: "url" },
     company_description: { label: "Description", field_type: "textarea" },
     contact_person_name: { label: "Contact Person" },

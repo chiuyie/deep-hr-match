@@ -28,7 +28,7 @@ export function DashboardUserMenu({ role, userName }: DashboardUserMenuProps) {
     role === "candidate"
       ? "/candidate/profile"
       : role === "employer"
-        ? "/employer/company"
+        ? "/employer/profile"
         : "/admin";
 
   return (

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getDefaultFormFields } from "@/lib/form-fields/defaults";
 import { groupFormFieldsBySection } from "@/lib/form-fields/grouping";
@@ -22,6 +23,8 @@ import type {
   FormFieldGroup,
   FormFieldSectionGroup,
 } from "@/lib/form-fields/types";
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 function groupBySection(fields: FormFieldDefinition[]): FormFieldSectionGroup[] {
   return groupFormFieldsBySection(fields);
@@ -68,75 +71,80 @@ async function ensureFormSectionsReady() {
     { audience: "employer", formGroup: "job" },
   ];
 
-  for (const { audience, formGroup } of audiences) {
-    const { data: existing, error } = await supabase
-      .from("form_sections")
-      .select("title")
-      .eq("audience", audience)
-      .eq("form_group", formGroup);
+  await Promise.all(
+    audiences.map(async ({ audience, formGroup }) => {
+      const { data: existing, error } = await supabase
+        .from("form_sections")
+        .select("title")
+        .eq("audience", audience)
+        .eq("form_group", formGroup);
 
-    if (error) {
-      // Migration 016 may not be applied yet — skip quietly.
-      if (error.message.toLowerCase().includes("form_sections")) return;
-      return;
-    }
-
-    const existingTitles = new Set((existing ?? []).map((row) => row.title));
-
-    // Prefer titles already present on fields, then defaults for any missing empties.
-    const { data: fieldSections } = await supabase
-      .from("form_fields")
-      .select("section, sort_order")
-      .eq("audience", audience)
-      .eq("form_group", formGroup);
-
-    const fromFields = new Map<string, number>();
-    for (const row of fieldSections ?? []) {
-      const title = String(row.section ?? "").trim();
-      if (!title) continue;
-      const prev = fromFields.get(title);
-      fromFields.set(title, prev == null ? row.sort_order ?? 0 : Math.min(prev, row.sort_order ?? 0));
-    }
-
-    const defaults = defaultSectionTitles(audience, formGroup);
-    const toInsert: Array<{
-      audience: FormFieldAudience;
-      form_group: FormFieldGroup;
-      title: string;
-      sort_order: number;
-    }> = [];
-
-    let order = 1;
-    for (const title of defaults) {
-      if (existingTitles.has(title)) {
-        order += 1;
-        continue;
+      if (error) {
+        // Migration 016 may not be applied yet — skip quietly.
+        if (error.message.toLowerCase().includes("form_sections")) return;
+        return;
       }
-      // Only auto-seed default titles when the form has no sections yet.
-      if ((existing ?? []).length > 0 && !fromFields.has(title)) {
-        order += 1;
-        continue;
+
+      const existingTitles = new Set((existing ?? []).map((row) => row.title));
+
+      // Prefer titles already present on fields, then defaults for any missing empties.
+      const { data: fieldSections } = await supabase
+        .from("form_fields")
+        .select("section, sort_order")
+        .eq("audience", audience)
+        .eq("form_group", formGroup);
+
+      const fromFields = new Map<string, number>();
+      for (const row of fieldSections ?? []) {
+        const title = String(row.section ?? "").trim();
+        if (!title) continue;
+        const prev = fromFields.get(title);
+        fromFields.set(
+          title,
+          prev == null ? row.sort_order ?? 0 : Math.min(prev, row.sort_order ?? 0)
+        );
       }
-      toInsert.push({
-        audience,
-        form_group: formGroup,
-        title,
-        sort_order: fromFields.get(title) ?? order,
-      });
-      existingTitles.add(title);
-      order += 1;
-    }
 
-    for (const [title, sort_order] of fromFields) {
-      if (existingTitles.has(title)) continue;
-      toInsert.push({ audience, form_group: formGroup, title, sort_order });
-      existingTitles.add(title);
-    }
+      const defaults = defaultSectionTitles(audience, formGroup);
+      const toInsert: Array<{
+        audience: FormFieldAudience;
+        form_group: FormFieldGroup;
+        title: string;
+        sort_order: number;
+      }> = [];
 
-    if (toInsert.length > 0) {
-      await supabase.from("form_sections").insert(toInsert);
-    }
-  }
+      let order = 1;
+      for (const title of defaults) {
+        if (existingTitles.has(title)) {
+          order += 1;
+          continue;
+        }
+        // Only auto-seed default titles when the form has no sections yet.
+        if ((existing ?? []).length > 0 && !fromFields.has(title)) {
+          order += 1;
+          continue;
+        }
+        toInsert.push({
+          audience,
+          form_group: formGroup,
+          title,
+          sort_order: fromFields.get(title) ?? order,
+        });
+        existingTitles.add(title);
+        order += 1;
+      }
+
+      for (const [title, sort_order] of fromFields) {
+        if (existingTitles.has(title)) continue;
+        toInsert.push({ audience, form_group: formGroup, title, sort_order });
+        existingTitles.add(title);
+      }
+
+      if (toInsert.length > 0) {
+        await supabase.from("form_sections").insert(toInsert);
+      }
+    })
+  );
 }
 
 export async function loadFormSectionTitles(
@@ -158,30 +166,33 @@ export async function loadFormSectionTitles(
   return data.map((row) => row.title);
 }
 
-/** Ensures defaults exist and inserts any new default keys added in code (without overwriting admin edits). */
-export async function ensureFormFieldsReady() {
-  await ensureFormFieldsSeeded();
-
-  const supabase = await createClient();
-  const { data: existing } = await supabase
+async function probeNeedsFormFieldMigration(supabase: SupabaseServerClient): Promise<boolean> {
+  const legacyMatrixTitle = `${FRAMEWORK_MATCHING_LANGUAGE} (optional)`;
+  const { data } = await supabase
     .from("form_fields")
-    .select("id, audience, form_group, field_key, section, is_custom");
+    .select("id")
+    .in("section", [
+      "Candidate Profile",
+      "Company Profile",
+      "Company details",
+      "Employer Information",
+      legacyMatrixTitle,
+    ])
+    .limit(1);
+  if ((data?.length ?? 0) > 0) return true;
 
-  const existingKeys = new Set(
-    (existing ?? []).map((row) => `${row.audience}:${row.form_group}:${row.field_key}`)
-  );
+  const { data: legacyLabels } = await supabase
+    .from("form_fields")
+    .select("id")
+    .eq("audience", "employer")
+    .eq("form_group", "profile")
+    .in("field_key", ["company_name", "company_size"])
+    .in("label", ["Company Name", "Company Size"])
+    .limit(1);
+  return (legacyLabels?.length ?? 0) > 0;
+}
 
-  const missing = getDefaultFormFields()
-    .filter(
-      (field) =>
-        !existingKeys.has(`${field.audience}:${field.form_group}:${field.field_key}`)
-    )
-    .map(defaultRow);
-
-  if (missing.length > 0) {
-    await supabase.from("form_fields").insert(missing);
-  }
-
+async function runFormFieldMigrations(supabase: SupabaseServerClient) {
   // Keep Skills / Certifications / Languages labels clean (no legacy suffix).
   await Promise.all([
     supabase
@@ -243,6 +254,36 @@ export async function ensureFormFieldsReady() {
   if (jobFieldUpdates.length > 0) {
     await Promise.all(jobFieldUpdates);
   }
+
+  // Keep built-in employer profile labels and section titles current.
+  await Promise.all([
+    supabase
+      .from("form_fields")
+      .update({ label: "Employer name" })
+      .eq("audience", "employer")
+      .eq("form_group", "profile")
+      .eq("field_key", "company_name")
+      .eq("is_custom", false),
+    supabase
+      .from("form_fields")
+      .update({ label: "Employer size" })
+      .eq("audience", "employer")
+      .eq("form_group", "profile")
+      .eq("field_key", "company_size")
+      .eq("is_custom", false),
+    supabase
+      .from("form_fields")
+      .update({ section: "Employer details" })
+      .eq("audience", "employer")
+      .eq("form_group", "profile")
+      .eq("section", "Company details"),
+    supabase
+      .from("form_sections")
+      .update({ title: "Employer details" })
+      .eq("audience", "employer")
+      .eq("form_group", "profile")
+      .eq("title", "Company details"),
+  ]);
 
   // Move legacy custom fields out of the old single profile buckets.
   await Promise.all([
@@ -322,21 +363,56 @@ export async function ensureFormFieldsReady() {
       .eq("form_group", "job")
       .eq("title", legacyMatrixTitle),
   ]);
-
-  await ensureFormSectionsReady();
 }
 
-export async function loadFormFields(options?: {
-  audience?: FormFieldAudience;
-  formGroup?: FormFieldGroup;
-  includeInactive?: boolean;
-}): Promise<FormFieldDefinition[]> {
+/**
+ * Ensures defaults exist. Heavy label/type/legacy migrations only run when
+ * defaults are missing or a cheap legacy-section probe hits — not on every request.
+ * Cached per React request so multiple helpers don't re-run it.
+ */
+export const ensureFormFieldsReady = cache(async function ensureFormFieldsReady() {
+  await ensureFormFieldsSeeded();
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("form_fields")
+    .select("audience, form_group, field_key");
+
+  const existingKeys = new Set(
+    (existing ?? []).map((row) => `${row.audience}:${row.form_group}:${row.field_key}`)
+  );
+
+  const missing = getDefaultFormFields()
+    .filter(
+      (field) =>
+        !existingKeys.has(`${field.audience}:${field.form_group}:${field.field_key}`)
+    )
+    .map(defaultRow);
+
+  if (missing.length > 0) {
+    await supabase.from("form_fields").insert(missing);
+  }
+
+  const needsMigration =
+    missing.length > 0 || (await probeNeedsFormFieldMigration(supabase));
+  if (needsMigration) {
+    await runFormFieldMigrations(supabase);
+  }
+
+  await ensureFormSectionsReady();
+});
+
+const loadFormFieldsCached = cache(async function loadFormFieldsCached(
+  audience: string,
+  formGroup: string,
+  includeInactive: boolean
+): Promise<FormFieldDefinition[]> {
   const supabase = await createClient();
   let query = supabase.from("form_fields").select("*").order("sort_order");
 
-  if (options?.audience) query = query.eq("audience", options.audience);
-  if (options?.formGroup) query = query.eq("form_group", options.formGroup);
-  if (!options?.includeInactive) query = query.eq("is_active", true);
+  if (audience) query = query.eq("audience", audience);
+  if (formGroup) query = query.eq("form_group", formGroup);
+  if (!includeInactive) query = query.eq("is_active", true);
 
   const { data } = await query;
   return ((data ?? []) as FormFieldDefinition[]).map((field) => ({
@@ -345,6 +421,18 @@ export async function loadFormFields(options?: {
     show_on_anonymous_match: Boolean(field.show_on_anonymous_match),
     employer_disclosure_mode: field.employer_disclosure_mode ?? "candidate_optional",
   }));
+});
+
+export async function loadFormFields(options?: {
+  audience?: FormFieldAudience;
+  formGroup?: FormFieldGroup;
+  includeInactive?: boolean;
+}): Promise<FormFieldDefinition[]> {
+  return loadFormFieldsCached(
+    options?.audience ?? "",
+    options?.formGroup ?? "",
+    options?.includeInactive ?? false
+  );
 }
 
 export async function loadFormFieldSections(

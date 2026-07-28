@@ -40,7 +40,7 @@ export default async function AdminEmployerDetailPage({
       <AdminBackLink href="/admin/employers" label="Back to all employers" />
 
       <AdminPageSection
-        title={employer.company_name ?? "Unnamed company"}
+        title={employer.company_name ?? "Unnamed employer"}
         description="Employer account record"
         icon={<Building2 className="h-6 w-6" />}
         gradient="from-cyan-600 to-blue-600"
@@ -51,7 +51,7 @@ export default async function AdminEmployerDetailPage({
           <EmployerDetailField label="Employer ID" value={id} />
           <EmployerDetailField label="Industry" value={employer.industry} />
           <EmployerDetailField label="Registration number" value={employer.registration_number} />
-          <EmployerDetailField label="Company size" value={employer.company_size} />
+          <EmployerDetailField label="Employer size" value={employer.company_size} />
           <EmployerDetailField label="Website" value={employer.website} />
           <EmployerDetailField label="Contact name" value={employer.contact_person_name} />
           <EmployerDetailField label="Contact email" value={employer.contact_person_email} />
@@ -65,7 +65,7 @@ export default async function AdminEmployerDetailPage({
 
         {employer.company_description && (
           <div className="mt-6 rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-            <h3 className="text-sm font-semibold text-slate-700">Company description</h3>
+            <h3 className="text-sm font-semibold text-slate-700">Employer description</h3>
             <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">
               {employer.company_description}
             </p>

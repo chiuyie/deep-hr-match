@@ -780,7 +780,7 @@ function SideBySideColumns({
           emptyDescription={
             search
               ? "Try a different search term or clear the filter."
-              : "Add fields into the sections employers see on company profile."
+              : "Add fields into the sections employers see on employer profile."
           }
         />
       </div>

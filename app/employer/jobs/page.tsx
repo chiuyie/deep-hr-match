@@ -3,23 +3,19 @@ import { Briefcase, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { EmployerJobsList } from "@/components/employer/employer-jobs-list";
-import { requireRole } from "@/lib/auth/session";
+import { requireEmployer } from "@/lib/auth/session";
 import { countByJobId, toEmployerJobListItems } from "@/lib/employer/job-list";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function EmployerJobsPage() {
-  const user = await requireRole("employer");
+  const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
-  const { data: employer } = await supabase
-    .from("employer_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
+  const employerId = employer?.id ?? "";
 
   const { data: jobs } = await supabase
     .from("jobs")
-    .select("*")
-    .eq("employer_id", employer?.id ?? "")
+    .select("id, title, location, department, employment_type, status, created_at")
+    .eq("employer_id", employerId)
     .order("created_at", { ascending: false });
 
   const jobIds = jobs?.map((job) => job.id) ?? [];

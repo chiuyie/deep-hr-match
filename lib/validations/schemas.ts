@@ -44,7 +44,7 @@ export const candidateProfileSchema = z.object({
 });
 
 export const employerProfileSchema = z.object({
-  company_name: z.string().min(1, "Company name is required"),
+  company_name: z.string().min(1, "Employer name is required"),
   registration_number: z.string().optional(),
   industry: z.string().optional(),
   company_size: z.string().optional(),

@@ -734,19 +734,19 @@ export function MatrixForm({
             Back
           </Button>
           <Button
-            className="rounded-lg"
-            disabled={saving || (!formComplete && !isCurrentAnswered)}
-            onClick={() => handleSave(Boolean(formComplete))}
-          >
-            {saving ? "Submitting…" : formComplete ? "Submit & continue" : "Next"}
-          </Button>
-          <Button
             variant="secondary"
             className="rounded-lg"
             disabled={saving}
             onClick={() => handleSave(false)}
           >
             Save draft
+          </Button>
+          <Button
+            className="rounded-lg"
+            disabled={saving || (!formComplete && !isCurrentAnswered)}
+            onClick={() => handleSave(Boolean(formComplete))}
+          >
+            {saving ? "Submitting…" : formComplete ? "Submit & continue" : "Next"}
           </Button>
         </div>
       ) : null}

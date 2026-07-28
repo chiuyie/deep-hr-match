@@ -19,7 +19,7 @@ export function getEmployerPageMeta(pathname: string): EmployerPageMeta {
     };
   }
 
-  if (pathname === "/employer/company") {
+  if (pathname === "/employer/profile") {
     return {
       title: "Employer Profile",
       description: "Your organization details",

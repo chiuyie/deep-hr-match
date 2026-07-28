@@ -132,7 +132,8 @@ async function loadPrimaryMatrixCategory(
 /** Human-readable 7^7 factor picks for a candidate. */
 export async function loadCandidateMatrixAnswerSteps(
   supabase: SupabaseClient,
-  candidateId: string
+  candidateId: string,
+  category?: MatrixCategoryTree | null
 ): Promise<MatrixAnswerStep[]> {
   const { data: answers } = await supabase
     .from("candidate_matrix_answers")
@@ -141,15 +142,16 @@ export async function loadCandidateMatrixAnswerSteps(
 
   if (!answers?.length) return [];
 
-  const category = await loadPrimaryMatrixCategory(supabase);
-  if (!category) return [];
+  const tree = category === undefined ? await loadPrimaryMatrixCategory(supabase) : category;
+  if (!tree) return [];
 
-  return buildColumnAnswerSteps(category, toColumnAnswersMap(answers));
+  return buildColumnAnswerSteps(tree, toColumnAnswersMap(answers));
 }
 
 export async function loadJobMatrixAnswerSteps(
   supabase: SupabaseClient,
-  jobId: string
+  jobId: string,
+  category?: MatrixCategoryTree | null
 ): Promise<MatrixAnswerStep[]> {
   const { data: answers } = await supabase
     .from("job_matrix_answers")
@@ -158,10 +160,50 @@ export async function loadJobMatrixAnswerSteps(
 
   if (!answers?.length) return [];
 
-  const category = await loadPrimaryMatrixCategory(supabase);
-  if (!category) return [];
+  const tree = category === undefined ? await loadPrimaryMatrixCategory(supabase) : category;
+  if (!tree) return [];
 
-  return buildColumnAnswerSteps(category, toColumnAnswersMap(answers));
+  return buildColumnAnswerSteps(tree, toColumnAnswersMap(answers));
+}
+
+/** Load job + candidate matrix steps with a single shared category tree fetch. */
+export async function loadMatrixComparisonForUnlock(
+  supabase: SupabaseClient,
+  jobId: string,
+  candidateId: string
+): Promise<{
+  candidateSteps: MatrixAnswerStep[];
+  jobSteps: MatrixAnswerStep[];
+  comparisonRows: MatrixComparisonRow[];
+}> {
+  const [category, candidateAnswerRows, jobAnswerRows] = await Promise.all([
+    loadPrimaryMatrixCategory(supabase),
+    supabase
+      .from("candidate_matrix_answers")
+      .select("question_id, option_id, answer_text, matrix_column")
+      .eq("candidate_id", candidateId)
+      .then((result) => result.data ?? []),
+    supabase
+      .from("job_matrix_answers")
+      .select("question_id, option_id, answer_text, matrix_column")
+      .eq("job_id", jobId)
+      .then((result) => result.data ?? []),
+  ]);
+
+  const candidateSteps =
+    category && candidateAnswerRows.length
+      ? buildColumnAnswerSteps(category, toColumnAnswersMap(candidateAnswerRows))
+      : [];
+  const jobSteps =
+    category && jobAnswerRows.length
+      ? buildColumnAnswerSteps(category, toColumnAnswersMap(jobAnswerRows))
+      : [];
+
+  return {
+    candidateSteps,
+    jobSteps,
+    comparisonRows: buildMatrixComparisonRows(jobSteps, candidateSteps),
+  };
 }
 
 export function buildMatrixComparisonRows(

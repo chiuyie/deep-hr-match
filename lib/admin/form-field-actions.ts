@@ -16,7 +16,7 @@ import {
 const FORM_FIELD_PATHS = [
   "/admin/forms",
   "/candidate/profile",
-  "/employer/company",
+  "/employer/profile",
   "/employer/jobs/new",
   "/employer/jobs",
 ] as const;

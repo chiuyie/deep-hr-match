@@ -22,7 +22,7 @@ export default async function AdminEmployersPage() {
   return (
     <AdminPageSection
       title="All employers"
-      description="Company profiles registered on the platform"
+      description="Employer profiles registered on the platform"
       icon={<Building2 className="h-6 w-6" />}
       gradient="from-cyan-600 to-blue-600"
     >
@@ -32,7 +32,7 @@ export default async function AdminEmployersPage() {
         emptyIcon={<Building2 className="h-7 w-7" />}
         emptyTitle="No employers yet"
         emptyDescription="Employer accounts will appear here after registration."
-        columns={["Employer ID", "Company", "Industry", "Contact email", "Joined", ""]}
+        columns={["Employer ID", "Employer name", "Industry", "Contact email", "Joined", ""]}
       >
         {rows.map((employer) => (
           <TableRow

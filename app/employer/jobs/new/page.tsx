@@ -7,9 +7,9 @@ import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
 
 export default async function NewJobPage() {
-  await requireRole("employer");
-  await ensureFormFieldsReady();
   const supabase = await createClient();
+  await Promise.all([requireRole("employer"), ensureFormFieldsReady()]);
+
   const [jobFields, { data: categories }] = await Promise.all([
     loadFormFields({ audience: "employer", formGroup: "job" }),
     supabase

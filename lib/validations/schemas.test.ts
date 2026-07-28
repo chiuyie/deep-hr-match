@@ -96,7 +96,7 @@ describe("candidateProfileSchema", () => {
 });
 
 describe("employerProfileSchema", () => {
-  it("requires company name", () => {
+  it("requires employer name", () => {
     expect(employerProfileSchema.safeParse({ company_name: "" }).success).toBe(false);
     expect(employerProfileSchema.safeParse({ company_name: "Acme" }).success).toBe(true);
   });

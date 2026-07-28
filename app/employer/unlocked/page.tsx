@@ -1,59 +1,50 @@
 import Link from "next/link";
 import { Users } from "lucide-react";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
-import { requireRole } from "@/lib/auth/session";
+import { requireEmployer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { getUnlockedCandidateDetailsBatch } from "@/lib/auth/unlock";
 import { isUnlockedContactFieldVisible } from "@/lib/employer/match-disclosure";
-import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
+import { loadFormFields } from "@/lib/form-fields/queries";
 
 export default async function EmployerUnlockedPage() {
-  const user = await requireRole("employer");
+  const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
+  const employerId = employer?.id ?? "";
 
-  const { data: employer } = await supabase
-    .from("employer_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  const { data: unlocks } = await supabase
-    .from("unlocks")
-    .select("*, jobs(title)")
-    .eq("employer_id", employer?.id ?? "")
-    .order("unlocked_at", { ascending: false });
+  const [{ data: unlocks }, candidateFields] = await Promise.all([
+    supabase
+      .from("unlocks")
+      .select("id, candidate_id, job_id, jobs(title)")
+      .eq("employer_id", employerId)
+      .order("unlocked_at", { ascending: false }),
+    loadFormFields({
+      audience: "candidate",
+      formGroup: "profile",
+      includeInactive: false,
+    }),
+  ]);
 
   const unlockRows = unlocks ?? [];
-  await ensureFormFieldsReady();
-  const candidateFields = await loadFormFields({
-    audience: "candidate",
-    formGroup: "profile",
-    includeInactive: false,
-  });
   const showName = isUnlockedContactFieldVisible(candidateFields, "full_name");
 
-  const jobIds = Array.from(new Set(unlockRows.map((unlock) => unlock.job_id)));
-  const detailGroups = await Promise.all(
-    jobIds.map(async (jobId) => {
-      const jobCandidateIds = unlockRows
-        .filter((unlock) => unlock.job_id === jobId)
-        .map((unlock) => unlock.candidate_id);
-      const details = await getUnlockedCandidateDetailsBatch(employer!.id, jobId, jobCandidateIds);
-      return details.map((detail) => [`${jobId}:${detail.candidateId}`, detail] as const);
-    })
-  );
-  const detailMap = new Map(detailGroups.flat());
+  const candidateIds = Array.from(new Set(unlockRows.map((unlock) => unlock.candidate_id)));
+  const { data: profiles } =
+    showName && candidateIds.length
+      ? await supabase
+          .from("candidate_profiles")
+          .select("id, full_name")
+          .in("id", candidateIds)
+      : { data: [] as { id: string; full_name: string | null }[] };
 
-  const items = unlockRows.map((unlock) => {
-    const detail = detailMap.get(`${unlock.job_id}:${unlock.candidate_id}`);
-    return {
-      id: unlock.id,
-      candidateId: unlock.candidate_id,
-      name: showName ? detail?.profile?.full_name ?? "Candidate" : "Candidate",
-      jobTitle: (unlock.jobs as { title: string } | null)?.title ?? "Job",
-      jobId: unlock.job_id,
-    };
-  });
+  const nameById = new Map((profiles ?? []).map((profile) => [profile.id, profile.full_name]));
+
+  const items = unlockRows.map((unlock) => ({
+    id: unlock.id,
+    candidateId: unlock.candidate_id,
+    name: showName ? nameById.get(unlock.candidate_id) ?? "Candidate" : "Candidate",
+    jobTitle: (unlock.jobs as { title: string } | null)?.title ?? "Job",
+    jobId: unlock.job_id,
+  }));
 
   return (
     <EmployerPageSection

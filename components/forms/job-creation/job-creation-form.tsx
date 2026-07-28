@@ -279,9 +279,24 @@ export function JobCreationForm({
     if (!fieldName) return;
     const element =
       document.getElementById(fieldName) ??
+      document.querySelector<HTMLElement>(`[data-field="${fieldName}"]`) ??
       document.querySelector<HTMLElement>(`[name="${fieldName}"]`);
-    element?.focus();
-    element?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!element) return;
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+    const focusable =
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement ||
+      element instanceof HTMLSelectElement ||
+      element instanceof HTMLButtonElement
+        ? element
+        : element.querySelector<HTMLElement>("input, textarea, select, button");
+    focusable?.focus({ preventScroll: true });
+  };
+
+  const showSectionError = (message: string, focusFieldName?: string) => {
+    setSectionError(message);
+    // Keep the top sticky banner in view; jump to the first incomplete field.
+    queueMicrotask(() => focusField(focusFieldName));
   };
 
   const validateCurrentStep = useCallback((): SectionValidationResult => {
@@ -312,8 +327,7 @@ export function JobCreationForm({
       if (index > currentSectionIndex) {
         const validation = validateCurrentStep();
         if (validation.ok === false) {
-          setSectionError(validation.message);
-          focusField(validation.focusField);
+          showSectionError(validation.message, validation.focusField);
           return;
         }
       }
@@ -325,8 +339,7 @@ export function JobCreationForm({
   const handleNext = () => {
     const validation = validateCurrentStep();
     if (validation.ok === false) {
-      setSectionError(validation.message);
-      focusField(validation.focusField);
+      showSectionError(validation.message, validation.focusField);
       return;
     }
 
@@ -341,9 +354,8 @@ export function JobCreationForm({
     event.preventDefault();
     const validation = validateJobFormForSubmit(values, fieldMeta);
     if (validation.ok === false) {
-      setSectionError(validation.message);
       goToSection(findSectionIndexForField(validation.focusField));
-      queueMicrotask(() => focusField(validation.focusField));
+      queueMicrotask(() => showSectionError(validation.message, validation.focusField));
       return;
     }
 
@@ -409,19 +421,37 @@ export function JobCreationForm({
         </aside>
 
         <main className="min-w-0 flex-1 lg:pl-2">
-          <JobCreationProgressHeader
-            sectionIndex={currentSectionIndex}
-            sectionFillPercent={sectionStats.percent}
-            sectionFilled={sectionStats.filled}
-            sectionTotal={sectionStats.total}
-            sectionsCompleted={sectionsProgress.completed}
-            sectionCount={sectionsProgress.total}
-            preferredPartLabel={
-              isMatrixSection
-                ? `${FRAMEWORK_MATCHING_LANGUAGE} (${sectionStats.filled}/${sectionStats.total} factors)`
-                : undefined
-            }
-          />
+          <div className="sticky top-0 z-20 -mx-1 mb-4 space-y-3 bg-gradient-to-b from-muted/95 via-muted/95 to-muted/80 px-1 pb-3 pt-1 backdrop-blur-sm">
+            <JobCreationProgressHeader
+              sectionIndex={currentSectionIndex}
+              sectionFillPercent={sectionStats.percent}
+              sectionFilled={sectionStats.filled}
+              sectionTotal={sectionStats.total}
+              sectionsCompleted={sectionsProgress.completed}
+              sectionCount={sectionsProgress.total}
+              preferredPartLabel={
+                isMatrixSection
+                  ? `${FRAMEWORK_MATCHING_LANGUAGE} (${sectionStats.filled}/${sectionStats.total} factors)`
+                  : undefined
+              }
+            />
+            {sectionError ? (
+              <div
+                id="job-form-section-error"
+                role="alert"
+                aria-live="assertive"
+                className="flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 shadow-md"
+              >
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+                <div>
+                  <p>{sectionError}</p>
+                  <p className="mt-1 text-xs font-medium text-red-700/80">
+                    Unanswered questions are highlighted below — complete them to continue.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-0">
             <div
@@ -436,6 +466,10 @@ export function JobCreationForm({
                 matrixCategories={matrixCategories}
                 matrixExistingAnswers={matrixAnswers}
                 onMatrixAnswersChange={handleMatrixAnswersChange}
+                highlightIncompleteFaqs={
+                  Boolean(sectionError) &&
+                  currentSection.id === "background-information-questions"
+                }
                 onChange={handleChange}
                 onSearchChange={handleSearchChange}
                 onToggleBenefit={toggleBenefit}
@@ -443,24 +477,21 @@ export function JobCreationForm({
               />
             </div>
 
-            {sectionError && (
-              <div
-                role="alert"
-                className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-              >
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{sectionError}</span>
-              </div>
-            )}
-
-            <div className="sticky bottom-0 z-10 -mx-2 mt-6 border-t border-slate-200 bg-gradient-to-b from-slate-50/95 to-white/95 px-2 py-4 backdrop-blur-sm sm:-mx-0 sm:px-0">
+            <div className="sticky bottom-0 z-10 -mx-2 mt-6 border-t border-slate-200 bg-gradient-to-b from-slate-50/95 to-white/95 px-4 py-4 backdrop-blur-sm sm:mx-0">
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-center text-xs text-slate-500 sm:text-left">
-                  {isLastSection
-                    ? `Complete all ${FRAMEWORK_MATCHING_LANGUAGE} factors, then save.`
-                    : isMatrixSection
-                      ? `Required · same ${FRAMEWORK_MATCHING_LANGUAGE} candidates complete.`
-                      : "Required fields are marked with * · Other steps are optional."}
+                <p
+                  className={cn(
+                    "pl-1 text-center text-xs sm:pl-0 sm:text-left",
+                    sectionError ? "font-medium text-red-700" : "text-slate-500"
+                  )}
+                >
+                  {sectionError
+                    ? sectionError
+                    : isLastSection
+                      ? `Complete all ${FRAMEWORK_MATCHING_LANGUAGE} factors, then save.`
+                      : isMatrixSection
+                        ? `Required · same ${FRAMEWORK_MATCHING_LANGUAGE} candidates complete.`
+                        : "Required fields are marked with * · Other steps are optional."}
                 </p>
                 <div className="flex flex-wrap justify-end gap-2">
                   <button

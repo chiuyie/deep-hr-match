@@ -8,7 +8,7 @@ import {
   employerInputClassName,
 } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
-import { requireRole } from "@/lib/auth/session";
+import { requireEmployer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { uploadJobJD } from "@/lib/employer/actions";
 import { formatDate } from "@/lib/utils/profile";
@@ -19,14 +19,8 @@ export default async function JobJDPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await requireRole("employer");
+  const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
-
-  const { data: employer } = await supabase
-    .from("employer_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
 
   const { data: job } = await supabase
     .from("jobs")

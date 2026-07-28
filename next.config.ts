@@ -5,6 +5,15 @@ const isSyncedFolder = /OneDrive/i.test(__dirname);
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["172.20.10.2"],
+  async redirects() {
+    return [
+      {
+        source: "/employer/company",
+        destination: "/employer/profile",
+        permanent: true,
+      },
+    ];
+  },
   turbopack: {
     root: path.join(__dirname),
     resolveAlias: {

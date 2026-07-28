@@ -15,7 +15,7 @@ import {
   EmployerPageSection,
   EmployerStatCard,
 } from "@/components/employer/employer-ui";
-import { requireRole } from "@/lib/auth/session";
+import { requireEmployer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/profile";
 
@@ -43,8 +43,8 @@ const quickActions = [
   },
   {
     title: "Employer profile",
-    description: "Update company and contact details",
-    href: "/employer/company",
+    description: "Update employer and contact details",
+    href: "/employer/profile",
     icon: Building2,
     accent: "hover:bg-cyan-500/5 text-cyan-600",
   },
@@ -58,14 +58,8 @@ function getGreeting() {
 }
 
 export default async function EmployerDashboard() {
-  const user = await requireRole("employer");
+  const { user, profile } = await requireEmployer();
   const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from("employer_profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
 
   const employerId = profile?.id;
   const [{ count: totalJobs }, { count: unlockCount }, { data: payments }] = await Promise.all([
@@ -88,13 +82,13 @@ export default async function EmployerDashboard() {
   const displayName = user.name?.split(" ")[0] || profile?.contact_person_name?.split(" ")[0];
 
   const detailFields = [
-    { label: "Employer Name", value: profile?.contact_person_name },
-    { label: "Company", value: profile?.company_name },
+    { label: "Contact name", value: profile?.contact_person_name },
+    { label: "Employer name", value: profile?.company_name },
     { label: "Contact Email", value: profile?.contact_person_email },
     { label: "Contact Phone", value: profile?.contact_person_phone },
     { label: "Website", value: profile?.website },
     { label: "Industry", value: profile?.industry },
-    { label: "Company Size", value: profile?.company_size },
+    { label: "Employer size", value: profile?.company_size },
     { label: "UEN / Registration", value: profile?.registration_number },
   ];
 
@@ -147,7 +141,7 @@ export default async function EmployerDashboard() {
         gradient="from-cyan-500 to-cyan-600"
         action={
           <Button variant="outline" size="sm" className="rounded-lg" asChild>
-            <Link href="/employer/company">Edit profile</Link>
+            <Link href="/employer/profile">Edit profile</Link>
           </Button>
         }
       >

@@ -10,7 +10,7 @@ import {
   EmployerPageSection,
 } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
-import { requireRole } from "@/lib/auth/session";
+import { requireEmployer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
   canEditJob,
@@ -38,14 +38,8 @@ export default async function JobViewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await requireRole("employer");
+  const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
-
-  const { data: employer } = await supabase
-    .from("employer_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
 
   const { data: job } = await supabase
     .from("jobs")
@@ -111,12 +105,16 @@ export default async function JobViewPage({
     : { data: [] };
 
   const previewCandidateIds = (topMatches ?? []).map((row) => row.candidate_id);
-  await ensureFormFieldsReady();
   const [candidateFields, platformDisclosure, previewProfilesResult] = await Promise.all([
-    loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
+    ensureFormFieldsReady().then(() =>
+      loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false })
+    ),
     loadPlatformDisclosureMap(),
     previewCandidateIds.length
-      ? supabase.from("candidate_profiles").select("*").in("id", previewCandidateIds)
+      ? supabase
+          .from("candidate_profiles")
+          .select("id, full_name, years_of_experience, highest_education, skills, form_data")
+          .in("id", previewCandidateIds)
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
   ]);
 
