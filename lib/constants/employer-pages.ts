@@ -30,7 +30,7 @@ export function getEmployerPageMeta(pathname: string): EmployerPageMeta {
   if (pathname === "/employer/jobs") {
     return {
       title: "Jobs",
-      description: "Create and manage job postings (unlimited, free)",
+      description: "Track postings, matching activity, and unlocked candidates",
       contentClassName,
     };
   }

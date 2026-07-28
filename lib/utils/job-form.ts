@@ -71,10 +71,15 @@ function formValueToLegacySkills(value: JobFormState[string]) {
 export function parseJobFormState(formData: FormData): JobFormState {
   const state: JobFormState = {};
   const benefits: string[] = [];
+  const languageNeeds: string[] = [];
 
   for (const [key, value] of formData.entries()) {
     if (key === "benefits_package") {
       benefits.push(String(value));
+      continue;
+    }
+    if (key === "language_needs") {
+      languageNeeds.push(String(value));
       continue;
     }
 
@@ -96,6 +101,9 @@ export function parseJobFormState(formData: FormData): JobFormState {
 
   if (benefits.length) {
     state.benefits_package = benefits;
+  }
+  if (languageNeeds.length) {
+    state.language_needs = languageNeeds;
   }
 
   return state;

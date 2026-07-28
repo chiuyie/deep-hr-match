@@ -78,7 +78,7 @@ export const employerNav: DashboardNavItem[] = [
   {
     href: "/employer/jobs",
     label: "Jobs",
-    description: "Manage active postings",
+    description: "Postings, matches, and unlocks",
     icon: Briefcase,
   },
   {

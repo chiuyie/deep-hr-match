@@ -19,6 +19,28 @@ export const JOB_FORM_SECTIONS = [
 
 export const JOB_IMPORTANCE_LEVEL_OPTIONS = ["High", "Medium", "Low"] as const;
 
+export const JOB_WORKING_HOURS_OPTIONS = [
+  "Mon-Fri, standard office hours",
+  "Mon-Fri, fixed daytime shift",
+  "Mon-Fri, fixed evening/night shift",
+  "Rotating shifts",
+  "Weekend shifts required",
+  "5.5-day work week",
+  "6-day work week",
+  "Part-time schedule",
+  "Flexible hours",
+  "Compressed work week",
+  "On-call outside working hours",
+  "Other (explain in additional notes)",
+] as const;
+
+export const JOB_TRAVEL_NEEDS_OPTIONS = [
+  "None",
+  "Occasional (< 25%)",
+  "Regular domestic travel",
+  "Frequent international travel",
+] as const;
+
 export const JOB_BENEFIT_OPTIONS = [
   "Home Leave",
   "Travel Benefits",
@@ -151,7 +173,10 @@ export const JOB_ELIMINATION_FIELDS = [
 ] as const;
 
 export const JOB_BACKGROUND_QUESTIONS = [
-  { name: "faq_work_life_balance", label: "Is work-life balance a must-have for this role?" },
+  {
+    name: "faq_work_life_balance",
+    label: "Does this role generally provide a good work-life balance?",
+  },
   { name: "faq_driving_licence", label: "Is a driving licence required?" },
   { name: "faq_car_ownership", label: "Is car ownership required?" },
   { name: "faq_willing_overtime", label: "Must candidates be willing to work overtime?" },

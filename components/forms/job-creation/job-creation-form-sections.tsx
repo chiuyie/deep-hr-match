@@ -11,7 +11,6 @@ import {
   Heart,
   HelpCircle,
   MapPin,
-  Plane,
   Shield,
   Grid3X3,
   User,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import {
   JobFaqField,
+  JobCheckboxMultiSelectField,
   JobFormSection,
   JobMoneyField,
   JobSelectField,
@@ -32,6 +32,8 @@ import {
   JOB_ELIMINATION_FIELDS,
   JOB_FORM_NO_FILTER_VALUE,
   JOB_IMPORTANCE_LEVEL_OPTIONS,
+  JOB_TRAVEL_NEEDS_OPTIONS,
+  JOB_WORKING_HOURS_OPTIONS,
 } from "@/lib/constants/job-form";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import type { JobFormState } from "@/lib/utils/job-form";
@@ -46,6 +48,8 @@ import {
 } from "@/lib/form-fields/job-field-meta";
 import { JobCustomFieldsBlock } from "./job-custom-fields";
 import type { MatrixCategory, MatrixOption, MatrixQuestion } from "@/types/database";
+import { STANDARD_LANGUAGES } from "@/lib/constants/profile-tags";
+import { parseCommaList } from "@/lib/utils/profile";
 
 export type JobMatrixCategoryTree = MatrixCategory & {
   matrix_questions: (MatrixQuestion & { matrix_options: MatrixOption[] })[];
@@ -72,6 +76,7 @@ export interface JobCreationFormSectionBodyProps {
   ) => void;
   onSearchChange: (event: { target: { name: string; value: string } }) => void;
   onToggleBenefit: (benefit: string) => void;
+  onToggleLanguageNeed: (language: string) => void;
 }
 
 export function JobCreationFormSectionBody({
@@ -84,8 +89,14 @@ export function JobCreationFormSectionBody({
   onMatrixAnswersChange,
   onChange,
   onToggleBenefit,
+  onToggleLanguageNeed,
 }: JobCreationFormSectionBodyProps) {
   const selectedBenefits = Array.isArray(values.benefits_package) ? values.benefits_package : [];
+  const selectedLanguageNeeds = Array.isArray(values.language_needs)
+    ? values.language_needs
+    : parseCommaList(
+        typeof values.language_needs === "string" ? values.language_needs : undefined
+      );
   const customForSection = customJobFieldsForSection(jobFields, sectionId);
   const handleMatrixSave = useCallback(
     async (answers: JobMatrixAnswerRow[]) => {
@@ -174,13 +185,14 @@ export function JobCreationFormSectionBody({
         >
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
             {isJobFieldVisible(fieldMeta, "working_hours") && (
-              <JobTextField
-                label={jobFieldLabel(fieldMeta, "working_hours", "Working hours")}
+              <JobSelectField
+                label={jobFieldLabel(fieldMeta, "working_hours", "Working hours / schedule")}
                 name="working_hours"
-                placeholder="e.g. 9am – 5pm"
+                placeholder="Select the closest schedule"
+                options={JOB_WORKING_HOURS_OPTIONS}
                 value={String(values.working_hours ?? "")}
                 required={jobFieldRequired(fieldMeta, "working_hours")}
-                icon={<Clock className="h-5 w-5 text-slate-400" />}
+                hint="Choose the closest pattern candidates should expect. Use Additional notes if you need to clarify split shifts, on-call, or exceptions."
                 onChange={onChange}
               />
             )}
@@ -192,10 +204,11 @@ export function JobCreationFormSectionBody({
                 value={String(values.team_size ?? "")}
                 required={jobFieldRequired(fieldMeta, "team_size")}
                 icon={<Users className="h-5 w-5 text-slate-400" />}
+                type="number"
                 inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={4}
-                hint="Whole number only."
+                min={1}
+                max={9999}
+                hint="Whole number of people on the team."
                 onChange={onChange}
               />
             )}
@@ -210,13 +223,13 @@ export function JobCreationFormSectionBody({
               />
             )}
             {isJobFieldVisible(fieldMeta, "travel_needs") && (
-              <JobTextField
+              <JobSelectField
                 label={jobFieldLabel(fieldMeta, "travel_needs", "Travel requirements")}
                 name="travel_needs"
-                placeholder="e.g. None, occasional, frequent"
+                placeholder="Select travel expectations"
+                options={JOB_TRAVEL_NEEDS_OPTIONS}
                 value={String(values.travel_needs ?? "")}
                 required={jobFieldRequired(fieldMeta, "travel_needs")}
-                icon={<Plane className="h-5 w-5 text-slate-400" />}
                 onChange={onChange}
               />
             )}
@@ -372,13 +385,19 @@ export function JobCreationFormSectionBody({
             )}
             {isJobFieldVisible(fieldMeta, "language_needs") && (
               <div className="md:col-span-2">
-                <JobTextareaField
-                  label={jobFieldLabel(fieldMeta, "language_needs", "Language requirements (optional)")}
+                <JobCheckboxMultiSelectField
+                  label={jobFieldLabel(
+                    fieldMeta,
+                    "language_needs",
+                    "Languages genuinely needed for the role"
+                  )}
                   name="language_needs"
-                  placeholder="e.g. English, Mandarin"
-                  value={String(values.language_needs ?? "")}
-                  required={jobFieldRequired(fieldMeta, "language_needs")}
-                  onChange={onChange}
+                  options={STANDARD_LANGUAGES}
+                  selected={selectedLanguageNeeds}
+                  placeholder="Search languages"
+                  emptyLabel="No languages selected"
+                  hint="Be specific about how the language is used so you do not over-filter strong candidates."
+                  onToggle={onToggleLanguageNeed}
                 />
               </div>
             )}
@@ -399,7 +418,8 @@ export function JobCreationFormSectionBody({
           hideHeader
         >
           <p className="mb-4 text-sm text-slate-500">
-            Answer each question so matching can score candidates accurately.
+            Answer each question with <strong>Yes</strong> or <strong>No</strong> so matching can
+            score candidates accurately.
           </p>
           <div className="grid grid-cols-1 gap-4">
             {JOB_BACKGROUND_QUESTIONS.map((question) =>

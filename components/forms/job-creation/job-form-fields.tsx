@@ -55,6 +55,8 @@ interface JobTextFieldProps {
   icon?: ReactNode;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   type?: "text" | "tel" | "url" | "email" | "date" | "number";
+  min?: number;
+  max?: number;
   maxLength?: number;
   pattern?: string;
   hint?: string;
@@ -70,6 +72,8 @@ export function JobTextField({
   icon,
   inputMode,
   type = "text",
+  min,
+  max,
   maxLength,
   pattern,
   hint,
@@ -95,6 +99,8 @@ export function JobTextField({
           placeholder={placeholder}
           required={required}
           inputMode={inputMode}
+          min={min}
+          max={max}
           maxLength={maxLength}
           pattern={pattern}
           onChange={onChange}
@@ -138,6 +144,7 @@ interface JobTextareaFieldProps {
   value?: string;
   placeholder?: string;
   required?: boolean;
+  hint?: string;
   onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }
 
@@ -147,6 +154,7 @@ export function JobTextareaField({
   value,
   placeholder,
   required,
+  hint,
   onChange,
 }: JobTextareaFieldProps) {
   return (
@@ -165,6 +173,92 @@ export function JobTextareaField({
         onChange={onChange}
         className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm"
       />
+      {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
+    </div>
+  );
+}
+
+interface JobCheckboxMultiSelectFieldProps {
+  label: string;
+  name: string;
+  options: readonly string[];
+  selected: string[];
+  placeholder?: string;
+  emptyLabel?: string;
+  hint?: string;
+  onToggle: (value: string) => void;
+}
+
+export function JobCheckboxMultiSelectField({
+  label,
+  name,
+  options,
+  selected,
+  placeholder = "Search...",
+  emptyLabel = "Nothing selected",
+  hint,
+  onToggle,
+}: JobCheckboxMultiSelectFieldProps) {
+  const [query, setQuery] = useState("");
+  const filtered = options.filter((option) =>
+    option.toLowerCase().includes(query.toLowerCase())
+  );
+
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-semibold text-slate-700">{label}</label>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <input
+          type="text"
+          value={query}
+          placeholder={placeholder}
+          onChange={(event) => setQuery(event.target.value)}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {selected.length > 0 ? (
+            selected.map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => onToggle(value)}
+                className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+              >
+                {value} x
+              </button>
+            ))
+          ) : (
+            <span className="text-xs text-slate-500">{emptyLabel}</span>
+          )}
+        </div>
+
+        <div className="mt-4 max-h-56 overflow-y-auto rounded-xl border border-slate-100">
+          {filtered.length > 0 ? (
+            filtered.map((option) => {
+              const checked = selected.includes(option);
+              return (
+                <label
+                  key={option}
+                  className="flex cursor-pointer items-center gap-3 border-b border-slate-100 px-4 py-2.5 last:border-b-0 hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    name={name}
+                    checked={checked}
+                    onChange={() => onToggle(option)}
+                    className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm text-slate-700">{option}</span>
+                </label>
+              );
+            })
+          ) : (
+            <div className="px-4 py-3 text-sm text-slate-500">No languages found</div>
+          )}
+        </div>
+      </div>
+      {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
     </div>
   );
 }
@@ -176,6 +270,7 @@ interface JobSelectFieldProps {
   placeholder: string;
   options: readonly string[];
   required?: boolean;
+  hint?: string;
   onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 
@@ -186,8 +281,15 @@ export function JobSelectField({
   placeholder,
   options,
   required,
+  hint,
   onChange,
 }: JobSelectFieldProps) {
+  const normalizedValue = value ?? "";
+  const optionList =
+    normalizedValue && !options.includes(normalizedValue)
+      ? [normalizedValue, ...options]
+      : options;
+
   return (
     <div>
       <label htmlFor={name} className="mb-2 block text-sm font-semibold text-slate-700">
@@ -197,22 +299,23 @@ export function JobSelectField({
       <select
         id={name}
         name={name}
-        value={value ?? ""}
+        value={normalizedValue}
         required={required}
         onChange={onChange}
         className="mt-1 block w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm"
       >
-        {!value && (
+        {!normalizedValue && (
           <option value="" disabled>
             {placeholder}
           </option>
         )}
-        {options.map((option) => (
+        {optionList.map((option) => (
           <option key={option} value={option}>
             {option}
           </option>
         ))}
       </select>
+      {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
     </div>
   );
 }
@@ -264,8 +367,7 @@ interface JobFaqFieldProps {
 }
 
 export function JobFaqField({ label, name, value, icon, onChange }: JobFaqFieldProps) {
-  const selected =
-    value === true ? "true" : value === false ? "false" : "unspecified";
+  const selected = value === true ? "true" : value === false ? "false" : "";
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 transition-all duration-200 hover:shadow-md">
@@ -274,6 +376,7 @@ export function JobFaqField({ label, name, value, icon, onChange }: JobFaqFieldP
           {icon && <div className="text-slate-400">{icon}</div>}
           <span id={`${name}-label`} className="text-sm font-semibold text-slate-700">
             {label}
+            <span className="ml-1 text-red-500">*</span>
           </span>
         </div>
         <div
@@ -283,7 +386,6 @@ export function JobFaqField({ label, name, value, icon, onChange }: JobFaqFieldP
         >
           {(
             [
-              { value: "unspecified", label: "Not specified" },
               { value: "true", label: "Yes" },
               { value: "false", label: "No" },
             ] as const

@@ -131,7 +131,10 @@ function employerJobFields(): DefaultFormFieldInput[] {
   push("job-identification", "job_id", "Job ID");
   push("job-identification", "created_by_representative", "Created By Representative");
   push("job-identification", "job_description", "Job Description", { field_type: "textarea", is_required: true });
-  push("job-details", "working_hours", "Working Hours");
+  push("job-details", "working_hours", "Working hours / schedule", {
+    field_type: "select",
+    placeholder: "Select the closest schedule",
+  });
   push("job-details", "team_size", "Team Size");
   push("job-details", "importance_level", "Importance Level");
   push("job-details", "travel_needs", "Travel Needs");
@@ -152,7 +155,11 @@ function employerJobFields(): DefaultFormFieldInput[] {
       options: [...field.options],
     });
   }
-  push("basic-information", "language_needs", "Language Needs", { field_type: "textarea" });
+  push("basic-information", "language_needs", "Languages genuinely needed for the role", {
+    field_type: "textarea",
+    placeholder:
+      "Example: English for internal communication and email writing. Mandarin preferred for customer calls.",
+  });
 
   for (const field of JOB_BACKGROUND_QUESTIONS) {
     push("background-information-questions", field.name, field.label, { field_type: "select" });

@@ -2,22 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  BadgeCheck,
   Download,
   FileText,
   LockOpen,
-  UserRoundSearch,
+  Mail,
+  Phone,
+  UserRound,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { EmployerJobContext, EmployerPageSection } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { UnlockedMatchReportSections } from "@/components/employer/unlocked-match-report";
@@ -35,6 +28,21 @@ import {
   loadJobMatrixAnswerSteps,
 } from "@/lib/matching/candidate-matrix-summary";
 import type { EmployerVisibleCandidateField } from "@/lib/employer/unlocked-candidate-view";
+
+function groupFieldsBySection(fields: EmployerVisibleCandidateField[]) {
+  return fields.reduce<Array<{ section: string; rows: EmployerVisibleCandidateField[] }>>(
+    (groups, field) => {
+      const existing = groups.find((group) => group.section === field.section);
+      if (existing) {
+        existing.rows.push(field);
+        return groups;
+      }
+      groups.push({ section: field.section, rows: [field] });
+      return groups;
+    },
+    []
+  );
+}
 
 export default async function EmployerUnlockedCandidateDetailPage({
   params,
@@ -96,34 +104,35 @@ export default async function EmployerUnlockedCandidateDetailPage({
       ? Number(candidateView.matchResult.overall_score)
       : null;
   const rankingPosition = candidateView.matchResult?.ranking_position ?? null;
+  const groupedFields = groupFieldsBySection(candidateView.visibleFields);
 
-  const candidateFirstName = candidateView.displayName?.split(" ")[0] ?? "This candidate";
-
-  const groupedFields = candidateView.visibleFields.reduce<
-    Array<{ section: string; rows: EmployerVisibleCandidateField[] }>
-  >((groups, field) => {
-    const existing = groups.find((group) => group.section === field.section);
-    if (existing) {
-      existing.rows.push(field);
-      return groups;
-    }
-    groups.push({ section: field.section, rows: [field] });
-    return groups;
-  }, []);
+  // Skip contact fields already shown in the header
+  const profileGroups = groupedFields
+    .map((group) => ({
+      ...group,
+      rows: group.rows.filter(
+        (field) => !["full_name", "email", "phone"].includes(field.field_key)
+      ),
+    }))
+    .filter((group) => group.rows.length > 0);
 
   return (
     <>
       <EmployerJobContext
         jobTitle={job.title}
         jobId={jobId}
-        description="Unlocked candidate profile and match report"
+        description="Unlocked candidate profile"
       />
       <JobWorkflowNav jobId={jobId} currentStep="unlocked" canEdit={job.status === "draft"} />
 
       <EmployerPageSection
         title={candidateView.displayName}
-        description="Employer-facing candidate report after unlock"
-        icon={<UserRoundSearch className="h-6 w-6" />}
+        description={
+          candidateView.matchResult?.generated_at
+            ? `Matched ${formatDate(candidateView.matchResult.generated_at)}`
+            : "Full profile unlocked for this job"
+        }
+        icon={<UserRound className="h-6 w-6" />}
         gradient="from-emerald-500 to-emerald-600"
         action={
           <div className="flex flex-wrap gap-2">
@@ -142,148 +151,95 @@ export default async function EmployerUnlockedCandidateDetailPage({
           </div>
         }
       >
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
-            <p className="mt-1 text-sm font-medium text-slate-800">
-              {candidateView.displayEmail ?? "—"}
-            </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
+              <p className="mt-1 break-all text-sm font-medium text-slate-800">
+                {candidateView.displayEmail ?? "—"}
+              </p>
+            </div>
           </div>
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</p>
-            <p className="mt-1 text-sm font-medium text-slate-800">
-              {candidateView.displayPhone ?? "—"}
-            </p>
-          </div>
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Match generated
-            </p>
-            <p className="mt-1 text-sm font-medium text-slate-800">
-              {candidateView.matchResult?.generated_at
-                ? formatDate(candidateView.matchResult.generated_at)
-                : "Available after unlock"}
-            </p>
+          <div className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+            <Phone className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</p>
+              <p className="mt-1 text-sm font-medium text-slate-800">
+                {candidateView.displayPhone ?? "—"}
+              </p>
+            </div>
           </div>
         </div>
       </EmployerPageSection>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)]">
-        <div className="space-y-6">
-          <UnlockedMatchReportSections
-            candidateFirstName={candidateFirstName}
-            overallScore={overallScore}
-            rankingPosition={rankingPosition}
-            showMatchScore={shouldShowUnlockedPlatformItem(
-              disclosureMap,
-              "match_score",
-              overallScore != null
-            )}
-            showMatchRank={shouldShowUnlockedPlatformItem(
-              disclosureMap,
-              "match_rank",
-              rankingPosition != null
-            )}
-            showMatrixAnswers={shouldShowUnlockedPlatformItem(
-              disclosureMap,
-              "matrix_candidate_answers",
-              candidateSteps.length > 0
-            )}
-            showMatrixComparison={shouldShowUnlockedPlatformItem(
-              disclosureMap,
-              "matrix_job_comparison",
-              comparisonRows.length > 0
-            )}
-            showNarrative={shouldShowUnlockedPlatformItem(
-              disclosureMap,
-              "match_narrative",
-              Boolean(candidateView.matchResult)
-            )}
-            candidateSteps={candidateSteps}
-            comparisonRows={comparisonRows}
-          />
+      <div className="mt-6 space-y-6">
+        <UnlockedMatchReportSections
+          overallScore={overallScore}
+          rankingPosition={rankingPosition}
+          showMatchScore={shouldShowUnlockedPlatformItem(
+            disclosureMap,
+            "match_score",
+            overallScore != null
+          )}
+          showMatchRank={shouldShowUnlockedPlatformItem(
+            disclosureMap,
+            "match_rank",
+            rankingPosition != null
+          )}
+          showMatrixAnswers={shouldShowUnlockedPlatformItem(
+            disclosureMap,
+            "matrix_candidate_answers",
+            candidateSteps.length > 0
+          )}
+          showMatrixComparison={shouldShowUnlockedPlatformItem(
+            disclosureMap,
+            "matrix_job_comparison",
+            comparisonRows.length > 0
+          )}
+          candidateSteps={candidateSteps}
+          comparisonRows={comparisonRows}
+        />
 
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)]">
           <EmployerPageSection
-            title="Candidate Information Shared With Employers"
-            description="Admin-removed fields are hidden completely. Candidate-optional fields stay listed and may be blank."
-            icon={<BadgeCheck className="h-6 w-6" />}
+            title="Profile"
+            description="Details from the candidate's application"
+            icon={<UserRound className="h-6 w-6" />}
             gradient="from-cyan-500 to-cyan-600"
           >
-            <div className="space-y-5">
-              {groupedFields.length ? (
-                groupedFields.map((group) => (
-                  <section
-                    key={group.section}
-                    className="rounded-xl border border-slate-100 bg-slate-50/50 p-4"
-                  >
-                    <h3 className="text-sm font-semibold text-slate-800">{group.section}</h3>
-
-                    <div className="mt-3 space-y-3 md:hidden">
+            {profileGroups.length ? (
+              <div className="space-y-6">
+                {profileGroups.map((group) => (
+                  <section key={group.section}>
+                    <h3 className="mb-3 text-sm font-semibold text-slate-800">{group.section}</h3>
+                    <dl className="grid gap-3 sm:grid-cols-2">
                       {group.rows.map((field) => (
-                        <article
+                        <div
                           key={field.id}
-                          className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm"
+                          className="rounded-xl border border-slate-100 bg-slate-50/60 p-4"
                         >
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                             {field.label}
-                          </p>
-                          <p className="mt-2 break-words text-sm leading-6 text-slate-700">
-                            {field.value ?? (
-                              <span className="text-slate-400">
-                                {field.employer_disclosure_mode === "candidate_optional"
-                                  ? "Blank or hidden by candidate"
-                                  : "No value provided"}
-                              </span>
-                            )}
-                          </p>
-                        </article>
+                          </dt>
+                          <dd className="mt-1.5 break-words text-sm leading-6 text-slate-800">
+                            {field.value?.trim() ? field.value : <span className="text-slate-400">—</span>}
+                          </dd>
+                        </div>
                       ))}
-                    </div>
-
-                    <div className="mt-3 hidden overflow-hidden rounded-xl border border-slate-100 bg-white md:block">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[32%]">Field</TableHead>
-                            <TableHead>Value visible to employer</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {group.rows.map((field) => (
-                            <TableRow key={field.id}>
-                              <TableCell className="align-top font-medium text-slate-700">
-                                {field.label}
-                              </TableCell>
-                              <TableCell className="whitespace-normal break-words text-slate-600">
-                                {field.value ?? (
-                                  <span className="text-slate-400">
-                                    {field.employer_disclosure_mode === "candidate_optional"
-                                      ? "Blank or hidden by candidate"
-                                      : "No value provided"}
-                                  </span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                    </dl>
                   </section>
-                ))
-              ) : (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                  No employer-visible candidate fields are configured yet.
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">No additional profile details available.</p>
+            )}
           </EmployerPageSection>
-        </div>
 
-        <div className="space-y-6">
           {showCv ? (
             <EmployerPageSection
               title="CV"
-              description="Latest uploaded CV available to the employer after unlock"
+              description="Resume on file for this candidate"
               icon={<FileText className="h-6 w-6" />}
               gradient="from-amber-500 to-orange-600"
             >
@@ -303,13 +259,11 @@ export default async function EmployerUnlockedCandidateDetailPage({
                 <Button className="mt-4 w-full rounded-xl" asChild>
                   <a href={candidateView.cvDownloadUrl} target="_blank" rel="noopener noreferrer">
                     <Download className="mr-2 h-4 w-4" />
-                    Download Candidate CV
+                    Download CV
                   </a>
                 </Button>
               ) : (
-                <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                  No downloadable CV is available for this candidate yet.
-                </div>
+                <p className="mt-4 text-sm text-slate-500">No downloadable CV available yet.</p>
               )}
             </EmployerPageSection>
           ) : null}
@@ -320,11 +274,11 @@ export default async function EmployerUnlockedCandidateDetailPage({
         <Button variant="outline" className="rounded-xl" asChild>
           <Link href={`/employer/jobs/${jobId}/unlocked`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Unlocked Candidates
+            Back to unlocked candidates
           </Link>
         </Button>
         <Button variant="ghost" className="rounded-xl" asChild>
-          <Link href={`/employer/jobs/${jobId}/matching`}>Back to Matching Results</Link>
+          <Link href={`/employer/jobs/${jobId}/matching`}>Back to matching results</Link>
         </Button>
       </div>
     </>

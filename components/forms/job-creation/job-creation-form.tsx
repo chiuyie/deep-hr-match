@@ -28,6 +28,7 @@ import {
   getSectionFillStats,
   validateJobFormForSubmit,
   validateJobFormSection,
+  type SectionValidationResult,
 } from "@/lib/utils/job-form-progress";
 import {
   isJobIntegerField,
@@ -178,15 +179,10 @@ export function JobCreationForm({
     setSectionError(null);
 
     if (name.startsWith("faq_") && type === "radio") {
-      setValues((current) => {
-        const next = { ...current };
-        if (value === "unspecified") {
-          delete next[name];
-        } else {
-          next[name] = value === "true";
-        }
-        return next;
-      });
+      setValues((current) => ({
+        ...current,
+        [name]: value === "true",
+      }));
       return;
     }
 
@@ -236,12 +232,36 @@ export function JobCreationForm({
     });
   };
 
+  const toggleLanguageNeed = (language: string) => {
+    markDirty();
+    setSectionError(null);
+    setValues((current) => {
+      const selected = Array.isArray(current.language_needs)
+        ? current.language_needs
+        : typeof current.language_needs === "string"
+          ? current.language_needs
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : [];
+      const next = selected.includes(language)
+        ? selected.filter((item) => item !== language)
+        : [...selected, language];
+      return { ...current, language_needs: next };
+    });
+  };
+
   const buildFormData = (form: HTMLFormElement) => {
     const formData = new FormData(form);
     for (const [key, value] of Object.entries(values)) {
       if (key === "benefits_package" && Array.isArray(value)) {
         formData.delete("benefits_package");
         value.forEach((benefit) => formData.append("benefits_package", benefit));
+        continue;
+      }
+      if (key === "language_needs" && Array.isArray(value)) {
+        formData.delete("language_needs");
+        value.forEach((language) => formData.append("language_needs", language));
         continue;
       }
       if (typeof value === "boolean") {
@@ -264,28 +284,50 @@ export function JobCreationForm({
     element?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  const handleNext = () => {
+  const validateCurrentStep = useCallback((): SectionValidationResult => {
     const validation = validateJobFormSection(values, currentSection.id, fieldMeta);
+    if (validation.ok === false) return validation;
+
+    if (isMatrixSection) {
+      if (matrixCategories.length === 0) {
+        return {
+          ok: false,
+          message: `${FRAMEWORK_MATCHING_LANGUAGE} is not configured yet. Ask an administrator to publish it before continuing.`,
+        };
+      }
+      const matrixStats = matrixFillStats(matrixAnswers);
+      if (matrixStats.filled < matrixStats.total) {
+        return {
+          ok: false,
+          message: `Complete all ${matrixStats.total} ${FRAMEWORK_MATCHING_LANGUAGE} factors before continuing (${matrixStats.filled}/${matrixStats.total} done).`,
+        };
+      }
+    }
+
+    return { ok: true };
+  }, [currentSection.id, fieldMeta, isMatrixSection, matrixAnswers, matrixCategories.length, values]);
+
+  const handleSectionSelect = useCallback(
+    (index: number) => {
+      if (index > currentSectionIndex) {
+        const validation = validateCurrentStep();
+        if (validation.ok === false) {
+          setSectionError(validation.message);
+          focusField(validation.focusField);
+          return;
+        }
+      }
+      goToSection(index);
+    },
+    [currentSectionIndex, goToSection, validateCurrentStep]
+  );
+
+  const handleNext = () => {
+    const validation = validateCurrentStep();
     if (validation.ok === false) {
       setSectionError(validation.message);
       focusField(validation.focusField);
       return;
-    }
-
-    if (isMatrixSection) {
-      if (matrixCategories.length === 0) {
-        setSectionError(
-          `${FRAMEWORK_MATCHING_LANGUAGE} is not configured yet. Ask an administrator to publish it before continuing.`
-        );
-        return;
-      }
-      const matrixStats = matrixFillStats(matrixAnswers);
-      if (matrixStats.filled < matrixStats.total) {
-        setSectionError(
-          `Complete all ${matrixStats.total} ${FRAMEWORK_MATCHING_LANGUAGE} factors before continuing (${matrixStats.filled}/${matrixStats.total} done).`
-        );
-        return;
-      }
     }
 
     goToSection(currentSectionIndex + 1);
@@ -301,7 +343,7 @@ export function JobCreationForm({
     if (validation.ok === false) {
       setSectionError(validation.message);
       goToSection(findSectionIndexForField(validation.focusField));
-      voidMicrotask(() => focusField(validation.focusField));
+      queueMicrotask(() => focusField(validation.focusField));
       return;
     }
 
@@ -360,7 +402,7 @@ export function JobCreationForm({
               currentSectionIndex={currentSectionIndex}
               visitedThroughIndex={visitedThroughIndex}
               values={values}
-              onSectionSelect={(index) => goToSection(index)}
+              onSectionSelect={handleSectionSelect}
               matrixFillPercent={matrixFillStats(matrixAnswers).percent}
             />
           </div>
@@ -397,6 +439,7 @@ export function JobCreationForm({
                 onChange={handleChange}
                 onSearchChange={handleSearchChange}
                 onToggleBenefit={toggleBenefit}
+                onToggleLanguageNeed={toggleLanguageNeed}
               />
             </div>
 

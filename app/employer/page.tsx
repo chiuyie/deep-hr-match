@@ -29,7 +29,7 @@ const quickActions = [
   },
   {
     title: "Manage jobs",
-    description: "View and edit your active postings",
+    description: "View postings, matches, and unlocks",
     href: "/employer/jobs",
     icon: Briefcase,
     accent: "hover:bg-emerald-500/5 text-emerald-600",

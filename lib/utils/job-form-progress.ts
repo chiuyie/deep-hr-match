@@ -201,7 +201,24 @@ export function validateJobFormSection(
     if (missing) {
       return {
         ok: false,
-        message: "Please answer every requirement question (Yes, No, or Not specified).",
+        message: "Please answer every requirement question with Yes or No.",
+        focusField: missing.name,
+      };
+    }
+  }
+
+  if (sectionId === "basic-information") {
+    const fields = fieldMeta
+      ? JOB_ELIMINATION_FIELDS.filter((field) => isJobFieldVisible(fieldMeta, field.name))
+      : JOB_ELIMINATION_FIELDS;
+    const missing = fields.find((field) => {
+      if (field.name === "not_required_nationality") return false;
+      return !isJobFormValueFilled(values[field.name]);
+    });
+    if (missing) {
+      return {
+        ok: false,
+        message: `Choose an option for "${missing.label}". Use "${JOB_FORM_NO_FILTER_VALUE}" if this should not filter candidates.`,
         focusField: missing.name,
       };
     }
@@ -223,7 +240,6 @@ export function validateJobFormForSubmit(
 ): SectionValidationResult {
   for (const section of JOB_FORM_SECTIONS) {
     if (
-      section.id === "compensation" ||
       section.id === "preferred-selection-by-the-employer" ||
       section.id === "job-details"
     ) {
@@ -232,18 +248,42 @@ export function validateJobFormForSubmit(
     const result = validateJobFormSection(values, section.id, fieldMeta);
     if (result.ok === false) return result;
   }
+
+  const compensation = validateCompensationRange(values);
+  if (compensation.ok === false) return compensation;
+
   return { ok: true };
 }
 
 export function findSectionIndexForField(fieldName?: string): number {
   if (!fieldName) return 0;
-  if (fieldName === "job_description" || fieldName === "job_title") {
+  if (fieldName === "job_description" || fieldName === "job_title" || fieldName === "job_id") {
     return JOB_FORM_SECTIONS.findIndex((section) => section.id === "job-identification");
+  }
+  if (
+    fieldName === "working_hours" ||
+    fieldName === "team_size" ||
+    fieldName === "importance_level" ||
+    fieldName === "travel_needs" ||
+    fieldName === "reporting_to" ||
+    fieldName === "additional_notes"
+  ) {
+    return JOB_FORM_SECTIONS.findIndex((section) => section.id === "job-details");
+  }
+  if (
+    fieldName === "desired_minimum_salary" ||
+    fieldName === "desired_maximum_salary" ||
+    fieldName === "benefits_package"
+  ) {
+    return JOB_FORM_SECTIONS.findIndex((section) => section.id === "compensation");
   }
   if (fieldName.startsWith("faq_")) {
     return JOB_FORM_SECTIONS.findIndex(
       (section) => section.id === "background-information-questions"
     );
+  }
+  if (JOB_ELIMINATION_FIELDS.some((field) => field.name === fieldName) || fieldName === "language_needs") {
+    return JOB_FORM_SECTIONS.findIndex((section) => section.id === "basic-information");
   }
   return 0;
 }

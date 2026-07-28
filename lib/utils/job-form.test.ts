@@ -41,6 +41,16 @@ describe("parseJobFormState", () => {
       benefits_package: ["Health", "Dental"],
     });
   });
+
+  it("parses structured language selections as an array", () => {
+    const formData = new FormData();
+    formData.append("language_needs", "English");
+    formData.append("language_needs", "Mandarin Chinese");
+
+    expect(parseJobFormState(formData)).toEqual({
+      language_needs: ["English", "Mandarin Chinese"],
+    });
+  });
 });
 
 describe("jobRecordToFormState", () => {

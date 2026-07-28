@@ -221,6 +221,29 @@ export async function ensureFormFieldsReady() {
     await Promise.all(typeUpdates);
   }
 
+  // Keep built-in employer job labels / placeholders understandable without
+  // overwriting section ordering or custom-field edits.
+  const builtInJobFieldDefaults = getDefaultFormFields().filter(
+    (field) => field.audience === "employer" && field.form_group === "job"
+  );
+  const jobFieldUpdates = builtInJobFieldDefaults.map((field) =>
+    supabase
+      .from("form_fields")
+      .update({
+        label: field.label,
+        placeholder: field.placeholder ?? null,
+        field_type: field.field_type ?? "text",
+      })
+      .eq("audience", field.audience)
+      .eq("form_group", field.form_group)
+      .eq("field_key", field.field_key)
+      .eq("is_custom", false)
+  );
+
+  if (jobFieldUpdates.length > 0) {
+    await Promise.all(jobFieldUpdates);
+  }
+
   // Move legacy custom fields out of the old single profile buckets.
   await Promise.all([
     supabase
