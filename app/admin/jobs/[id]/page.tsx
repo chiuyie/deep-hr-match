@@ -33,8 +33,8 @@ export default async function AdminJobDetailPage({
   } | null;
 
   const [{ count: matchCount }, { count: unlockCount }] = await Promise.all([
-    supabase.from("match_results").select("*", { count: "exact", head: true }).eq("job_id", id),
-    supabase.from("unlocks").select("*", { count: "exact", head: true }).eq("job_id", id),
+    supabase.from("match_results").select("id", { count: "exact", head: true }).eq("job_id", id),
+    supabase.from("unlocks").select("id", { count: "exact", head: true }).eq("job_id", id),
   ]);
 
   return (

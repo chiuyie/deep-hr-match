@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   getAllowedOnboardingPaths,
   getOnboardingPath,
@@ -99,5 +99,63 @@ describe("isOnboardingChecklistComplete", () => {
         hasMatrix: true,
       })
     ).toBe(true);
+  });
+});
+
+describe("fetchCandidateOnboardingState", () => {
+  it("returns zeros when no profile exists", async () => {
+    const supabase = {
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(async () => ({ data: null, error: null })),
+          })),
+        })),
+      })),
+    };
+
+    const { fetchCandidateOnboardingState } = await import("@/lib/candidate/onboarding");
+    const state = await fetchCandidateOnboardingState(supabase as never, "user-1");
+    expect(state).toEqual({
+      completionPercentage: 0,
+      hasCv: false,
+      hasMatrix: false,
+    });
+  });
+
+  it("loads completion, CV, and matrix flags in parallel", async () => {
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "candidate_profiles") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(async () => ({
+                  data: { id: "cand-1", completion_percentage: 75 },
+                  error: null,
+                })),
+              })),
+            })),
+          };
+        }
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(async () => ({
+              count: table === "candidate_cv_files" ? 1 : 2,
+              data: null,
+              error: null,
+            })),
+          })),
+        };
+      }),
+    };
+
+    const { fetchCandidateOnboardingState } = await import("@/lib/candidate/onboarding");
+    const state = await fetchCandidateOnboardingState(supabase as never, "user-1");
+    expect(state).toEqual({
+      completionPercentage: 75,
+      hasCv: true,
+      hasMatrix: true,
+    });
   });
 });

@@ -8,7 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveJobMatrixAnswers } from "@/lib/employer/actions";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
-import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
+import { loadPrimaryMatrixCategoryTree } from "@/lib/matching/matrix-queries";
+import type { MatrixCategoryWithQuestions } from "@/lib/matching/matrix-form";
 
 export default async function JobMatrixPage({
   params,
@@ -28,18 +29,17 @@ export default async function JobMatrixPage({
 
   if (!job) notFound();
 
-  const { data: categories } = await supabase
-    .from("matrix_categories")
-    .select(MATRIX_CATEGORY_TREE_SELECT)
-    .eq("is_active", true)
-    .order("sort_order");
+  const [primaryCategory, { data: answers }] = await Promise.all([
+    loadPrimaryMatrixCategoryTree(supabase),
+    supabase
+      .from("job_matrix_answers")
+      .select("question_id, option_id, answer_text, matrix_column")
+      .eq("job_id", id),
+  ]);
 
-  const filtered = filterSharedMatrixCategories(categories ?? []);
-
-  const { data: answers } = await supabase
-    .from("job_matrix_answers")
-    .select("question_id, option_id, answer_text, matrix_column")
-    .eq("job_id", id);
+  const filtered = filterSharedMatrixCategories(
+    (primaryCategory ? [primaryCategory] : []) as MatrixCategoryWithQuestions[]
+  );
 
   const answerRows = (answers ?? []).map((a) => ({
     question_id: a.question_id,

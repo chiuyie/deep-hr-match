@@ -5,19 +5,13 @@ import {
   AdminViewLink,
 } from "@/components/admin/admin-ui";
 import { AdminSearchableTable } from "@/components/admin/admin-searchable-table";
+import { loadAdminEmployersList } from "@/lib/admin/list-queries";
 import { adminRowSearchProps } from "@/lib/admin/table-search";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils/profile";
 
 export default async function AdminEmployersPage() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("employer_profiles")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  const rows = data ?? [];
+  const rows = await loadAdminEmployersList();
 
   return (
     <AdminPageSection

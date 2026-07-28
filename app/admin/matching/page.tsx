@@ -2,20 +2,15 @@ import Link from "next/link";
 import { Target } from "lucide-react";
 import { AdminPageSection, AdminRecordIdLink, AdminScoreBadge } from "@/components/admin/admin-ui";
 import { AdminSearchableTable } from "@/components/admin/admin-searchable-table";
+import { loadAdminMatchingList } from "@/lib/admin/list-queries";
+import { embedOne } from "@/lib/admin/embed";
 import { adminRowSearchProps } from "@/lib/admin/table-search";
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils/profile";
 
 export default async function AdminMatchingPage() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("match_results")
-    .select("*, jobs(title), candidate_profiles(full_name, email)")
-    .order("generated_at", { ascending: false });
-
-  const rows = data ?? [];
+  const rows = await loadAdminMatchingList();
 
   return (
     <AdminPageSection
@@ -33,11 +28,8 @@ export default async function AdminMatchingPage() {
         columns={["Job", "Candidate", "Rank", "Score", "Type", "Generated"]}
       >
         {rows.map((result) => {
-          const jobTitle = (result.jobs as { title: string } | null)?.title ?? "";
-          const candidate = result.candidate_profiles as {
-            full_name: string | null;
-            email: string | null;
-          } | null;
+          const jobTitle = embedOne(result.jobs)?.title ?? "";
+          const candidate = embedOne(result.candidate_profiles);
           const candidateName = candidate?.full_name ?? "Unknown candidate";
 
           return (
@@ -66,7 +58,8 @@ export default async function AdminMatchingPage() {
                     className="font-medium text-primary hover:underline"
                   >
                     {candidateName}
-                  </Link>                  {candidate?.email && (
+                  </Link>
+                  {candidate?.email && (
                     <p className="text-xs text-slate-500">{candidate.email}</p>
                   )}
                 </div>

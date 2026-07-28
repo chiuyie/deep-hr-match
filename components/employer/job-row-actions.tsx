@@ -24,7 +24,7 @@ export function JobRowActions({ jobId, lifecycle, compact = false }: JobRowActio
       <Button variant="outline" size="sm" className="rounded-lg" asChild>
         <Link href={`/employer/jobs/${jobId}/view`}>
           <Eye className={compact ? "mr-1.5 h-3.5 w-3.5" : "mr-1.5 h-4 w-4"} />
-          View
+          View job
         </Link>
       </Button>
       {showEdit && (

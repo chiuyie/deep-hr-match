@@ -1,28 +1,16 @@
 import { FileText } from "lucide-react";
 import { AdminFileLink, AdminPageSection } from "@/components/admin/admin-ui";
 import { AdminSearchableTable } from "@/components/admin/admin-searchable-table";
+import { loadAdminFileLists } from "@/lib/admin/list-queries";
+import { embedOne } from "@/lib/admin/embed";
 import { adminRowSearchProps } from "@/lib/admin/table-search";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { adminFileDownloadUrl, formatFileSize } from "@/lib/admin/files";
-import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils/profile";
 
 export default async function AdminFilesPage() {
-  const supabase = await createClient();
-
-  const { data: cvs } = await supabase
-    .from("candidate_cv_files")
-    .select("*, candidate_profiles(full_name, email)")
-    .order("uploaded_at", { ascending: false });
-
-  const { data: jds } = await supabase
-    .from("job_jd_files")
-    .select("*, jobs(title)")
-    .order("uploaded_at", { ascending: false });
-
-  const cvRows = cvs ?? [];
-  const jdRows = jds ?? [];
+  const { cvs: cvRows, jds: jdRows } = await loadAdminFileLists();
 
   return (
     <AdminPageSection
@@ -51,10 +39,7 @@ export default async function AdminFilesPage() {
             columns={["File", "Candidate", "Size", "Uploaded", "Download"]}
           >
             {cvRows.map((file) => {
-              const candidate = file.candidate_profiles as {
-                full_name: string | null;
-                email: string | null;
-              } | null;
+              const candidate = embedOne(file.candidate_profiles);
 
               return (
                 <TableRow
@@ -100,7 +85,7 @@ export default async function AdminFilesPage() {
             columns={["File", "Job", "Size", "Uploaded", "Download"]}
           >
             {jdRows.map((file) => {
-              const jobTitle = (file.jobs as { title: string } | null)?.title ?? "";
+              const jobTitle = embedOne(file.jobs)?.title ?? "";
 
               return (
                 <TableRow

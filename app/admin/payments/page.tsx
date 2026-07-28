@@ -1,19 +1,14 @@
 import { CreditCard } from "lucide-react";
 import { AdminPageSection, AdminStatusBadge } from "@/components/admin/admin-ui";
 import { AdminSearchableTable } from "@/components/admin/admin-searchable-table";
+import { loadAdminPaymentsList } from "@/lib/admin/list-queries";
+import { embedOne } from "@/lib/admin/embed";
 import { adminRowSearchProps } from "@/lib/admin/table-search";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/utils/profile";
 
 export default async function AdminPaymentsPage() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("payments")
-    .select("*, jobs(title), employer_profiles(company_name)")
-    .order("created_at", { ascending: false });
-
-  const rows = data ?? [];
+  const rows = await loadAdminPaymentsList();
   const totalCents = rows.reduce((sum, payment) => sum + (payment.amount ?? 0), 0);
   const currency = rows[0]?.currency ?? "usd";
 
@@ -43,18 +38,17 @@ export default async function AdminPaymentsPage() {
         columns={["Employer", "Job", "Amount", "Candidates", "Status", "Date"]}
       >
         {rows.map((payment) => {
-          const company =
-            (payment.employer_profiles as { company_name: string } | null)?.company_name ?? "";
-          const jobTitle = (payment.jobs as { title: string } | null)?.title ?? "";
+          const employerName = embedOne(payment.employer_profiles)?.company_name ?? "";
+          const jobTitle = embedOne(payment.jobs)?.title ?? "";
 
           return (
             <TableRow
               key={payment.id}
               {...adminRowSearchProps(
-                `${company} ${jobTitle} ${payment.status ?? ""} ${payment.amount}`
+                `${employerName} ${jobTitle} ${payment.status ?? ""} ${payment.amount}`
               )}
             >
-              <TableCell className="font-medium text-slate-800">{company || "—"}</TableCell>
+              <TableCell className="font-medium text-slate-800">{employerName || "—"}</TableCell>
               <TableCell className="text-slate-600">{jobTitle || "—"}</TableCell>
               <TableCell className="font-semibold text-slate-800">
                 {formatCurrency(payment.amount, payment.currency)}

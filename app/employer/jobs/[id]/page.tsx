@@ -13,7 +13,8 @@ import { canEditJob } from "@/lib/employer/job-rules";
 import { jobRecordToFormState } from "@/lib/utils/job-form";
 import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
-import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
+import { loadPrimaryMatrixCategoryTree } from "@/lib/matching/matrix-queries";
+import type { MatrixCategoryWithQuestions } from "@/lib/matching/matrix-form";
 
 export default async function EditJobPage({
   params,
@@ -39,11 +40,11 @@ export default async function EditJobPage({
   const [{ count: matchCount }, { count: unlockCount }] = await Promise.all([
     supabase
       .from("match_results")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("job_id", id),
     supabase
       .from("unlocks")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("job_id", id)
       .eq("employer_id", employer?.id ?? ""),
   ]);
@@ -58,21 +59,20 @@ export default async function EditJobPage({
     redirect(`/employer/jobs/${id}/view`);
   }
 
-  await ensureFormFieldsReady();
-  const [jobFields, { data: categories }, { data: matrixAnswers }] = await Promise.all([
-    loadFormFields({ audience: "employer", formGroup: "job" }),
-    supabase
-      .from("matrix_categories")
-      .select(MATRIX_CATEGORY_TREE_SELECT)
-      .eq("is_active", true)
-      .order("sort_order"),
+  const [jobFields, primaryCategory, { data: matrixAnswers }] = await Promise.all([
+    ensureFormFieldsReady().then(() =>
+      loadFormFields({ audience: "employer", formGroup: "job" })
+    ),
+    loadPrimaryMatrixCategoryTree(supabase),
     supabase
       .from("job_matrix_answers")
       .select("question_id, option_id, answer_text, matrix_column")
       .eq("job_id", id),
   ]);
 
-  const matrixCategories = filterSharedMatrixCategories(categories ?? []);
+  const matrixCategories = filterSharedMatrixCategories(
+    (primaryCategory ? [primaryCategory] : []) as MatrixCategoryWithQuestions[]
+  );
   const matrixExistingAnswers = (matrixAnswers ?? [])
     .map((a) => ({
       question_id: a.question_id,

@@ -46,25 +46,22 @@ export default async function EmployerUnlockedCandidateDetailPage({
 }) {
   const { id: jobId, candidateId } = await params;
   const { profile: employer } = await requireEmployer();
-  const supabase = await createClient();
-
   if (!employer) notFound();
 
-  const { data: job } = await supabase
-    .from("jobs")
-    .select("title, status")
-    .eq("id", jobId)
-    .eq("employer_id", employer.id)
-    .single();
+  const supabase = await createClient();
 
+  const [jobResult, matrixClient] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("title, status")
+      .eq("id", jobId)
+      .eq("employer_id", employer.id)
+      .single(),
+    createServiceClient().catch(() => supabase),
+  ]);
+
+  const job = jobResult.data;
   if (!job) notFound();
-
-  let matrixClient = supabase;
-  try {
-    matrixClient = await createServiceClient();
-  } catch {
-    matrixClient = supabase;
-  }
 
   let candidateView:
     | (Awaited<ReturnType<typeof getEmployerUnlockedCandidateView>> & {

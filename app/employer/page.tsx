@@ -16,7 +16,7 @@ import {
   EmployerStatCard,
 } from "@/components/employer/employer-ui";
 import { requireEmployer } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { loadEmployerDashboardStats } from "@/lib/employer/list-queries";
 import { formatCurrency } from "@/lib/utils/profile";
 
 const quickActions = [
@@ -59,26 +59,9 @@ function getGreeting() {
 
 export default async function EmployerDashboard() {
   const { user, profile } = await requireEmployer();
-  const supabase = await createClient();
-
-  const employerId = profile?.id;
-  const [{ count: totalJobs }, { count: unlockCount }, { data: payments }] = await Promise.all([
-    supabase
-      .from("jobs")
-      .select("*", { count: "exact", head: true })
-      .eq("employer_id", employerId ?? ""),
-    supabase
-      .from("unlocks")
-      .select("*", { count: "exact", head: true })
-      .eq("employer_id", employerId ?? ""),
-    supabase
-      .from("payments")
-      .select("amount")
-      .eq("employer_id", employerId ?? "")
-      .eq("status", "paid"),
-  ]);
-
-  const totalSpent = payments?.reduce((sum, p) => sum + p.amount, 0) ?? 0;
+  const { totalJobs, unlockCount, totalSpent } = await loadEmployerDashboardStats(
+    profile?.id ?? ""
+  );
   const displayName = user.name?.split(" ")[0] || profile?.contact_person_name?.split(" ")[0];
 
   const detailFields = [

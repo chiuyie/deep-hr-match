@@ -1,9 +1,10 @@
+import { cache } from "react";
 import { FormFieldsComparisonEditor } from "@/components/admin/form-fields-comparison-editor";
 import { loadComparisonFormFields } from "@/lib/form-fields/queries";
 import { loadPlatformDisclosureItems } from "@/lib/employer/platform-disclosure";
 import { createClient } from "@/lib/supabase/server";
 
-async function checkEmployerDisclosureColumn() {
+const checkEmployerDisclosureColumn = cache(async function checkEmployerDisclosureColumn() {
   const supabase = await createClient();
   const { error } = await supabase
     .from("form_fields")
@@ -14,7 +15,7 @@ async function checkEmployerDisclosureColumn() {
     ok: false as const,
     error: error.message,
   };
-}
+});
 
 export default async function AdminFormsPage() {
   const [{ candidate, employerProfile, employerJob }, platformLoad, disclosureColumn] =

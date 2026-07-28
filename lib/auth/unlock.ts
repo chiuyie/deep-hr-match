@@ -1,6 +1,15 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { CandidateCvFile, CandidateProfile, MatchResult } from "@/types/database";
 
+const UNLOCKED_PROFILE_LIST_SELECT =
+  "id, full_name, email, phone, years_of_experience, skills, form_data";
+const UNLOCKED_CV_SELECT =
+  "id, candidate_id, file_name, file_path, file_size, uploaded_at";
+const UNLOCKED_MATCH_LIST_SELECT =
+  "candidate_id, ranking_position, overall_score, is_placeholder, generated_at";
+const UNLOCKED_MATCH_DETAIL_SELECT =
+  "candidate_id, ranking_position, overall_score, is_placeholder, generated_at, match_summary, strengths, gaps";
+
 export async function hasCandidateUnlock(
   employerId: string,
   jobId: string,
@@ -59,14 +68,14 @@ export async function getUnlockedCandidateDetails(
         service.from("candidate_profiles").select("*").eq("id", candidateId).maybeSingle(),
         service
           .from("candidate_cv_files")
-          .select("*")
+          .select(UNLOCKED_CV_SELECT)
           .eq("candidate_id", candidateId)
           .order("uploaded_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
         service
           .from("match_results")
-          .select("*")
+          .select(UNLOCKED_MATCH_DETAIL_SELECT)
           .eq("job_id", jobId)
           .eq("candidate_id", candidateId)
           .maybeSingle(),
@@ -88,14 +97,14 @@ export async function getUnlockedCandidateDetails(
         sessionSupabase.from("candidate_profiles").select("*").eq("id", candidateId).maybeSingle(),
         sessionSupabase
           .from("candidate_cv_files")
-          .select("*")
+          .select(UNLOCKED_CV_SELECT)
           .eq("candidate_id", candidateId)
           .order("uploaded_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
         sessionSupabase
           .from("match_results")
-          .select("*")
+          .select(UNLOCKED_MATCH_DETAIL_SELECT)
           .eq("job_id", jobId)
           .eq("candidate_id", candidateId)
           .maybeSingle(),
@@ -158,28 +167,33 @@ export async function getUnlockedCandidateDetailsBatch(
   if (!scopedCandidateIds.length) return [];
 
   const [{ data: profiles }, { data: cvs }, { data: matchResults }] = await Promise.all([
-    source.from("candidate_profiles").select("*").in("id", scopedCandidateIds),
+    source.from("candidate_profiles").select(UNLOCKED_PROFILE_LIST_SELECT).in("id", scopedCandidateIds),
     source
       .from("candidate_cv_files")
-      .select("*")
+      .select(UNLOCKED_CV_SELECT)
       .in("candidate_id", scopedCandidateIds)
       .order("uploaded_at", { ascending: false }),
     source
       .from("match_results")
-      .select("*")
+      .select(UNLOCKED_MATCH_LIST_SELECT)
       .eq("job_id", jobId)
       .in("candidate_id", scopedCandidateIds),
   ]);
 
-  const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile as CandidateProfile]));
+  const profileMap = new Map(
+    (profiles ?? []).map((profile) => [profile.id, profile as unknown as CandidateProfile])
+  );
   const matchMap = new Map(
-    (matchResults ?? []).map((matchResult) => [matchResult.candidate_id, matchResult as MatchResult])
+    (matchResults ?? []).map((matchResult) => [
+      matchResult.candidate_id,
+      matchResult as unknown as MatchResult,
+    ])
   );
   const cvMap = new Map<string, CandidateCvFile>();
 
   for (const cv of cvs ?? []) {
     if (!cvMap.has(cv.candidate_id)) {
-      cvMap.set(cv.candidate_id, cv as CandidateCvFile);
+      cvMap.set(cv.candidate_id, cv as unknown as CandidateCvFile);
     }
   }
 

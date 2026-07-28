@@ -32,11 +32,11 @@ export default async function AdminCandidateDetailPage({
   const [{ count: matchCount }, { count: cvCount }] = await Promise.all([
     supabase
       .from("match_results")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("candidate_id", id),
     supabase
       .from("candidate_cv_files")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("candidate_id", id),
   ]);
 

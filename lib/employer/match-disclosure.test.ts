@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAnonymousPreviewFields,
+  defaultShowOnAnonymousMatch,
+  formatCandidateFieldValue,
   getAnonymousMatchVisibleFields,
+  getCandidateFieldDisplayValue,
   getUnlockedVisibleFields,
   isUnlockedContactFieldVisible,
 } from "@/lib/employer/match-disclosure";
@@ -55,5 +58,34 @@ describe("match disclosure helpers", () => {
       { key: "years_of_experience", label: "Years of Experience", value: "4" },
       { key: "skills", label: "Skills", value: "React, SQL" },
     ]);
+  });
+
+  it("formats arrays, booleans, and language entries", () => {
+    expect(formatCandidateFieldValue(["React", "SQL"])).toBe("React, SQL");
+    expect(formatCandidateFieldValue(true)).toBe("Yes");
+    expect(formatCandidateFieldValue(false)).toBe("No");
+    expect(
+      formatCandidateFieldValue([{ language: "English", proficiency: "Fluent" }])
+    ).toBe("English (Fluent)");
+    expect(formatCandidateFieldValue("")).toBeNull();
+  });
+
+  it("reads built-in and custom profile values for display", () => {
+    const customField = makeFormField({
+      field_key: "portfolio",
+      label: "Portfolio",
+      is_custom: true,
+      show_on_anonymous_match: true,
+    });
+    expect(
+      getCandidateFieldDisplayValue(customField, {
+        custom_fields: { portfolio: "https://example.com" },
+      })
+    ).toBe("https://example.com");
+  });
+
+  it("defaults anonymous visibility for common candidate fields", () => {
+    expect(defaultShowOnAnonymousMatch("skills")).toBe(true);
+    expect(defaultShowOnAnonymousMatch("full_name")).toBe(false);
   });
 });

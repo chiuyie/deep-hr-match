@@ -6,19 +6,14 @@ import {
   AdminViewLink,
 } from "@/components/admin/admin-ui";
 import { AdminSearchableTable } from "@/components/admin/admin-searchable-table";
+import { loadAdminJobsList } from "@/lib/admin/list-queries";
+import { embedOne } from "@/lib/admin/embed";
 import { adminRowSearchProps } from "@/lib/admin/table-search";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils/profile";
 
 export default async function AdminJobsPage() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("jobs")
-    .select("*, employer_profiles(company_name)")
-    .order("created_at", { ascending: false });
-
-  const rows = data ?? [];
+  const rows = await loadAdminJobsList();
 
   return (
     <AdminPageSection
@@ -36,21 +31,20 @@ export default async function AdminJobsPage() {
         columns={["Job ID", "Title", "Employer", "Location", "Status", "Posted", ""]}
       >
         {rows.map((job) => {
-          const company =
-            (job.employer_profiles as { company_name: string } | null)?.company_name ?? "";
+          const employerName = embedOne(job.employer_profiles)?.company_name ?? "";
 
           return (
             <TableRow
               key={job.id}
               {...adminRowSearchProps(
-                `${job.id} ${job.title} ${company} ${job.location ?? ""} ${job.status ?? ""}`
+                `${job.id} ${job.title} ${employerName} ${job.location ?? ""} ${job.status ?? ""}`
               )}
             >
               <TableCell className="whitespace-normal align-top">
                 <AdminRecordIdLink id={job.id} href={`/admin/jobs/${job.id}`} />
               </TableCell>
               <TableCell className="font-medium text-slate-800">{job.title}</TableCell>
-              <TableCell className="text-slate-600">{company || "—"}</TableCell>
+              <TableCell className="text-slate-600">{employerName || "—"}</TableCell>
               <TableCell className="text-slate-600">{job.location ?? "—"}</TableCell>
               <TableCell>
                 <AdminStatusBadge status={job.status ?? "unknown"} />

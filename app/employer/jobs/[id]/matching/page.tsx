@@ -18,6 +18,7 @@ import {
   runMatchingBlockedReason,
 } from "@/lib/employer/job-rules";
 import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
+import { EMPLOYER_MATCH_RESULT_LIST_SELECT } from "@/lib/employer/list-queries";
 import { MATCH_DISPLAY_LIMIT } from "@/lib/matching/engine";
 import { isMockPayments } from "@/lib/payments/mode";
 import {
@@ -43,24 +44,26 @@ export default async function JobMatchingPage({
   const { id } = await params;
   const { matrix } = await searchParams;
   const { profile: employer } = await requireEmployer();
+  if (!employer) notFound();
+
   const supabase = await createClient();
 
-  const { data: job } = await supabase
-    .from("jobs")
-    .select("title, status")
-    .eq("id", id)
-    .eq("employer_id", employer?.id ?? "")
-    .single();
+  const [{ data: job }, { data: matchResults }, unlockedIds] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("title, status")
+      .eq("id", id)
+      .eq("employer_id", employer.id)
+      .single(),
+    supabase
+      .from("match_results")
+      .select(EMPLOYER_MATCH_RESULT_LIST_SELECT)
+      .eq("job_id", id)
+      .order("ranking_position"),
+    getUnlockedCandidateIds(employer.id, id),
+  ]);
 
-  if (!job || !employer) notFound();
-
-  const { data: matchResults } = await supabase
-    .from("match_results")
-    .select("*")
-    .eq("job_id", id)
-    .order("ranking_position");
-
-  const unlockedIds = await getUnlockedCandidateIds(employer.id, id);
+  if (!job) notFound();
 
   const lifecycle = {
     status: job.status,
@@ -74,24 +77,24 @@ export default async function JobMatchingPage({
   const refreshWarning = refreshMatchingWarning(lifecycle);
 
   const lastMatchedAt = getSnapshotGeneratedAt(matchResults ?? []);
-  const newCandidatesSince = lastMatchedAt
-    ? await countNewReadyCandidatesSince(supabase, lastMatchedAt)
-    : 0;
-  const newCandidatesMessage = newCandidatesNotice(newCandidatesSince);
-
   const candidateIds = matchResults?.map((m) => m.candidate_id) ?? [];
-  const [candidateFields, platformDisclosure, candidatesResult] = await Promise.all([
-    ensureFormFieldsReady().then(() =>
-      loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false })
-    ),
-    loadPlatformDisclosureMap(),
-    candidateIds.length
-      ? supabase
-          .from("candidate_profiles")
-          .select("id, full_name, years_of_experience, highest_education, skills, form_data")
-          .in("id", candidateIds)
-      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
-  ]);
+
+  const [newCandidatesSince, candidateFields, platformDisclosure, candidatesResult] =
+    await Promise.all([
+      lastMatchedAt ? countNewReadyCandidatesSince(supabase, lastMatchedAt) : Promise.resolve(0),
+      ensureFormFieldsReady().then(() =>
+        loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false })
+      ),
+      loadPlatformDisclosureMap(),
+      candidateIds.length
+        ? supabase
+            .from("candidate_profiles")
+            .select("id, full_name, years_of_experience, highest_education, skills, form_data")
+            .in("id", candidateIds)
+        : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    ]);
+
+  const newCandidatesMessage = newCandidatesNotice(newCandidatesSince);
 
   const candidateMap = Object.fromEntries(
     (candidatesResult.data ?? []).map((c) => [String((c as { id: string }).id), c as Record<string, unknown>])

@@ -4,22 +4,21 @@ import { JobCreationForm } from "@/components/forms/job-creation/job-creation-fo
 import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
 import { createClient } from "@/lib/supabase/server";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
-import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
+import { loadPrimaryMatrixCategoryTree } from "@/lib/matching/matrix-queries";
+import type { MatrixCategoryWithQuestions } from "@/lib/matching/matrix-form";
 
 export default async function NewJobPage() {
   const supabase = await createClient();
   await Promise.all([requireRole("employer"), ensureFormFieldsReady()]);
 
-  const [jobFields, { data: categories }] = await Promise.all([
+  const [jobFields, primaryCategory] = await Promise.all([
     loadFormFields({ audience: "employer", formGroup: "job" }),
-    supabase
-      .from("matrix_categories")
-      .select(MATRIX_CATEGORY_TREE_SELECT)
-      .eq("is_active", true)
-      .order("sort_order"),
+    loadPrimaryMatrixCategoryTree(supabase),
   ]);
 
-  const matrixCategories = filterSharedMatrixCategories(categories ?? []);
+  const matrixCategories = filterSharedMatrixCategories(
+    (primaryCategory ? [primaryCategory] : []) as MatrixCategoryWithQuestions[]
+  );
 
   return (
     <JobCreationForm

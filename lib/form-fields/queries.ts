@@ -151,6 +151,13 @@ export async function loadFormSectionTitles(
   audience: FormFieldAudience,
   formGroup: FormFieldGroup
 ): Promise<string[]> {
+  return loadFormSectionTitlesCached(audience, formGroup);
+}
+
+const loadFormSectionTitlesCached = cache(async function loadFormSectionTitlesCached(
+  audience: FormFieldAudience,
+  formGroup: FormFieldGroup
+): Promise<string[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("form_sections")
@@ -164,6 +171,37 @@ export async function loadFormSectionTitles(
   }
 
   return data.map((row) => row.title);
+});
+
+function groupFieldsIntoSections(
+  fields: FormFieldDefinition[],
+  sectionOrder: string[]
+): FormFieldSectionGroup[] {
+  const buckets = new Map<string, FormFieldDefinition[]>();
+  for (const field of fields) {
+    const list = buckets.get(field.section) ?? [];
+    list.push(field);
+    buckets.set(field.section, list);
+  }
+
+  const ordered: FormFieldSectionGroup[] = [];
+  const seen = new Set<string>();
+  for (const title of sectionOrder) {
+    seen.add(title);
+    ordered.push({
+      section: title,
+      fields: (buckets.get(title) ?? []).sort((a, b) => a.sort_order - b.sort_order),
+    });
+    buckets.delete(title);
+  }
+  for (const [section, sectionFields] of buckets) {
+    if (seen.has(section)) continue;
+    ordered.push({
+      section,
+      fields: sectionFields.sort((a, b) => a.sort_order - b.sort_order),
+    });
+  }
+  return ordered;
 }
 
 async function probeNeedsFormFieldMigration(supabase: SupabaseServerClient): Promise<boolean> {
@@ -444,44 +482,29 @@ export async function loadFormFieldSections(
   if (!formGroup) return groupBySection(fields);
 
   const sectionOrder = await loadFormSectionTitles(audience, formGroup);
-  const buckets = new Map<string, FormFieldDefinition[]>();
-  for (const field of fields) {
-    const list = buckets.get(field.section) ?? [];
-    list.push(field);
-    buckets.set(field.section, list);
-  }
-
-  const ordered: FormFieldSectionGroup[] = [];
-  const seen = new Set<string>();
-  for (const title of sectionOrder) {
-    seen.add(title);
-    ordered.push({
-      section: title,
-      fields: (buckets.get(title) ?? []).sort((a, b) => a.sort_order - b.sort_order),
-    });
-    buckets.delete(title);
-  }
-  for (const [section, sectionFields] of buckets) {
-    if (seen.has(section)) continue;
-    ordered.push({
-      section,
-      fields: sectionFields.sort((a, b) => a.sort_order - b.sort_order),
-    });
-  }
-  return ordered;
+  return groupFieldsIntoSections(fields, sectionOrder);
 }
 
 export async function loadComparisonFormFields(includeInactive = true) {
   await ensureFormFieldsReady();
 
-  const [candidateFields, employerProfileFields, employerJob, candidateOrder, employerOrder] =
-    await Promise.all([
-      loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive }),
-      loadFormFields({ audience: "employer", formGroup: "profile", includeInactive }),
-      loadFormFieldSections("employer", "job", includeInactive),
-      loadFormSectionTitles("candidate", "profile"),
-      loadFormSectionTitles("employer", "profile"),
-    ]);
+  const [
+    candidateFields,
+    employerProfileFields,
+    employerJobFields,
+    candidateOrder,
+    employerOrder,
+    employerJobOrder,
+  ] = await Promise.all([
+    loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive }),
+    loadFormFields({ audience: "employer", formGroup: "profile", includeInactive }),
+    loadFormFields({ audience: "employer", formGroup: "job", includeInactive }),
+    loadFormSectionTitles("candidate", "profile"),
+    loadFormSectionTitles("employer", "profile"),
+    loadFormSectionTitles("employer", "job"),
+  ]);
+
+  const employerJob = groupFieldsIntoSections(employerJobFields, employerJobOrder);
 
   const candidate = buildAdminProfileSectionGroups(
     candidateFields,

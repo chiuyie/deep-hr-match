@@ -14,11 +14,14 @@ async function loadCandidateProfile(userId: string) {
   return data;
 }
 
+const EMPLOYER_PROFILE_SELECT =
+  "id, user_id, company_name, registration_number, industry, company_size, website, company_description, contact_person_name, contact_person_email, contact_person_phone, created_at, updated_at";
+
 async function loadEmployerProfile(userId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("employer_profiles")
-    .select("*")
+    .select(EMPLOYER_PROFILE_SELECT)
     .eq("user_id", userId)
     .single();
   return data;
@@ -36,7 +39,7 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Use
 
   const { data } = await supabase
     .from("users")
-    .select("*")
+    .select("id, auth_user_id, role, name, email, created_at, updated_at")
     .eq("auth_user_id", authUser.id)
     .single();
 
@@ -56,6 +59,11 @@ export async function requireRole(role: UserRole | UserRole[]) {
     redirect(getDashboardPath(user.role));
   }
   return user;
+}
+
+/** Admin session (role check only — no extra profile table). */
+export async function requireAdmin() {
+  return requireRole("admin");
 }
 
 /** Employer session + cached profile (one profile query per request). */

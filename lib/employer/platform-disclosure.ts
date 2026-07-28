@@ -120,7 +120,7 @@ export async function ensurePlatformDisclosureSeeded(): Promise<{ error?: string
   return {};
 }
 
-export async function loadPlatformDisclosureItems(): Promise<PlatformDisclosureLoadResult> {
+export const loadPlatformDisclosureItems = cache(async function loadPlatformDisclosureItems(): Promise<PlatformDisclosureLoadResult> {
   const seed = await ensurePlatformDisclosureSeeded();
   if (seed.error) {
     return {
@@ -133,7 +133,9 @@ export async function loadPlatformDisclosureItems(): Promise<PlatformDisclosureL
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("platform_disclosure_items")
-    .select("*")
+    .select(
+      "disclosure_key, label, description, category, sort_order, show_on_anonymous_match, employer_disclosure_mode"
+    )
     .order("sort_order");
 
   if (error) {
@@ -156,7 +158,7 @@ export async function loadPlatformDisclosureItems(): Promise<PlatformDisclosureL
   }
 
   return { items: rows, persisted: true };
-}
+});
 
 export type PlatformDisclosureMap = Record<
   PlatformDisclosureKey,

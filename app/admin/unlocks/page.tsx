@@ -1,21 +1,14 @@
 import { Unlock } from "lucide-react";
 import { AdminMonoId, AdminPageSection } from "@/components/admin/admin-ui";
 import { AdminSearchableTable } from "@/components/admin/admin-searchable-table";
+import { loadAdminUnlocksList } from "@/lib/admin/list-queries";
+import { embedOne } from "@/lib/admin/embed";
 import { adminRowSearchProps } from "@/lib/admin/table-search";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils/profile";
 
 export default async function AdminUnlocksPage() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("unlocks")
-    .select(
-      "*, jobs(title), employer_profiles(company_name), candidate_profiles(full_name, email), payments(stripe_session_id)"
-    )
-    .order("unlocked_at", { ascending: false });
-
-  const rows = data ?? [];
+  const rows = await loadAdminUnlocksList();
 
   return (
     <AdminPageSection
@@ -33,24 +26,19 @@ export default async function AdminUnlocksPage() {
         columns={["Employer", "Job", "Candidate", "Payment ref", "Unlocked"]}
       >
         {rows.map((unlock) => {
-          const company =
-            (unlock.employer_profiles as { company_name: string } | null)?.company_name ?? "";
-          const jobTitle = (unlock.jobs as { title: string } | null)?.title ?? "";
-          const candidate = unlock.candidate_profiles as {
-            full_name: string | null;
-            email: string | null;
-          } | null;
-          const sessionId =
-            (unlock.payments as { stripe_session_id: string } | null)?.stripe_session_id ?? "";
+          const employerName = embedOne(unlock.employer_profiles)?.company_name ?? "";
+          const jobTitle = embedOne(unlock.jobs)?.title ?? "";
+          const candidate = embedOne(unlock.candidate_profiles);
+          const sessionId = embedOne(unlock.payments)?.stripe_session_id ?? "";
 
           return (
             <TableRow
               key={unlock.id}
               {...adminRowSearchProps(
-                `${company} ${jobTitle} ${candidate?.full_name ?? ""} ${candidate?.email ?? ""} ${sessionId}`
+                `${employerName} ${jobTitle} ${candidate?.full_name ?? ""} ${candidate?.email ?? ""} ${sessionId}`
               )}
             >
-              <TableCell className="font-medium text-slate-800">{company || "—"}</TableCell>
+              <TableCell className="font-medium text-slate-800">{employerName || "—"}</TableCell>
               <TableCell className="text-slate-600">{jobTitle || "—"}</TableCell>
               <TableCell>
                 <div>

@@ -4,36 +4,11 @@ import { Button } from "@/components/ui/button";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { EmployerJobsList } from "@/components/employer/employer-jobs-list";
 import { requireEmployer } from "@/lib/auth/session";
-import { countByJobId, toEmployerJobListItems } from "@/lib/employer/job-list";
-import { createClient } from "@/lib/supabase/server";
+import { loadEmployerJobsList } from "@/lib/employer/list-queries";
 
 export default async function EmployerJobsPage() {
   const { profile: employer } = await requireEmployer();
-  const supabase = await createClient();
-  const employerId = employer?.id ?? "";
-
-  const { data: jobs } = await supabase
-    .from("jobs")
-    .select("id, title, location, department, employment_type, status, created_at")
-    .eq("employer_id", employerId)
-    .order("created_at", { ascending: false });
-
-  const jobIds = jobs?.map((job) => job.id) ?? [];
-
-  const [{ data: matchRows }, { data: unlockRows }] = await Promise.all([
-    jobIds.length
-      ? supabase.from("match_results").select("job_id").in("job_id", jobIds)
-      : Promise.resolve({ data: [] as { job_id: string }[] }),
-    jobIds.length
-      ? supabase.from("unlocks").select("job_id").in("job_id", jobIds)
-      : Promise.resolve({ data: [] as { job_id: string }[] }),
-  ]);
-
-  const jobListItems = toEmployerJobListItems(
-    jobs ?? [],
-    countByJobId(matchRows ?? []),
-    countByJobId(unlockRows ?? [])
-  );
+  const jobListItems = await loadEmployerJobsList(employer?.id ?? "");
 
   return (
     <EmployerPageSection

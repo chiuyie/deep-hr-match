@@ -109,14 +109,14 @@ export default async function AdminDashboard() {
     cvs,
     jds,
   ] = await Promise.all([
-    supabase.from("candidate_profiles").select("*", { count: "exact", head: true }),
-    supabase.from("employer_profiles").select("*", { count: "exact", head: true }),
-    supabase.from("jobs").select("*", { count: "exact", head: true }),
-    supabase.from("match_results").select("*", { count: "exact", head: true }),
-    supabase.from("payments").select("*", { count: "exact", head: true }),
-    supabase.from("unlocks").select("*", { count: "exact", head: true }),
-    supabase.from("candidate_cv_files").select("*", { count: "exact", head: true }),
-    supabase.from("job_jd_files").select("*", { count: "exact", head: true }),
+    supabase.from("candidate_profiles").select("id", { count: "exact", head: true }),
+    supabase.from("employer_profiles").select("id", { count: "exact", head: true }),
+    supabase.from("jobs").select("id", { count: "exact", head: true }),
+    supabase.from("match_results").select("id", { count: "exact", head: true }),
+    supabase.from("payments").select("id", { count: "exact", head: true }),
+    supabase.from("unlocks").select("id", { count: "exact", head: true }),
+    supabase.from("candidate_cv_files").select("id", { count: "exact", head: true }),
+    supabase.from("job_jd_files").select("id", { count: "exact", head: true }),
   ]);
 
   const stats = [

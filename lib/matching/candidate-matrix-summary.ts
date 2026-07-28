@@ -122,7 +122,8 @@ async function loadPrimaryMatrixCategory(
     .from("matrix_categories")
     .select(MATRIX_CATEGORY_TREE_SELECT)
     .eq("is_active", true)
-    .order("sort_order");
+    .order("sort_order")
+    .limit(1);
 
   const primary = pickPrimaryMatrixCategory(categories ?? []);
   if (!primary) return null;

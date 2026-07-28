@@ -24,9 +24,9 @@ export default async function AdminEmployerDetailPage({
 
   const [{ count: jobCount }, { count: paymentCount }, { count: unlockCount }, { data: jobs }] =
     await Promise.all([
-      supabase.from("jobs").select("*", { count: "exact", head: true }).eq("employer_id", id),
-      supabase.from("payments").select("*", { count: "exact", head: true }).eq("employer_id", id),
-      supabase.from("unlocks").select("*", { count: "exact", head: true }).eq("employer_id", id),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("employer_id", id),
+      supabase.from("payments").select("id", { count: "exact", head: true }).eq("employer_id", id),
+      supabase.from("unlocks").select("id", { count: "exact", head: true }).eq("employer_id", id),
       supabase
         .from("jobs")
         .select("id, title, status, created_at")

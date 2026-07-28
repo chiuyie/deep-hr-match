@@ -34,21 +34,22 @@ export default async function JobUnlockedPage({
   const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
 
-  const { data: job } = await supabase
-    .from("jobs")
-    .select("title, status")
-    .eq("id", jobId)
-    .eq("employer_id", employer?.id ?? "")
-    .single();
+  const [{ data: job }, { data: unlocks }] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("title, status")
+      .eq("id", jobId)
+      .eq("employer_id", employer?.id ?? "")
+      .single(),
+    supabase
+      .from("unlocks")
+      .select("candidate_id, unlocked_at")
+      .eq("employer_id", employer?.id ?? "")
+      .eq("job_id", jobId)
+      .order("unlocked_at", { ascending: false }),
+  ]);
 
   if (!job) notFound();
-
-  const { data: unlocks } = await supabase
-    .from("unlocks")
-    .select("candidate_id, unlocked_at")
-    .eq("employer_id", employer?.id ?? "")
-    .eq("job_id", jobId)
-    .order("unlocked_at", { ascending: false });
 
   const unlockOrder = unlocks ?? [];
   const [details, candidateFields, platformDisclosure] = await Promise.all([

@@ -24,6 +24,7 @@ import {
   getSnapshotGeneratedAt,
 } from "@/lib/matching/snapshot";
 import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
+import { EMPLOYER_JOB_VIEW_SELECT } from "@/lib/employer/list-queries";
 import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
 import {
   isShownOnAnonymous,
@@ -39,35 +40,42 @@ export default async function JobViewPage({
 }) {
   const { id } = await params;
   const { profile: employer } = await requireEmployer();
+  if (!employer) notFound();
+
   const supabase = await createClient();
 
-  const { data: job } = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("id", id)
-    .eq("employer_id", employer?.id ?? "")
-    .single();
-
-  if (!job) notFound();
-
-  const [{ count: matchCount }, { count: unlockCount }, { data: latestMatchRows }] =
-    await Promise.all([
+  const [
+    { data: job },
+    { data: matchRows },
+    { count: matchCount },
+    { count: unlockCount },
+    unlockedIds,
+  ] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select(EMPLOYER_JOB_VIEW_SELECT)
+      .eq("id", id)
+      .eq("employer_id", employer.id)
+      .single(),
     supabase
       .from("match_results")
-      .select("*", { count: "exact", head: true })
+      .select("candidate_id, ranking_position, overall_score, is_placeholder, generated_at")
+      .eq("job_id", id)
+      .order("ranking_position")
+      .limit(3),
+    supabase
+      .from("match_results")
+      .select("id", { count: "exact", head: true })
       .eq("job_id", id),
     supabase
       .from("unlocks")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("job_id", id)
-      .eq("employer_id", employer?.id ?? ""),
-    supabase
-      .from("match_results")
-      .select("generated_at")
-      .eq("job_id", id)
-      .order("ranking_position")
-      .limit(1),
+      .eq("employer_id", employer.id),
+    getUnlockedCandidateIds(employer.id, id),
   ]);
+
+  if (!job) notFound();
 
   const lifecycle = {
     status: job.status,
@@ -75,10 +83,23 @@ export default async function JobViewPage({
     hasUnlocks: (unlockCount ?? 0) > 0,
   };
 
-  const lastMatchedAt = getSnapshotGeneratedAt(latestMatchRows ?? []);
-  const newCandidatesSince = lastMatchedAt
-    ? await countNewReadyCandidatesSince(supabase, lastMatchedAt)
-    : 0;
+  const lastMatchedAt = getSnapshotGeneratedAt(matchRows ?? []);
+  const previewCandidateIds = (matchRows ?? []).map((row) => row.candidate_id);
+
+  const [newCandidatesSince, candidateFields, platformDisclosure, previewProfilesResult] =
+    await Promise.all([
+      lastMatchedAt ? countNewReadyCandidatesSince(supabase, lastMatchedAt) : Promise.resolve(0),
+      ensureFormFieldsReady().then(() =>
+        loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false })
+      ),
+      loadPlatformDisclosureMap(),
+      previewCandidateIds.length
+        ? supabase
+            .from("candidate_profiles")
+            .select("id, full_name, years_of_experience, highest_education, skills, form_data")
+            .in("id", previewCandidateIds)
+        : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    ]);
 
   const matchingStatus = !lifecycle.hasMatches
     ? "Not yet generated"
@@ -93,30 +114,6 @@ export default async function JobViewPage({
 
   const editable = canEditJob(lifecycle);
   const lockReason = editBlockedReason(lifecycle);
-  const unlockedIds = await getUnlockedCandidateIds(employer!.id, id);
-
-  const { data: topMatches } = lifecycle.hasMatches
-    ? await supabase
-        .from("match_results")
-        .select("candidate_id, ranking_position, overall_score, is_placeholder")
-        .eq("job_id", id)
-        .order("ranking_position")
-        .limit(3)
-    : { data: [] };
-
-  const previewCandidateIds = (topMatches ?? []).map((row) => row.candidate_id);
-  const [candidateFields, platformDisclosure, previewProfilesResult] = await Promise.all([
-    ensureFormFieldsReady().then(() =>
-      loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false })
-    ),
-    loadPlatformDisclosureMap(),
-    previewCandidateIds.length
-      ? supabase
-          .from("candidate_profiles")
-          .select("id, full_name, years_of_experience, highest_education, skills, form_data")
-          .in("id", previewCandidateIds)
-      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
-  ]);
 
   const previewProfilesById = Object.fromEntries(
     (previewProfilesResult.data ?? []).map((profile) => [
@@ -126,7 +123,7 @@ export default async function JobViewPage({
   );
 
   const previewMatches: AnonymousCandidateMatch[] = buildAnonymousCandidateMatches({
-    matchResults: topMatches ?? [],
+    matchResults: matchRows ?? [],
     profilesById: previewProfilesById,
     candidateFields,
     unlockedIds,
@@ -158,7 +155,9 @@ export default async function JobViewPage({
             )}
             {canOpenMatchingPage(lifecycle) && (
               <Button variant="outline" size="sm" className="rounded-lg" asChild>
-                <Link href={`/employer/jobs/${id}/matching`}>{matchingActionLabel(lifecycle)}</Link>
+                <Link href={`/employer/jobs/${id}/matching`}>
+                  {matchingActionLabel(lifecycle)}
+                </Link>
               </Button>
             )}
           </div>

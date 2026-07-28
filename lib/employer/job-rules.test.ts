@@ -7,6 +7,7 @@ import {
   canRunMatching,
   canViewMatching,
   editBlockedReason,
+  getEmployerMatrixSubmitRedirect,
   matchingActionLabel,
   matchingRunButtonLabel,
   refreshMatchingWarning,
@@ -129,5 +130,22 @@ describe("shouldAutoGenerateInitialMatches", () => {
         hasExistingMatches: false,
       })
     ).toBe(false);
+  });
+});
+
+describe("getEmployerMatrixSubmitRedirect", () => {
+  it("returns edit job URL for drafts", () => {
+    expect(getEmployerMatrixSubmitRedirect("job-1", "draft")).toBe(
+      "/employer/jobs/job-1?matrix=complete"
+    );
+  });
+
+  it("returns matching URL for posted jobs", () => {
+    expect(getEmployerMatrixSubmitRedirect("job-1", "active")).toBe(
+      "/employer/jobs/job-1/matching?matrix=complete"
+    );
+    expect(getEmployerMatrixSubmitRedirect("job-1", "closed")).toBe(
+      "/employer/jobs/job-1/matching?matrix=complete"
+    );
   });
 });
