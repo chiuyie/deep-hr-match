@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Download, FileSearch } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmployerPageSection } from "@/components/employer/employer-ui";
@@ -35,6 +36,9 @@ export function UnlockedCandidateCard({
   showJobTitle = false,
   jobId,
 }: UnlockedCandidateCardProps) {
+  const hasReportLink = Boolean(jobId && candidateId);
+  const hasActions = Boolean(cvDownloadUrl || hasReportLink);
+
   return (
     <EmployerPageSection
       title={fullName || "Candidate"}
@@ -87,20 +91,32 @@ export function UnlockedCandidateCard({
           </div>
         )}
       </dl>
-      <div className="mt-5 flex flex-wrap gap-2">
-        {cvDownloadUrl && (
-          <Button variant="outline" size="sm" className="rounded-lg" asChild>
-            <a href={cvDownloadUrl} target="_blank" rel="noopener noreferrer">
-              Download CV
-            </a>
-          </Button>
-        )}
-        {jobId && candidateId && (
-          <Button variant="ghost" size="sm" className="rounded-lg" asChild>
-            <Link href={`/employer/jobs/${jobId}/unlocked/${candidateId}`}>View candidate report</Link>
-          </Button>
-        )}
-      </div>
+
+      {hasActions && (
+        <div className="mt-6 flex flex-col-reverse gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-end">
+          {cvDownloadUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 w-full rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50 sm:w-auto"
+              asChild
+            >
+              <a href={cvDownloadUrl} target="_blank" rel="noopener noreferrer" download>
+                <Download className="mr-2 h-4 w-4" />
+                Download CV
+              </a>
+            </Button>
+          )}
+          {hasReportLink && (
+            <Button size="sm" className="h-10 w-full rounded-xl sm:w-auto" asChild>
+              <Link href={`/employer/jobs/${jobId}/unlocked/${candidateId}`}>
+                <FileSearch className="mr-2 h-4 w-4" />
+                View full report
+              </Link>
+            </Button>
+          )}
+        </div>
+      )}
     </EmployerPageSection>
   );
 }

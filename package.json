@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:webpack": "next dev --webpack",
-    "dev:clean": "node scripts/clean-next.mjs && npm run dev",
+    "dev": "node scripts/dev.mjs",
+    "dev:webpack": "node scripts/dev.mjs --webpack",
+    "dev:clean": "node scripts/dev.mjs --clean",
     "clean": "node scripts/clean-next.mjs",
     "build": "next build",
     "build:clean": "node scripts/clean-next.mjs && next build",

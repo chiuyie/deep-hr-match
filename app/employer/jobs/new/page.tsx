@@ -17,7 +17,7 @@ export default async function NewJobPage() {
   ]);
 
   const matrixCategories = filterSharedMatrixCategories(
-    (primaryCategory ? [primaryCategory] : []) as MatrixCategoryWithQuestions[]
+    (primaryCategory ? [primaryCategory] : []) as unknown as MatrixCategoryWithQuestions[]
   );
 
   return (

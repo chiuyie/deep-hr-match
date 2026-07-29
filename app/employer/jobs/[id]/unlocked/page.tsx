@@ -127,7 +127,7 @@ export default async function JobUnlockedPage({
         </EmployerPageSection>
       ) : (
         <div className="space-y-4">
-          {unlockedDetails.map(({ profile, cvDownloadUrl, matchResult, unlocked_at }) => {
+          {unlockedDetails.map(({ candidateId, profile, cvDownloadUrl, matchResult, unlocked_at }) => {
             const profileRecord = (profile as unknown as Record<string, unknown> | null) ?? null;
             const experienceValue = experienceField
               ? getCandidateFieldDisplayValue(experienceField, profileRecord)
@@ -140,8 +140,8 @@ export default async function JobUnlockedPage({
 
             return (
             <UnlockedCandidateCard
-              key={profile?.id}
-              candidateId={profile?.id}
+              key={candidateId}
+              candidateId={candidateId}
               fullName={showName ? profile?.full_name : "Candidate"}
               email={showEmail ? profile?.email : null}
               phone={showPhone ? profile?.phone : null}

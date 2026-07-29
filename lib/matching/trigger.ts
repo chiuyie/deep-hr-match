@@ -10,6 +10,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generatePlaceholderMatches } from "@/lib/matching/engine";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export interface MatchRunRequest {
   jobId: string;
@@ -28,6 +29,16 @@ export function resolveMatchingEngineMode(): MatchRunSource {
   return process.env.MATCHING_ENGINE_URL?.trim() ? "external" : "inline";
 }
 
+async function resolveMatchWriteClient(
+  fallback: SupabaseClient
+): Promise<SupabaseClient> {
+  try {
+    return await createServiceClient();
+  } catch {
+    return fallback;
+  }
+}
+
 export async function triggerMatchRun(
   supabase: SupabaseClient,
   request: MatchRunRequest
@@ -38,7 +49,10 @@ export async function triggerMatchRun(
     return requestExternalMatchRun(engineUrl, request);
   }
 
-  await generatePlaceholderMatches(supabase, request);
+  // Prefer service role so refresh can replace prior snapshot rows even if
+  // employer DELETE policies are not applied yet in the linked database.
+  const writeClient = await resolveMatchWriteClient(supabase);
+  await generatePlaceholderMatches(writeClient, request);
   return { source: "inline", status: "completed" };
 }
 

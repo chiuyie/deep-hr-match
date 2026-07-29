@@ -34,7 +34,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "../../../AppData/Local/deep-hr-match/.next/types/**/*.ts",
+    "../../../AppData/Local/deep-hr-match/.next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

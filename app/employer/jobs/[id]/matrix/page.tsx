@@ -38,7 +38,7 @@ export default async function JobMatrixPage({
   ]);
 
   const filtered = filterSharedMatrixCategories(
-    (primaryCategory ? [primaryCategory] : []) as MatrixCategoryWithQuestions[]
+    (primaryCategory ? [primaryCategory] : []) as unknown as MatrixCategoryWithQuestions[]
   );
 
   const answerRows = (answers ?? []).map((a) => ({
