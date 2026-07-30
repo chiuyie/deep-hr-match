@@ -59,7 +59,7 @@ function optionById(category: MatrixCategoryTree): Map<string, MatrixOption> {
 
 function factorLabelForColumn(category: MatrixCategoryTree, column: number): string {
   const questions = (category.matrix_questions ?? []).filter((q) => q.is_active) as QuestionWithOptions[];
-  const roots = getRootMatrixQuestions(questions);
+  const roots = getRootMatrixQuestions(questions) as QuestionWithOptions[];
   const level1 = roots[0];
   if (!level1) return matchingFactorLabel(column);
 

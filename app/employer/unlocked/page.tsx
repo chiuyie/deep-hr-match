@@ -3,6 +3,7 @@ import { Users } from "lucide-react";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { requireEmployer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { embedOne } from "@/lib/admin/embed";
 import { isUnlockedContactFieldVisible } from "@/lib/employer/match-disclosure";
 import { loadFormFields } from "@/lib/form-fields/queries";
 
@@ -42,7 +43,7 @@ export default async function EmployerUnlockedPage() {
     id: unlock.id,
     candidateId: unlock.candidate_id,
     name: showName ? nameById.get(unlock.candidate_id) ?? "Candidate" : "Candidate",
-    jobTitle: (unlock.jobs as { title: string } | null)?.title ?? "Job",
+    jobTitle: embedOne(unlock.jobs)?.title ?? "Job",
     jobId: unlock.job_id,
   }));
 
