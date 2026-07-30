@@ -160,7 +160,7 @@ export default async function JobMatchingPage({
       )}
 
       {canRun ? (
-        <div className="mb-6 space-y-3">
+        <div className="mb-6">
           {refreshWarning && (
             <EmployerPageSection
               title="Refresh matches"
@@ -168,13 +168,24 @@ export default async function JobMatchingPage({
               icon={<RefreshCw className="h-6 w-6" />}
               gradient="from-amber-500 to-amber-600"
               className="!p-5"
+              action={
+                <form action={generate}>
+                  <Button type="submit" size="lg" className="rounded-xl px-6 shadow-md">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    {runLabel}
+                  </Button>
+                </form>
+              }
             />
           )}
-          <form action={generate} className="flex justify-end">
-            <Button type="submit" className="rounded-xl">
-              {runLabel}
-            </Button>
-          </form>
+          {!refreshWarning && (
+            <form action={generate} className="flex justify-end">
+              <Button type="submit" size="lg" className="rounded-xl px-6 shadow-md">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {runLabel}
+              </Button>
+            </form>
+          )}
         </div>
       ) : (
         runBlocked && (
