@@ -2,9 +2,9 @@ import Link from "next/link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CandidateProfileForm } from "@/components/candidate/candidate-profile-form";
-import { requireRole } from "@/lib/auth/session";
+import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { loadFormFields, ensureFormFieldsReady, loadFormSectionTitles } from "@/lib/form-fields/queries";
+import { loadFormFields, loadFormSectionTitles } from "@/lib/form-fields/queries";
 import { groupCandidateProfileFields } from "@/lib/candidate/profile-sections";
 import {
   fetchCandidateOnboardingState,
@@ -25,20 +25,14 @@ export default async function CandidateProfilePage({
   const supabase = await createClient();
   const params = await searchParams;
 
-  await ensureFormFieldsReady();
-  const [fields, sectionOrder] = await Promise.all([
+  const [fields, sectionOrder, profile] = await Promise.all([
     loadFormFields({ audience: "candidate", formGroup: "profile" }),
     loadFormSectionTitles("candidate", "profile"),
+    getCandidateProfile(user.id),
   ]);
 
-  const { data: profile } = await supabase
-    .from("candidate_profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-
   const p = profile ?? {};
-  const onboarding = await fetchCandidateOnboardingState(supabase, user.id);
+  const onboarding = await fetchCandidateOnboardingState(supabase, user.id, profile);
   const onboardingStep = getOnboardingStep(onboarding);
   const isOnboardingProfileStep = onboardingStep === "profile";
 

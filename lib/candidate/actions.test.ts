@@ -8,6 +8,7 @@ import {
 } from "@/lib/candidate/actions";
 
 const requireRole = vi.fn();
+const getCandidateProfile = vi.fn();
 const revalidatePath = vi.fn();
 const redirect = vi.fn();
 const fetchCandidateOnboardingState = vi.fn();
@@ -17,6 +18,7 @@ const mockCreateClient = vi.fn();
 
 vi.mock("@/lib/auth/session", () => ({
   requireRole: (...args: unknown[]) => requireRole(...args),
+  getCandidateProfile: (...args: unknown[]) => getCandidateProfile(...args),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -53,6 +55,7 @@ describe("candidate actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     requireRole.mockResolvedValue({ id: "user-1", role: "candidate" });
+    getCandidateProfile.mockResolvedValue({ id: "cand-1" });
     redirect.mockImplementation(() => {
       throw new Error("NEXT_REDIRECT");
     });
@@ -269,11 +272,6 @@ describe("candidate actions", () => {
       mockFrom.mockImplementation((table: string) => {
         if (table === "candidate_profiles") {
           return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                single: vi.fn(async () => ({ data: { id: "cand-1" }, error: null })),
-              })),
-            })),
             update: vi.fn(() => ({
               eq: vi.fn(async () => ({ error: null })),
             })),

@@ -20,7 +20,7 @@ import {
   loadPlatformDisclosureMap,
   shouldShowUnlockedPlatformItem,
 } from "@/lib/employer/platform-disclosure";
-import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
+import { loadFormFields } from "@/lib/form-fields/queries";
 
 export default async function JobUnlockedPage({
   params,
@@ -34,7 +34,7 @@ export default async function JobUnlockedPage({
   const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
 
-  const [{ data: job }, { data: unlocks }] = await Promise.all([
+  const [{ data: job }, { data: unlocks }, candidateFields, platformDisclosure] = await Promise.all([
     supabase
       .from("jobs")
       .select("title, status")
@@ -47,22 +47,18 @@ export default async function JobUnlockedPage({
       .eq("employer_id", employer?.id ?? "")
       .eq("job_id", jobId)
       .order("unlocked_at", { ascending: false }),
+    loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
+    loadPlatformDisclosureMap(),
   ]);
 
   if (!job) notFound();
 
   const unlockOrder = unlocks ?? [];
-  const [details, candidateFields, platformDisclosure] = await Promise.all([
-    getUnlockedCandidateDetailsBatch(
-      employer!.id,
-      jobId,
-      unlockOrder.map((unlock) => unlock.candidate_id)
-    ),
-    ensureFormFieldsReady().then(() =>
-      loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false })
-    ),
-    loadPlatformDisclosureMap(),
-  ]);
+  const details = await getUnlockedCandidateDetailsBatch(
+    employer!.id,
+    jobId,
+    unlockOrder.map((unlock) => unlock.candidate_id)
+  );
   const detailsMap = new Map(details.map((item) => [item.candidateId, item]));
   const unlockedDetails = unlockOrder
     .map((unlock) => {

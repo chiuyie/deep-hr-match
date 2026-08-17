@@ -1,12 +1,12 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { MatrixForm } from "@/components/forms/matrix-form";
-import { requireRole } from "@/lib/auth/session";
+import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveCandidateMatrixAnswers } from "@/lib/candidate/actions";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
-import { MATRIX_CATEGORY_TREE_SELECT } from "@/lib/matching/matrix-queries";
+import { loadPrimaryMatrixCategoryTree } from "@/lib/matching/matrix-queries";
 import {
   fetchCandidateOnboardingState,
   getOnboardingPath,
@@ -23,24 +23,17 @@ export default async function CandidateMatrixPage({
   const supabase = await createClient();
   const params = await searchParams;
 
-  const { data: profile } = await supabase
-    .from("candidate_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
+  const profile = await getCandidateProfile(user.id);
+  const [primaryCategory, { data: answers }, onboarding] = await Promise.all([
+    loadPrimaryMatrixCategoryTree(supabase),
+    supabase
+      .from("candidate_matrix_answers")
+      .select("question_id, option_id, answer_text, matrix_column")
+      .eq("candidate_id", profile?.id ?? ""),
+    fetchCandidateOnboardingState(supabase, user.id, profile),
+  ]);
 
-  const { data: categories } = await supabase
-    .from("matrix_categories")
-    .select(MATRIX_CATEGORY_TREE_SELECT)
-    .eq("is_active", true)
-    .order("sort_order");
-
-  const filtered = filterSharedMatrixCategories(categories ?? []);
-
-  const { data: answers } = await supabase
-    .from("candidate_matrix_answers")
-    .select("question_id, option_id, answer_text, matrix_column")
-    .eq("candidate_id", profile?.id ?? "");
+  const filtered = filterSharedMatrixCategories(primaryCategory ? [primaryCategory] : []);
 
   const answerRows = (answers ?? []).map((a) => ({
     question_id: a.question_id,
@@ -49,7 +42,6 @@ export default async function CandidateMatrixPage({
     matrix_column: a.matrix_column ?? undefined,
   }));
 
-  const onboarding = await fetchCandidateOnboardingState(supabase, user.id);
   const onboardingStep = getOnboardingStep(onboarding);
   const alreadySubmitted = onboarding.hasMatrix;
   const continueHref =

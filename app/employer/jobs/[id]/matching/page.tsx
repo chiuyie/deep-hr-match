@@ -27,7 +27,7 @@ import {
   newCandidatesNotice,
 } from "@/lib/matching/snapshot";
 import { formatDate } from "@/lib/utils/profile";
-import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
+import { loadFormFields } from "@/lib/form-fields/queries";
 import {
   isShownOnAnonymous,
   loadPlatformDisclosureMap,
@@ -48,20 +48,23 @@ export default async function JobMatchingPage({
 
   const supabase = await createClient();
 
-  const [{ data: job }, { data: matchResults }, unlockedIds] = await Promise.all([
-    supabase
-      .from("jobs")
-      .select("title, status")
-      .eq("id", id)
-      .eq("employer_id", employer.id)
-      .single(),
-    supabase
-      .from("match_results")
-      .select(EMPLOYER_MATCH_RESULT_LIST_SELECT)
-      .eq("job_id", id)
-      .order("ranking_position"),
-    getUnlockedCandidateIds(employer.id, id),
-  ]);
+  const [{ data: job }, { data: matchResults }, unlockedIds, candidateFields, platformDisclosure] =
+    await Promise.all([
+      supabase
+        .from("jobs")
+        .select("title, status")
+        .eq("id", id)
+        .eq("employer_id", employer.id)
+        .single(),
+      supabase
+        .from("match_results")
+        .select(EMPLOYER_MATCH_RESULT_LIST_SELECT)
+        .eq("job_id", id)
+        .order("ranking_position"),
+      getUnlockedCandidateIds(employer.id, id),
+      loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
+      loadPlatformDisclosureMap(),
+    ]);
 
   if (!job) notFound();
 
@@ -79,20 +82,15 @@ export default async function JobMatchingPage({
   const lastMatchedAt = getSnapshotGeneratedAt(matchResults ?? []);
   const candidateIds = matchResults?.map((m) => m.candidate_id) ?? [];
 
-  const [newCandidatesSince, candidateFields, platformDisclosure, candidatesResult] =
-    await Promise.all([
-      lastMatchedAt ? countNewReadyCandidatesSince(supabase, lastMatchedAt) : Promise.resolve(0),
-      ensureFormFieldsReady().then(() =>
-        loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false })
-      ),
-      loadPlatformDisclosureMap(),
-      candidateIds.length
-        ? supabase
-            .from("candidate_profiles")
-            .select("id, full_name, years_of_experience, highest_education, skills, form_data")
-            .in("id", candidateIds)
-        : Promise.resolve({ data: [] as Record<string, unknown>[] }),
-    ]);
+  const [newCandidatesSince, candidatesResult] = await Promise.all([
+    lastMatchedAt ? countNewReadyCandidatesSince(supabase, lastMatchedAt) : Promise.resolve(0),
+    candidateIds.length
+      ? supabase
+          .from("candidate_profiles")
+          .select("id, full_name, years_of_experience, highest_education, skills, form_data")
+          .in("id", candidateIds)
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+  ]);
 
   const newCandidatesMessage = newCandidatesNotice(newCandidatesSince);
 

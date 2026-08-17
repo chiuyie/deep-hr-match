@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { toEmployerJobListItems, type EmployerJobListItem } from "@/lib/employer/job-list";
 
 const EMPLOYER_JOB_LIST_SELECT =
@@ -73,3 +73,68 @@ export const EMPLOYER_MATCH_RESULT_LIST_SELECT =
 /** Job overview fields for the read-only view page (omits form_data). */
 export const EMPLOYER_JOB_VIEW_SELECT =
   "id, title, location, department, employment_type, salary_range, years_experience_required, education_required, required_skills, preferred_skills, description, status, created_at";
+
+export type EmployerUnlockedListItem = {
+  id: string;
+  candidateId: string;
+  jobId: string;
+  name: string;
+  jobTitle: string;
+};
+
+function embedTitle(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    const title = value[0]?.title;
+    return typeof title === "string" && title.trim() ? title : null;
+  }
+  if (value && typeof value === "object" && "title" in value) {
+    const title = (value as { title?: unknown }).title;
+    return typeof title === "string" && title.trim() ? title : null;
+  }
+  return null;
+}
+
+function embedName(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    const name = value[0]?.full_name;
+    return typeof name === "string" && name.trim() ? name : null;
+  }
+  if (value && typeof value === "object" && "full_name" in value) {
+    const name = (value as { full_name?: unknown }).full_name;
+    return typeof name === "string" && name.trim() ? name : null;
+  }
+  return null;
+}
+
+async function employerReadClient() {
+  try {
+    return await createServiceClient();
+  } catch {
+    return createClient();
+  }
+}
+
+/**
+ * Purchased unlocks across all jobs. Uses the service role so PostgREST
+ * does not evaluate candidate_profiles RLS (EXISTS match_results) per row.
+ */
+export async function loadEmployerUnlockedList(
+  employerId: string
+): Promise<EmployerUnlockedListItem[]> {
+  if (!employerId) return [];
+
+  const supabase = await employerReadClient();
+  const { data } = await supabase
+    .from("unlocks")
+    .select("id, candidate_id, job_id, jobs(title), candidate_profiles(full_name)")
+    .eq("employer_id", employerId)
+    .order("unlocked_at", { ascending: false });
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    candidateId: row.candidate_id,
+    jobId: row.job_id,
+    name: embedName(row.candidate_profiles) ?? "Candidate",
+    jobTitle: embedTitle(row.jobs) ?? "Job",
+  }));
+}

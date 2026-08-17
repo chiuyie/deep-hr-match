@@ -98,6 +98,13 @@ function isMissingRelationError(message?: string | null) {
   );
 }
 
+const DISCLOSURE_CACHE_MS = 60_000;
+let disclosureMemory: { value: PlatformDisclosureLoadResult; expiresAt: number } | null = null;
+
+export function invalidatePlatformDisclosureCache() {
+  disclosureMemory = null;
+}
+
 export async function ensurePlatformDisclosureSeeded(): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { count, error: countError } = await supabase
@@ -121,13 +128,8 @@ export async function ensurePlatformDisclosureSeeded(): Promise<{ error?: string
 }
 
 export const loadPlatformDisclosureItems = cache(async function loadPlatformDisclosureItems(): Promise<PlatformDisclosureLoadResult> {
-  const seed = await ensurePlatformDisclosureSeeded();
-  if (seed.error) {
-    return {
-      items: PLATFORM_DISCLOSURE_DEFAULTS,
-      persisted: false,
-      error: seed.error,
-    };
+  if (disclosureMemory && disclosureMemory.expiresAt > Date.now()) {
+    return disclosureMemory.value;
   }
 
   const supabase = await createClient();
@@ -138,26 +140,62 @@ export const loadPlatformDisclosureItems = cache(async function loadPlatformDisc
     )
     .order("sort_order");
 
+  let rows = (data ?? []) as PlatformDisclosureItem[];
   if (error) {
-    return {
-      items: PLATFORM_DISCLOSURE_DEFAULTS,
-      persisted: false,
-      error: error.message,
-    };
+    if (isMissingRelationError(error.message)) {
+      return {
+        items: PLATFORM_DISCLOSURE_DEFAULTS,
+        persisted: false,
+        error: error.message,
+      };
+    }
+    const seed = await ensurePlatformDisclosureSeeded();
+    if (seed.error) {
+      return {
+        items: PLATFORM_DISCLOSURE_DEFAULTS,
+        persisted: false,
+        error: seed.error,
+      };
+    }
+    const retry = await supabase
+      .from("platform_disclosure_items")
+      .select(
+        "disclosure_key, label, description, category, sort_order, show_on_anonymous_match, employer_disclosure_mode"
+      )
+      .order("sort_order");
+    rows = (retry.data ?? []) as PlatformDisclosureItem[];
   }
 
-  const rows = (data ?? []) as PlatformDisclosureItem[];
   if (rows.length === 0) {
-    return {
-      items: PLATFORM_DISCLOSURE_DEFAULTS,
-      persisted: false,
-      error: isMissingRelationError(seed.error)
-        ? seed.error
-        : "platform_disclosure_items is empty — apply migration 011",
-    };
+    const seed = await ensurePlatformDisclosureSeeded();
+    if (seed.error) {
+      return {
+        items: PLATFORM_DISCLOSURE_DEFAULTS,
+        persisted: false,
+        error: isMissingRelationError(seed.error)
+          ? seed.error
+          : "platform_disclosure_items is empty — apply migration 011",
+      };
+    }
+    const retry = await supabase
+      .from("platform_disclosure_items")
+      .select(
+        "disclosure_key, label, description, category, sort_order, show_on_anonymous_match, employer_disclosure_mode"
+      )
+      .order("sort_order");
+    rows = (retry.data ?? []) as PlatformDisclosureItem[];
+    if (rows.length === 0) {
+      return {
+        items: PLATFORM_DISCLOSURE_DEFAULTS,
+        persisted: false,
+        error: "platform_disclosure_items is empty — apply migration 011",
+      };
+    }
   }
 
-  return { items: rows, persisted: true };
+  const result = { items: rows, persisted: true };
+  disclosureMemory = { value: result, expiresAt: Date.now() + DISCLOSURE_CACHE_MS };
+  return result;
 });
 
 export type PlatformDisclosureMap = Record<

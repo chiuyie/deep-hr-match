@@ -1,10 +1,15 @@
 import type { AuthError, User } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export function isStaleRefreshTokenError(error: AuthError | null | undefined): boolean {
+type AuthErrorLike = {
+  message?: string;
+  code?: string | null;
+};
+
+export function isStaleRefreshTokenError(error: AuthErrorLike | AuthError | null | undefined): boolean {
   if (!error) return false;
   const code = error.code ?? "";
-  const message = error.message.toLowerCase();
+  const message = (error.message ?? "").toLowerCase();
   return (
     code === "refresh_token_not_found" ||
     code === "invalid_refresh_token" ||

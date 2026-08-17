@@ -13,7 +13,7 @@ import { CandidateReadyConsent } from "@/components/candidate/candidate-ready-co
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { requireRole } from "@/lib/auth/session";
+import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { statusBadgeClassName, statusLabel } from "@/lib/utils/profile";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
@@ -59,14 +59,9 @@ export default async function CandidateStatusPage({
   const supabase = await createClient();
   const params = await searchParams;
 
-  const onboarding = await fetchCandidateOnboardingState(supabase, user.id);
+  const profile = await getCandidateProfile(user.id);
+  const onboarding = await fetchCandidateOnboardingState(supabase, user.id, profile);
   const checklistComplete = isOnboardingChecklistComplete(onboarding);
-
-  const { data: profile } = await supabase
-    .from("candidate_profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
 
   const isReady = profile?.status === "ready_for_matching";
   const doneCount = [

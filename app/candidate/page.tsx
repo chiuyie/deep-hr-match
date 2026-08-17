@@ -4,7 +4,7 @@ import {
   CandidateDashboardView,
   type CandidateDashboardStep,
 } from "@/components/candidate/candidate-dashboard-view";
-import { requireRole, ensureCandidateProfile } from "@/lib/auth/session";
+import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, statusLabel } from "@/lib/utils/profile";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
@@ -17,34 +17,17 @@ import { Grid3X3, Upload, User } from "lucide-react";
 
 export default async function CandidateDashboard() {
   const user = await requireRole("candidate");
-  await ensureCandidateProfile(user.id);
   const supabase = await createClient();
-
-  const onboarding = await fetchCandidateOnboardingState(supabase, user.id);
+  const profile = await getCandidateProfile(user.id);
+  const onboarding = await fetchCandidateOnboardingState(supabase, user.id, profile);
   const nextStep = getOnboardingStep(onboarding);
 
   if (nextStep !== "done") {
     redirect(getOnboardingPath(nextStep));
   }
 
-  const { data: profile } = await supabase
-    .from("candidate_profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-
-  const { count: cvCount } = await supabase
-    .from("candidate_cv_files")
-    .select("*", { count: "exact", head: true })
-    .eq("candidate_id", profile?.id ?? "");
-
-  const { count: matrixCount } = await supabase
-    .from("candidate_matrix_answers")
-    .select("*", { count: "exact", head: true })
-    .eq("candidate_id", profile?.id ?? "");
-
-  const hasCv = (cvCount ?? 0) > 0;
-  const hasMatrix = (matrixCount ?? 0) > 0;
+  const hasCv = onboarding.hasCv;
+  const hasMatrix = onboarding.hasMatrix;
   const isReady = profile?.status === "ready_for_matching";
 
   const steps: CandidateDashboardStep[] = [

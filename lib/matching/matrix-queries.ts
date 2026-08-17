@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { MatrixCategoryTree } from "@/lib/matching/matrix-column-flow";
 
 /**
  * PostgREST embed for matrix_categories → questions → options.
@@ -20,6 +21,13 @@ export type MatrixCategoryTreeRow = {
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
+let primaryMatrixTreeCache: { value: unknown; expiresAt: number } | null = null;
+const MATRIX_TREE_CACHE_MS = 60_000;
+
+export function invalidatePrimaryMatrixTreeCache() {
+  primaryMatrixTreeCache = null;
+}
+
 /** Single matrix tree in the product UI (root word grid). Extra DB categories are ignored. */
 export function pickPrimaryMatrixCategory<T extends { sort_order: number; is_active?: boolean }>(
   categories: T[]
@@ -38,8 +46,12 @@ export function pickPrimaryMatrixCategories<T extends { sort_order: number; is_a
 
 /** Load only the primary active matrix category with its full question/option tree. */
 export async function loadPrimaryMatrixCategoryTree<
-  T extends MatrixCategoryTreeRow = MatrixCategoryTreeRow,
+  T = MatrixCategoryTree,
 >(supabase: SupabaseServerClient): Promise<T | null> {
+  if (primaryMatrixTreeCache && primaryMatrixTreeCache.expiresAt > Date.now()) {
+    return primaryMatrixTreeCache.value as T | null;
+  }
+
   const { data, error } = await supabase
     .from("matrix_categories")
     .select(MATRIX_CATEGORY_TREE_SELECT)
@@ -52,13 +64,18 @@ export async function loadPrimaryMatrixCategoryTree<
   }
 
   const category = data?.[0];
-  if (!category) return null;
+  if (!category) {
+    primaryMatrixTreeCache = { value: null, expiresAt: Date.now() + MATRIX_TREE_CACHE_MS };
+    return null;
+  }
 
-  return {
+  const tree = {
     ...category,
     matrix_questions: (category.matrix_questions ?? []).map((question) => ({
       ...question,
       matrix_options: question.matrix_options ?? [],
     })),
   } as T;
+  primaryMatrixTreeCache = { value: tree, expiresAt: Date.now() + MATRIX_TREE_CACHE_MS };
+  return tree;
 }

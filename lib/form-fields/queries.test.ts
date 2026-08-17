@@ -3,6 +3,7 @@ import {
   ensureFormFieldsReady,
   ensureFormFieldsSeeded,
   getProfileFieldKeys,
+  invalidateFormFieldCaches,
   loadComparisonFormFields,
   loadFormFields,
 } from "@/lib/form-fields/queries";
@@ -55,6 +56,7 @@ describe("form field queries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCreateClient.mockResolvedValue({ from: mockFrom });
+    invalidateFormFieldCaches();
   });
 
   it("seeds defaults when form_fields table is empty", async () => {
@@ -114,11 +116,15 @@ describe("form field queries", () => {
 
     await ensureFormFieldsReady();
     expect(insert).toHaveBeenCalled();
-    const payload = insert.mock.calls
+    const payload = (insert.mock.calls as unknown as [unknown][])
       .map((call) => call[0])
-      .find((arg) => Array.isArray(arg) && arg[0] && "field_key" in (arg[0] as object)) as
-      | { field_key: string }[]
-      | undefined;
+      .find((arg): arg is { field_key: string }[] =>
+        Array.isArray(arg) &&
+        arg.length > 0 &&
+        typeof arg[0] === "object" &&
+        arg[0] !== null &&
+        "field_key" in arg[0]
+      );
     expect(payload).toBeTruthy();
     expect(payload!.every((row) => row.field_key !== "full_name")).toBe(true);
   });

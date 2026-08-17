@@ -70,31 +70,39 @@ export function isOnboardingChecklistComplete(state: CandidateOnboardingState): 
 
 export async function fetchCandidateOnboardingState(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  profileHint?: { id: string; completion_percentage?: number | null } | null
 ): Promise<CandidateOnboardingState> {
-  const { data: profile } = await supabase
-    .from("candidate_profiles")
-    .select("id, completion_percentage")
-    .eq("user_id", userId)
-    .single();
+  let profileId = profileHint?.id;
+  let completionPercentage = profileHint?.completion_percentage ?? 0;
 
-  if (!profile?.id) {
-    return { completionPercentage: 0, hasCv: false, hasMatrix: false };
+  if (!profileId) {
+    const { data: profile } = await supabase
+      .from("candidate_profiles")
+      .select("id, completion_percentage")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!profile?.id) {
+      return { completionPercentage: 0, hasCv: false, hasMatrix: false };
+    }
+    profileId = profile.id;
+    completionPercentage = profile.completion_percentage ?? 0;
   }
 
   const [{ count: cvCount }, { count: matrixCount }] = await Promise.all([
     supabase
       .from("candidate_cv_files")
-      .select("*", { count: "exact", head: true })
-      .eq("candidate_id", profile.id),
+      .select("id", { count: "exact", head: true })
+      .eq("candidate_id", profileId),
     supabase
       .from("candidate_matrix_answers")
-      .select("*", { count: "exact", head: true })
-      .eq("candidate_id", profile.id),
+      .select("id", { count: "exact", head: true })
+      .eq("candidate_id", profileId),
   ]);
 
   return {
-    completionPercentage: profile.completion_percentage ?? 0,
+    completionPercentage,
     hasCv: (cvCount ?? 0) > 0,
     hasMatrix: (matrixCount ?? 0) > 0,
   };

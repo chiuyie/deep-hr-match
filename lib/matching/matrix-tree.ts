@@ -5,11 +5,11 @@ export type MatrixAnswersMap = Record<
   { option_id?: string; answer_text?: string }
 >;
 
-function sortQuestions(questions: MatrixQuestion[]): MatrixQuestion[] {
+function sortQuestions<T extends MatrixQuestion>(questions: T[]): T[] {
   return [...questions].sort((a, b) => a.sort_order - b.sort_order);
 }
 
-export function getRootMatrixQuestions(questions: MatrixQuestion[]): MatrixQuestion[] {
+export function getRootMatrixQuestions<T extends MatrixQuestion>(questions: T[]): T[] {
   return sortQuestions(questions.filter((q) => !q.parent_option_id));
 }
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
+import { invalidatePrimaryMatrixTreeCache } from "@/lib/matching/matrix-queries";
 import {
   MATRIX_LEVELS_PER_FACTOR,
   MATRIX_WORDS_PER_LEVEL,
@@ -24,6 +25,7 @@ const MATRIX_PATHS = [
 ] as const;
 
 function revalidateMatrixPages() {
+  invalidatePrimaryMatrixTreeCache();
   for (const path of MATRIX_PATHS) {
     revalidatePath(path, "layout");
   }

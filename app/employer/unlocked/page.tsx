@@ -2,49 +2,11 @@ import Link from "next/link";
 import { Users } from "lucide-react";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { requireEmployer } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
-import { isUnlockedContactFieldVisible } from "@/lib/employer/match-disclosure";
-import { loadFormFields } from "@/lib/form-fields/queries";
+import { loadEmployerUnlockedList } from "@/lib/employer/list-queries";
 
 export default async function EmployerUnlockedPage() {
   const { profile: employer } = await requireEmployer();
-  const supabase = await createClient();
-  const employerId = employer?.id ?? "";
-
-  const [{ data: unlocks }, candidateFields] = await Promise.all([
-    supabase
-      .from("unlocks")
-      .select("id, candidate_id, job_id, jobs(title)")
-      .eq("employer_id", employerId)
-      .order("unlocked_at", { ascending: false }),
-    loadFormFields({
-      audience: "candidate",
-      formGroup: "profile",
-      includeInactive: false,
-    }),
-  ]);
-
-  const unlockRows = unlocks ?? [];
-  const showName = isUnlockedContactFieldVisible(candidateFields, "full_name");
-
-  const candidateIds = Array.from(new Set(unlockRows.map((unlock) => unlock.candidate_id)));
-  const { data: profiles } =
-    showName && candidateIds.length
-      ? await supabase
-          .from("candidate_profiles")
-          .select("id, full_name")
-          .in("id", candidateIds)
-      : { data: [] as { id: string; full_name: string | null }[] };
-
-  const nameById = new Map((profiles ?? []).map((profile) => [profile.id, profile.full_name]));
-
-  const items = unlockRows.map((unlock) => ({
-    id: unlock.id,
-    candidateId: unlock.candidate_id,
-    name: showName ? nameById.get(unlock.candidate_id) ?? "Candidate" : "Candidate",
-    jobTitle: (unlock.jobs as { title: string } | null)?.title ?? "Job",
-    jobId: unlock.job_id,
-  }));
+  const items = await loadEmployerUnlockedList(employer?.id ?? "");
 
   return (
     <EmployerPageSection

@@ -25,7 +25,7 @@ import {
 } from "@/lib/matching/snapshot";
 import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
 import { EMPLOYER_JOB_VIEW_SELECT } from "@/lib/employer/list-queries";
-import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
+import { loadFormFields } from "@/lib/form-fields/queries";
 import {
   isShownOnAnonymous,
   loadPlatformDisclosureMap,
@@ -50,6 +50,8 @@ export default async function JobViewPage({
     { count: matchCount },
     { count: unlockCount },
     unlockedIds,
+    candidateFields,
+    platformDisclosure,
   ] = await Promise.all([
     supabase
       .from("jobs")
@@ -73,6 +75,8 @@ export default async function JobViewPage({
       .eq("job_id", id)
       .eq("employer_id", employer.id),
     getUnlockedCandidateIds(employer.id, id),
+    loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
+    loadPlatformDisclosureMap(),
   ]);
 
   if (!job) notFound();
@@ -86,20 +90,15 @@ export default async function JobViewPage({
   const lastMatchedAt = getSnapshotGeneratedAt(matchRows ?? []);
   const previewCandidateIds = (matchRows ?? []).map((row) => row.candidate_id);
 
-  const [newCandidatesSince, candidateFields, platformDisclosure, previewProfilesResult] =
-    await Promise.all([
-      lastMatchedAt ? countNewReadyCandidatesSince(supabase, lastMatchedAt) : Promise.resolve(0),
-      ensureFormFieldsReady().then(() =>
-        loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false })
-      ),
-      loadPlatformDisclosureMap(),
-      previewCandidateIds.length
-        ? supabase
-            .from("candidate_profiles")
-            .select("id, full_name, years_of_experience, highest_education, skills, form_data")
-            .in("id", previewCandidateIds)
-        : Promise.resolve({ data: [] as Record<string, unknown>[] }),
-    ]);
+  const [newCandidatesSince, previewProfilesResult] = await Promise.all([
+    lastMatchedAt ? countNewReadyCandidatesSince(supabase, lastMatchedAt) : Promise.resolve(0),
+    previewCandidateIds.length
+      ? supabase
+          .from("candidate_profiles")
+          .select("id, full_name, years_of_experience, highest_education, skills, form_data")
+          .in("id", previewCandidateIds)
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+  ]);
 
   const matchingStatus = !lifecycle.hasMatches
     ? "Not yet generated"

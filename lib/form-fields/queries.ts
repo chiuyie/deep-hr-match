@@ -209,6 +209,7 @@ async function probeNeedsFormFieldMigration(supabase: SupabaseServerClient): Pro
   const { data } = await supabase
     .from("form_fields")
     .select("id")
+    .eq("is_custom", false)
     .in("section", [
       "Candidate Profile",
       "Company Profile",
@@ -224,6 +225,7 @@ async function probeNeedsFormFieldMigration(supabase: SupabaseServerClient): Pro
     .select("id")
     .eq("audience", "employer")
     .eq("form_group", "profile")
+    .eq("is_custom", false)
     .in("field_key", ["company_name", "company_size"])
     .in("label", ["Company Name", "Company Size"])
     .limit(1);
@@ -407,8 +409,19 @@ async function runFormFieldMigrations(supabase: SupabaseServerClient) {
  * Ensures defaults exist. Heavy label/type/legacy migrations only run when
  * defaults are missing or a cheap legacy-section probe hits — not on every request.
  * Cached per React request so multiple helpers don't re-run it.
+ * Also skipped for the rest of the Node process after a successful run.
  */
+let formFieldsEnsured = false;
+const formFieldsMemory = new Map<string, FormFieldDefinition[]>();
+
+export function invalidateFormFieldCaches() {
+  formFieldsEnsured = false;
+  formFieldsMemory.clear();
+}
+
 export const ensureFormFieldsReady = cache(async function ensureFormFieldsReady() {
+  if (formFieldsEnsured) return;
+
   await ensureFormFieldsSeeded();
 
   const supabase = await createClient();
@@ -438,27 +451,37 @@ export const ensureFormFieldsReady = cache(async function ensureFormFieldsReady(
   }
 
   await ensureFormSectionsReady();
+  formFieldsEnsured = true;
 });
+
+const FORM_FIELDS_SELECT =
+  "id, audience, form_group, section, field_key, label, field_type, placeholder, options, is_required, is_active, is_custom, employer_disclosure_mode, show_on_anonymous_match, sort_order";
 
 const loadFormFieldsCached = cache(async function loadFormFieldsCached(
   audience: string,
   formGroup: string,
   includeInactive: boolean
 ): Promise<FormFieldDefinition[]> {
+  const cacheKey = `${audience}:${formGroup}:${includeInactive ? "all" : "active"}`;
+  const cached = formFieldsMemory.get(cacheKey);
+  if (cached) return cached;
+
   const supabase = await createClient();
-  let query = supabase.from("form_fields").select("*").order("sort_order");
+  let query = supabase.from("form_fields").select(FORM_FIELDS_SELECT).order("sort_order");
 
   if (audience) query = query.eq("audience", audience);
   if (formGroup) query = query.eq("form_group", formGroup);
   if (!includeInactive) query = query.eq("is_active", true);
 
   const { data } = await query;
-  return ((data ?? []) as FormFieldDefinition[]).map((field) => ({
+  const fields = ((data ?? []) as FormFieldDefinition[]).map((field) => ({
     ...field,
     options: normalizeSelectOptions(field.options),
     show_on_anonymous_match: Boolean(field.show_on_anonymous_match),
     employer_disclosure_mode: field.employer_disclosure_mode ?? "candidate_optional",
   }));
+  formFieldsMemory.set(cacheKey, fields);
+  return fields;
 });
 
 export async function loadFormFields(options?: {

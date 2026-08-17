@@ -201,7 +201,7 @@ describe("form-field-actions", () => {
         label: "Employer name",
       });
 
-      expect(result.error).toBe("A field with that key already exists in this section");
+      expect(result.error).toBe("A field with that key already exists for this audience and form");
     });
   });
 });

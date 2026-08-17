@@ -5,7 +5,6 @@ import { EmployerPageSection } from "@/components/employer/employer-ui";
 import { requireEmployer } from "@/lib/auth/session";
 import {
   loadFormFields,
-  ensureFormFieldsReady,
   loadFormSectionTitles,
 } from "@/lib/form-fields/queries";
 import { groupEmployerProfileFieldsByUiSections } from "@/lib/form-fields/profile-sections";
@@ -13,7 +12,6 @@ import { saveEmployerProfile } from "@/lib/employer/actions";
 
 export default async function EmployerProfilePage() {
   const { profile } = await requireEmployer();
-  await ensureFormFieldsReady();
 
   const [fields, sectionOrder] = await Promise.all([
     loadFormFields({ audience: "employer", formGroup: "profile" }),

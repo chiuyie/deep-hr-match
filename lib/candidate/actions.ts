@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireRole } from "@/lib/auth/session";
+import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { extractCustomFields, stripCustomEntries } from "@/lib/form-fields/parse-custom";
 import { buildDynamicProfileSchema, validateRequiredCustomFields, normalizeCandidateProfilePayload } from "@/lib/form-fields/validate-dynamic";
 import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
@@ -361,7 +361,10 @@ export async function markCandidateReady(formData: FormData): Promise<void> {
     redirect("/candidate/status?error=consent");
   }
 
-  const onboarding = await fetchCandidateOnboardingState(supabase, user.id);
+  const [onboarding, profile] = await Promise.all([
+    fetchCandidateOnboardingState(supabase, user.id),
+    getCandidateProfile(user.id),
+  ]);
 
   if (onboarding.completionPercentage < 60) {
     redirect("/candidate/status?error=profile");
@@ -372,12 +375,6 @@ export async function markCandidateReady(formData: FormData): Promise<void> {
   if (!onboarding.hasMatrix) {
     redirect(`/candidate/status?error=matrix`);
   }
-
-  const { data: profile } = await supabase
-    .from("candidate_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
 
   if (!profile) {
     redirect("/candidate/status?error=profile");

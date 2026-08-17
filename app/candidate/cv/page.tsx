@@ -2,7 +2,7 @@ import Link from "next/link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { CandidateCvManager } from "@/components/candidate/candidate-cv-manager";
 import { Button } from "@/components/ui/button";
-import { requireRole } from "@/lib/auth/session";
+import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
   fetchCandidateOnboardingState,
@@ -23,19 +23,15 @@ export default async function CandidateCVPage({
   const supabase = await createClient();
   const params = await searchParams;
 
-  const { data: profile } = await supabase
-    .from("candidate_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  const { data: files } = await supabase
-    .from("candidate_cv_files")
-    .select("*")
-    .eq("candidate_id", profile?.id ?? "")
-    .order("uploaded_at", { ascending: false });
-
-  const onboarding = await fetchCandidateOnboardingState(supabase, user.id);
+  const profile = await getCandidateProfile(user.id);
+  const [{ data: files }, onboarding] = await Promise.all([
+    supabase
+      .from("candidate_cv_files")
+      .select("id, candidate_id, file_name, file_url, file_path, file_type, file_size, uploaded_at")
+      .eq("candidate_id", profile?.id ?? "")
+      .order("uploaded_at", { ascending: false }),
+    fetchCandidateOnboardingState(supabase, user.id, profile),
+  ]);
   const onboardingStep = getOnboardingStep(onboarding);
   const showOverviewLink = onboardingStep === "done";
 

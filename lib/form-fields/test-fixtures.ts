@@ -1,7 +1,7 @@
 import type { FormFieldDefinition, FormFieldSectionGroup } from "@/lib/form-fields/types";
 
 export function makeFormField(
-  overrides: Partial<FormFieldDefinition> & Pick<FormFieldDefinition, "field_key" | "label">
+  overrides: Partial<FormFieldDefinition> & Pick<FormFieldDefinition, "field_key">
 ): FormFieldDefinition {
   return {
     id: overrides.id ?? `id-${overrides.field_key}`,
@@ -9,7 +9,7 @@ export function makeFormField(
     form_group: overrides.form_group ?? "profile",
     section: overrides.section ?? "Candidate Profile",
     field_key: overrides.field_key,
-    label: overrides.label,
+    label: overrides.label ?? overrides.field_key,
     field_type: overrides.field_type ?? "text",
     placeholder: overrides.placeholder ?? null,
     options: overrides.options ?? null,

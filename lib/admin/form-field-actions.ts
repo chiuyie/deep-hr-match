@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/session";
 import { slugifyFieldKey } from "@/lib/form-fields/defaults";
+import { invalidateFormFieldCaches } from "@/lib/form-fields/queries";
 import { parseOptionsFromFormValue, normalizeSelectOptions } from "@/lib/form-fields/select-options";
 import { createClient } from "@/lib/supabase/server";
 import { formFieldSchema } from "@/lib/validations/schemas";
@@ -22,6 +23,7 @@ const FORM_FIELD_PATHS = [
 ] as const;
 
 function revalidateFormFieldPages() {
+  invalidateFormFieldCaches();
   for (const path of FORM_FIELD_PATHS) {
     revalidatePath(path, "layout");
   }

@@ -9,7 +9,6 @@ import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveJobMatrixAnswers } from "@/lib/employer/actions";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 import { loadPrimaryMatrixCategoryTree } from "@/lib/matching/matrix-queries";
-import type { MatrixCategoryWithQuestions } from "@/lib/matching/matrix-form";
 
 export default async function JobMatrixPage({
   params,
@@ -37,9 +36,7 @@ export default async function JobMatrixPage({
       .eq("job_id", id),
   ]);
 
-  const filtered = filterSharedMatrixCategories(
-    (primaryCategory ? [primaryCategory] : []) as MatrixCategoryWithQuestions[]
-  );
+  const filtered = filterSharedMatrixCategories(primaryCategory ? [primaryCategory] : []);
 
   const answerRows = (answers ?? []).map((a) => ({
     question_id: a.question_id,

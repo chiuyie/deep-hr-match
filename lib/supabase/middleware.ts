@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { AUTH_USER_ID_HEADER } from "@/lib/auth/forwarded-user";
 import { getSupabaseEnv, isSupabaseConfigured } from "@/lib/supabase/env";
 import { resolveAuthUser } from "@/lib/supabase/resolve-auth-user";
 
@@ -43,6 +44,13 @@ export async function updateSession(request: NextRequest) {
   });
 
   const user = await resolveAuthUser(supabase);
+  requestHeaders.set(AUTH_USER_ID_HEADER, user?.id ?? "");
+
+  const forwarded = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  supabaseResponse.cookies.getAll().forEach((cookie) => forwarded.cookies.set(cookie));
+  supabaseResponse = forwarded;
 
   const isProtectedRoute =
     pathname.startsWith("/candidate") ||

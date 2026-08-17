@@ -5,10 +5,12 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import type { EmployerDisclosureMode } from "@/lib/form-fields/types";
 import type { PlatformDisclosureKey } from "@/lib/employer/platform-disclosure";
+import { invalidatePlatformDisclosureCache } from "@/lib/employer/platform-disclosure";
 
 const PATHS = ["/admin/forms", "/employer/jobs"] as const;
 
 function revalidate() {
+  invalidatePlatformDisclosureCache();
   for (const path of PATHS) {
     revalidatePath(path, "layout");
   }

@@ -55,7 +55,8 @@ export function parseOptionsFromFormValue(raw: FormDataEntryValue | null | undef
 }
 
 export function resolveSelectOptions(
-  field: Pick<FormFieldDefinition, "field_key" | "options" | "field_type">
+  field: Pick<FormFieldDefinition, "field_key" | "field_type"> &
+    Partial<Pick<FormFieldDefinition, "options">>
 ): string[] {
   if (field.options && field.options.length > 0) return field.options;
   return [...(DEFAULT_SELECT_OPTIONS_BY_KEY[field.field_key] ?? [])];

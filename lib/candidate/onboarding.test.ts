@@ -108,7 +108,7 @@ describe("fetchCandidateOnboardingState", () => {
       from: vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            single: vi.fn(async () => ({ data: null, error: null })),
+            maybeSingle: vi.fn(async () => ({ data: null, error: null })),
           })),
         })),
       })),
@@ -130,7 +130,7 @@ describe("fetchCandidateOnboardingState", () => {
           return {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
-                single: vi.fn(async () => ({
+                maybeSingle: vi.fn(async () => ({
                   data: { id: "cand-1", completion_percentage: 75 },
                   error: null,
                 })),

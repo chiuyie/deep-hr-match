@@ -11,10 +11,9 @@ import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveJob } from "@/lib/employer/actions";
 import { canEditJob } from "@/lib/employer/job-rules";
 import { jobRecordToFormState } from "@/lib/utils/job-form";
-import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
+import { loadFormFields } from "@/lib/form-fields/queries";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 import { loadPrimaryMatrixCategoryTree } from "@/lib/matching/matrix-queries";
-import type { MatrixCategoryWithQuestions } from "@/lib/matching/matrix-form";
 
 export default async function EditJobPage({
   params,
@@ -28,26 +27,35 @@ export default async function EditJobPage({
   const { profile: employer } = await requireEmployer();
   const supabase = await createClient();
 
-  const { data: job } = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("id", id)
-    .eq("employer_id", employer?.id ?? "")
-    .single();
-
-  if (!job) notFound();
-
-  const [{ count: matchCount }, { count: unlockCount }] = await Promise.all([
+  const [
+    { data: job },
+    { count: matchCount },
+    { count: unlockCount },
+    jobFields,
+    primaryCategory,
+    { data: matrixAnswers },
+  ] = await Promise.all([
     supabase
-      .from("match_results")
-      .select("id", { count: "exact", head: true })
-      .eq("job_id", id),
+      .from("jobs")
+      .select("*")
+      .eq("id", id)
+      .eq("employer_id", employer?.id ?? "")
+      .single(),
+    supabase.from("match_results").select("id", { count: "exact", head: true }).eq("job_id", id),
     supabase
       .from("unlocks")
       .select("id", { count: "exact", head: true })
       .eq("job_id", id)
       .eq("employer_id", employer?.id ?? ""),
+    loadFormFields({ audience: "employer", formGroup: "job" }),
+    loadPrimaryMatrixCategoryTree(supabase),
+    supabase
+      .from("job_matrix_answers")
+      .select("question_id, option_id, answer_text, matrix_column")
+      .eq("job_id", id),
   ]);
+
+  if (!job) notFound();
 
   const lifecycle = {
     status: job.status,
@@ -59,20 +67,7 @@ export default async function EditJobPage({
     redirect(`/employer/jobs/${id}/view`);
   }
 
-  const [jobFields, primaryCategory, { data: matrixAnswers }] = await Promise.all([
-    ensureFormFieldsReady().then(() =>
-      loadFormFields({ audience: "employer", formGroup: "job" })
-    ),
-    loadPrimaryMatrixCategoryTree(supabase),
-    supabase
-      .from("job_matrix_answers")
-      .select("question_id, option_id, answer_text, matrix_column")
-      .eq("job_id", id),
-  ]);
-
-  const matrixCategories = filterSharedMatrixCategories(
-    (primaryCategory ? [primaryCategory] : []) as MatrixCategoryWithQuestions[]
-  );
+  const matrixCategories = filterSharedMatrixCategories(primaryCategory ? [primaryCategory] : []);
   const matrixExistingAnswers = (matrixAnswers ?? [])
     .map((a) => ({
       question_id: a.question_id,
