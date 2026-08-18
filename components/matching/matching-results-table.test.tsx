@@ -95,7 +95,9 @@ describe("MatchingResultsTable", () => {
 
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[0]);
-    await user.click(screen.getByRole("button", { name: /Unlock 1 \(mock\)/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Unlock 1 candidate \(mock\)/i })
+    );
 
     expect(createUnlockCheckout).toHaveBeenCalledWith("job-1", ["cand-1"]);
   });
