@@ -29,6 +29,11 @@ export type FieldValidationResult =
   | { ok: true; value: string }
   | { ok: false; message: string };
 
+type CandidateFieldForValidation = Pick<
+  FormFieldDefinition,
+  "field_key" | "label" | "is_required" | "field_type" | "is_custom" | "options"
+>;
+
 /** Hard caps — reject absurd / attack payloads gracefully. */
 export const FIELD_MAX_LENGTH = {
   full_name: 100,
@@ -309,7 +314,7 @@ export type ValidateFieldContext = {
  * value on success — callers may display the original until blur/save.
  */
 export function validateCandidateField(
-  field: Pick<FormFieldDefinition, "field_key" | "label" | "is_required" | "field_type" | "is_custom">,
+  field: CandidateFieldForValidation,
   raw: unknown,
   context: ValidateFieldContext = {}
 ): FieldValidationResult {
@@ -425,9 +430,7 @@ export type SectionValidationResult = {
 
 /** Validate every field in a wizard section (required + filled optional). */
 export function validateCandidateSection(
-  fields: Array<
-    Pick<FormFieldDefinition, "field_key" | "label" | "is_required" | "field_type" | "is_custom" | "is_active">
-  >,
+  fields: Array<CandidateFieldForValidation & Pick<FormFieldDefinition, "is_active">>,
   values: Record<string, unknown>
 ): SectionValidationResult {
   const errors: Record<string, string> = {};
@@ -454,9 +457,7 @@ export function validateCandidateSection(
 
 /** True when every required field in the section has a valid value. */
 export function isCandidateSectionComplete(
-  fields: Array<
-    Pick<FormFieldDefinition, "field_key" | "label" | "is_required" | "field_type" | "is_custom" | "is_active">
-  >,
+  fields: Array<CandidateFieldForValidation & Pick<FormFieldDefinition, "is_active">>,
   values: Record<string, unknown>
 ): boolean {
   return validateCandidateSection(fields, values).ok;
@@ -467,7 +468,7 @@ export function isCandidateSectionComplete(
  * Invalid values are left as trimmed strings for Zod to reject.
  */
 export function normalizeCandidateFieldValue(
-  field: Pick<FormFieldDefinition, "field_key" | "label" | "is_required" | "field_type" | "is_custom">,
+  field: CandidateFieldForValidation,
   raw: unknown,
   context: ValidateFieldContext = {}
 ): string {

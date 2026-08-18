@@ -69,7 +69,7 @@ function createSupabaseMock(fixture: Fixture) {
           delete: () => ({
             eq: async () => ({ error: null }),
           }),
-          insert: (rows: Record<string, unknown>[]) => {
+          upsert: (rows: Record<string, unknown>[]) => {
             insertedRows = rows;
             return {
               select: async () => ({ data: rows, error: null }),

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, Lock, Target, Unlock, Users } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, Lock, LockOpen, Target, Unlock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -170,17 +170,29 @@ export function MatchingResultsTable({
         icon={<Target className="h-6 w-6" />}
         gradient="from-emerald-500 to-emerald-600"
         action={
-          selected.length > 0 ? (
-            <Button
-              className="rounded-xl"
-              disabled={loading}
-              onClick={handleUnlock}
-            >
-              {mockPayments
-                ? `Unlock ${selected.length} (mock)`
-                : `Unlock ${selected.length} (${formatCurrency(total)})`}
-            </Button>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            {results.some((r) => r.is_unlocked) && (
+              <Button variant="outline" size="sm" className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800" asChild>
+                <Link href={`/employer/jobs/${jobId}/unlocked`}>
+                  <Unlock className="mr-1.5 h-3.5 w-3.5" />
+                  View unlocked ({results.filter((r) => r.is_unlocked).length})
+                </Link>
+              </Button>
+            )}
+            {selected.length > 0 && (
+              <Button
+                size="lg"
+                className="rounded-xl px-6 shadow-md"
+                disabled={loading}
+                onClick={handleUnlock}
+              >
+                <LockOpen className="mr-2 h-4 w-4" />
+                {mockPayments
+                  ? `Unlock ${selected.length} candidate${selected.length === 1 ? "" : "s"} (mock)`
+                  : `Unlock ${selected.length} — ${formatCurrency(total)}`}
+              </Button>
+            )}
+          </div>
         }
       >
         {results.length === 0 ? (
@@ -227,16 +239,19 @@ export function MatchingResultsTable({
                     <PreviewFieldsList fields={row.preview_fields} />
                   </div>
                   {row.is_unlocked ? (
-                    <Button variant="outline" size="sm" className="mt-4 rounded-lg" asChild>
-                      <Link href={`/employer/jobs/${jobId}/unlocked/${row.id}`}>View profile</Link>
+                    <Button size="sm" className="mt-4 rounded-xl" asChild>
+                      <Link href={`/employer/jobs/${jobId}/unlocked/${row.id}`}>
+                        <Eye className="mr-1.5 h-3.5 w-3.5" />
+                        View full profile
+                      </Link>
                     </Button>
                   ) : (
-                    <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                    <label className="mt-4 flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors hover:border-primary/30 hover:bg-primary/5">
                       <Checkbox
                         checked={selected.includes(row.id)}
                         onCheckedChange={() => toggle(row.id)}
                       />
-                      Select to unlock
+                      Select to unlock ({formatCurrency(UNLOCK_PRICE_CENTS)})
                     </label>
                   )}
                 </div>
@@ -309,13 +324,17 @@ export function MatchingResultsTable({
                         </TableCell>
                         <TableCell className="text-right">
                           {row.is_unlocked ? (
-                            <Button variant="outline" size="sm" className="rounded-lg" asChild>
+                            <Button size="sm" className="rounded-xl" asChild>
                               <Link href={`/employer/jobs/${jobId}/unlocked/${row.id}`}>
-                                View profile
+                                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                                View full profile
                               </Link>
                             </Button>
                           ) : (
-                            <span className="text-xs text-slate-400">Unlock required</span>
+                            <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                              <Lock className="h-3 w-3" />
+                              Unlock to view
+                            </span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -338,11 +357,6 @@ export function MatchingResultsTable({
         )}
       </EmployerPageSection>
 
-      {results.some((r) => r.is_unlocked) && (
-        <Button variant="outline" className="rounded-xl" asChild>
-          <Link href={`/employer/jobs/${jobId}/unlocked`}>View Unlocked Candidates</Link>
-        </Button>
-      )}
     </div>
   );
 }

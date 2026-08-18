@@ -138,7 +138,16 @@ export async function generatePlaceholderMatches(
 
   const generatedAt = new Date().toISOString();
 
-  await supabase.from("match_results").delete().eq("job_id", jobId);
+  const { error: deleteError } = await supabase
+    .from("match_results")
+    .delete()
+    .eq("job_id", jobId);
+
+  if (deleteError) {
+    throw new Error(
+      `Could not clear previous match snapshot: ${deleteError.message}`
+    );
+  }
 
   const results = candidates.map((candidate) => {
     const { matrixScore, matchedCount, totalCount, columnScores } = scoreMatrixMatch(
@@ -171,7 +180,7 @@ export async function generatePlaceholderMatches(
 
   const { data: inserted, error } = await supabase
     .from("match_results")
-    .insert(topResults)
+    .upsert(topResults, { onConflict: "job_id,candidate_id" })
     .select();
 
   if (error) throw error;
