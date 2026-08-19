@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { AUTH_USER_ID_HEADER } from "@/lib/auth/forwarded-user";
+import { AUTH_USER_ID_HEADER, AUTH_SESSION_HEADER } from "@/lib/auth/forwarded-user";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAuthUser } from "@/lib/supabase/resolve-auth-user";
 import type { CandidateProfile, EmployerProfile, User, UserRole } from "@/types/database";
@@ -66,10 +66,20 @@ export const getAuthUser = cache(async function getAuthUser() {
 });
 
 const loadSessionRow = cache(async function loadSessionRow(): Promise<SessionRow | null> {
-  const supabase = await createClient();
+  const headerList = await headers();
+
+  // Use pre-fetched session from proxy to avoid a DB round-trip
+  const sessionJson = headerList.get(AUTH_SESSION_HEADER);
+  if (sessionJson) {
+    try {
+      return JSON.parse(sessionJson) as SessionRow;
+    } catch { /* fall through to DB query */ }
+  }
+
   const authUser = await getAuthUser();
   if (!authUser) return null;
 
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("users")
     .select(SESSION_USER_SELECT)

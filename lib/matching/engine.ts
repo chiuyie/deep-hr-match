@@ -82,26 +82,17 @@ export async function generatePlaceholderMatches(
   supabase: SupabaseClient,
   { jobId, employerId }: MatchingInput
 ) {
-  const { data: job, error: jobError } = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("id", jobId)
-    .eq("employer_id", employerId)
-    .single();
+  // Fetch job, job answers, and candidates in parallel
+  const [{ data: job, error: jobError }, { data: jobAnswers }, { data: candidates }] =
+    await Promise.all([
+      supabase.from("jobs").select("*").eq("id", jobId).eq("employer_id", employerId).single(),
+      supabase.from("job_matrix_answers").select("question_id, option_id, matrix_column").eq("job_id", jobId),
+      supabase.from("candidate_profiles").select("id").eq("status", "ready_for_matching"),
+    ]);
 
   if (jobError || !job) {
     throw new Error("Job not found or access denied");
   }
-
-  const { data: jobAnswers } = await supabase
-    .from("job_matrix_answers")
-    .select("question_id, option_id, matrix_column")
-    .eq("job_id", jobId);
-
-  const { data: candidates } = await supabase
-    .from("candidate_profiles")
-    .select("*")
-    .eq("status", "ready_for_matching");
 
   if (!candidates?.length) {
     return { count: 0, results: [] };

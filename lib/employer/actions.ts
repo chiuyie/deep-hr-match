@@ -9,13 +9,13 @@ import {
   shouldAutoGenerateInitialMatches,
 } from "@/lib/employer/job-rules";
 import { createClient } from "@/lib/supabase/server";
-import { requireRole } from "@/lib/auth/session";
+import { requireRole, getEmployerProfile } from "@/lib/auth/session";
 import {
   buildDynamicProfileSchema,
   validateJobStateAgainstFormFields,
   validateRequiredCustomFields,
 } from "@/lib/form-fields/validate-dynamic";
-import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
+import { loadFormFields } from "@/lib/form-fields/queries";
 import { extractCustomFields, stripCustomEntries } from "@/lib/form-fields/parse-custom";
 import {
   formStateToJobPayload,
@@ -73,21 +73,16 @@ function parseMatrixAnswersFromFormData(formData: FormData): MatrixAnswerPayload
 }
 
 async function getEmployerId(userId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("employer_profiles")
-    .select("id")
-    .eq("user_id", userId)
-    .single();
-  return data?.id;
+  const profile = await getEmployerProfile(userId);
+  return profile?.id;
 }
 
 export async function saveEmployerProfile(formData: FormData): Promise<void> {
-  const user = await requireRole("employer");
-  const supabase = await createClient();
-
-  await ensureFormFieldsReady();
-  const fields = await loadFormFields({ audience: "employer", formGroup: "profile" });
+  const [user, supabase, fields] = await Promise.all([
+    requireRole("employer"),
+    createClient(),
+    loadFormFields({ audience: "employer", formGroup: "profile" }),
+  ]);
   const schema = buildDynamicProfileSchema(fields);
   const parsed = schema.safeParse(stripCustomEntries(Object.fromEntries(formData)));
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message);
@@ -107,12 +102,13 @@ export async function saveEmployerProfile(formData: FormData): Promise<void> {
 
 export async function saveJob(formData: FormData, jobId?: string): Promise<void> {
   const user = await requireRole("employer");
-  const supabase = await createClient();
-  const employerId = await getEmployerId(user.id);
+  const [supabase, profile, fields] = await Promise.all([
+    createClient(),
+    getEmployerProfile(user.id),
+    loadFormFields({ audience: "employer", formGroup: "job" }),
+  ]);
+  const employerId = profile?.id;
   if (!employerId) throw new Error("Employer profile not found");
-
-  await ensureFormFieldsReady();
-  const fields = await loadFormFields({ audience: "employer", formGroup: "job" });
 
   const formState = parseJobFormState(formData);
   const matrixAnswers = parseMatrixAnswersFromFormData(formData);
@@ -204,21 +200,18 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
   }
 
   if (savedJobId && matrixAnswers.length > 0) {
-    for (const answer of matrixAnswers) {
-      const matrixColumn =
-        answer.matrix_column && answer.matrix_column >= 1 ? answer.matrix_column : 0;
-      const { error: matrixError } = await supabase.from("job_matrix_answers").upsert(
-        {
-          job_id: savedJobId,
-          question_id: answer.question_id,
-          option_id: answer.option_id ?? null,
-          answer_text: answer.answer_text ?? null,
-          matrix_column: matrixColumn,
-        },
-        { onConflict: "job_id,question_id,matrix_column" }
-      );
-      if (matrixError) throw new Error(matrixError.message);
-    }
+    const rows = matrixAnswers.map((answer) => ({
+      job_id: savedJobId,
+      question_id: answer.question_id,
+      option_id: answer.option_id ?? null,
+      answer_text: answer.answer_text ?? null,
+      matrix_column:
+        answer.matrix_column && answer.matrix_column >= 1 ? answer.matrix_column : 0,
+    }));
+    const { error: matrixError } = await supabase
+      .from("job_matrix_answers")
+      .upsert(rows, { onConflict: "job_id,question_id,matrix_column" });
+    if (matrixError) throw new Error(matrixError.message);
     revalidatePath(`/employer/jobs/${savedJobId}/matrix`);
     revalidatePath(`/employer/jobs/${savedJobId}/matching`);
   }
@@ -309,8 +302,8 @@ export async function saveJobMatrixAnswers(
   submit = false
 ) {
   const user = await requireRole("employer");
-  const supabase = await createClient();
-  const employerId = await getEmployerId(user.id);
+  const [supabase, profile] = await Promise.all([createClient(), getEmployerProfile(user.id)]);
+  const employerId = profile?.id;
   if (!employerId) return { error: "Employer profile not found" };
 
   const { data: job } = await supabase
@@ -347,18 +340,19 @@ export async function saveJobMatrixAnswers(
     if (validationError) return { error: validationError };
   }
 
-  for (const answer of answers) {
-    const matrixColumn = answer.matrix_column && answer.matrix_column >= 1 ? answer.matrix_column : 0;
-    await supabase.from("job_matrix_answers").upsert(
-      {
-        job_id: jobId,
-        question_id: answer.question_id,
-        option_id: answer.option_id ?? null,
-        answer_text: answer.answer_text ?? null,
-        matrix_column: matrixColumn,
-      },
-      { onConflict: "job_id,question_id,matrix_column" }
-    );
+  if (answers.length > 0) {
+    const rows = answers.map((answer) => ({
+      job_id: jobId,
+      question_id: answer.question_id,
+      option_id: answer.option_id ?? null,
+      answer_text: answer.answer_text ?? null,
+      matrix_column:
+        answer.matrix_column && answer.matrix_column >= 1 ? answer.matrix_column : 0,
+    }));
+    const { error: upsertError } = await supabase
+      .from("job_matrix_answers")
+      .upsert(rows, { onConflict: "job_id,question_id,matrix_column" });
+    if (upsertError) return { error: upsertError.message };
   }
 
   revalidatePath(`/employer/jobs/${jobId}/matrix`);
@@ -377,36 +371,36 @@ export async function saveJobMatrixAnswers(
 
 export async function generateMatchingResults(jobId: string): Promise<void> {
   const user = await requireRole("employer");
-  const supabase = await createClient();
-  const employerId = await getEmployerId(user.id);
+  const [supabase, profile] = await Promise.all([createClient(), getEmployerProfile(user.id)]);
+  const employerId = profile?.id;
   if (!employerId) throw new Error("Employer profile not found");
 
-  const { data: job } = await supabase
-    .from("jobs")
-    .select("status")
-    .eq("id", jobId)
-    .eq("employer_id", employerId)
-    .single();
+  const [{ data: job }, { count: matrixAnswerCount }, { count: matchCount }] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("status")
+      .eq("id", jobId)
+      .eq("employer_id", employerId)
+      .single(),
+    supabase
+      .from("job_matrix_answers")
+      .select("*", { count: "exact", head: true })
+      .eq("job_id", jobId)
+      .gte("matrix_column", 1)
+      .not("option_id", "is", null),
+    supabase
+      .from("match_results")
+      .select("*", { count: "exact", head: true })
+      .eq("job_id", jobId),
+  ]);
 
   if (!job) throw new Error("Job not found");
-
-  const { count: matrixAnswerCount } = await supabase
-    .from("job_matrix_answers")
-    .select("*", { count: "exact", head: true })
-    .eq("job_id", jobId)
-    .gte("matrix_column", 1)
-    .not("option_id", "is", null);
 
   if ((matrixAnswerCount ?? 0) === 0) {
     throw new Error(
       `Complete the ${FRAMEWORK_MATCHING_LANGUAGE} form on this job before generating matches.`
     );
   }
-
-  const { count: matchCount } = await supabase
-    .from("match_results")
-    .select("*", { count: "exact", head: true })
-    .eq("job_id", jobId);
 
   const lifecycle = {
     status: job.status,

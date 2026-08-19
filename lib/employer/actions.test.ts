@@ -16,8 +16,11 @@ const mockFrom = vi.fn();
 const mockStorageFrom = vi.fn();
 const mockCreateClient = vi.fn();
 
+const getEmployerProfile = vi.fn();
+
 vi.mock("@/lib/auth/session", () => ({
   requireRole: (...args: unknown[]) => requireRole(...args),
+  getEmployerProfile: (...args: unknown[]) => getEmployerProfile(...args),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -75,6 +78,7 @@ describe("employer actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     requireRole.mockResolvedValue({ id: "user-1", role: "employer" });
+    getEmployerProfile.mockResolvedValue({ id: "emp-1" });
     ensureFormFieldsReady.mockResolvedValue(undefined);
     loadFormFields.mockResolvedValue([
       {

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   Briefcase,
@@ -9,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   EmployerActionCard,
   EmployerDetailField,
@@ -57,11 +59,47 @@ function getGreeting() {
   return "Good evening";
 }
 
+function StatsSkeleton() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="mt-4 h-9 w-20" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+async function DashboardStats({ employerId }: { employerId: string }) {
+  const { totalJobs, unlockCount, totalSpent } = await loadEmployerDashboardStats(employerId);
+  return (
+    <div className="grid gap-4 sm:grid-cols-3">
+      <EmployerStatCard
+        label="Jobs Posted"
+        value={totalJobs ?? 0}
+        icon={Briefcase}
+        accent="from-emerald-500/10 to-emerald-600/5 text-emerald-600"
+      />
+      <EmployerStatCard
+        label="Candidates Unlocked"
+        value={unlockCount ?? 0}
+        icon={Users}
+        accent="from-blue-500/10 to-blue-600/5 text-blue-600"
+      />
+      <EmployerStatCard
+        label="Total Spent"
+        value={formatCurrency(totalSpent)}
+        icon={Receipt}
+        accent="from-amber-500/10 to-amber-600/5 text-amber-600"
+      />
+    </div>
+  );
+}
+
 export default async function EmployerDashboard() {
   const { user, profile } = await requireEmployer();
-  const { totalJobs, unlockCount, totalSpent } = await loadEmployerDashboardStats(
-    profile?.id ?? ""
-  );
   const displayName = user.name?.split(" ")[0] || profile?.contact_person_name?.split(" ")[0];
 
   const detailFields = [
@@ -96,26 +134,9 @@ export default async function EmployerDashboard() {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <EmployerStatCard
-          label="Jobs Posted"
-          value={totalJobs ?? 0}
-          icon={Briefcase}
-          accent="from-emerald-500/10 to-emerald-600/5 text-emerald-600"
-        />
-        <EmployerStatCard
-          label="Candidates Unlocked"
-          value={unlockCount ?? 0}
-          icon={Users}
-          accent="from-blue-500/10 to-blue-600/5 text-blue-600"
-        />
-        <EmployerStatCard
-          label="Total Spent"
-          value={formatCurrency(totalSpent)}
-          icon={Receipt}
-          accent="from-amber-500/10 to-amber-600/5 text-amber-600"
-        />
-      </div>
+      <Suspense fallback={<StatsSkeleton />}>
+        <DashboardStats employerId={profile?.id ?? ""} />
+      </Suspense>
 
       <EmployerPageSection
         title="Employer Details"

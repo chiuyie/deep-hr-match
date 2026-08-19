@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { extractCustomFields, stripCustomEntries } from "@/lib/form-fields/parse-custom";
 import { buildDynamicProfileSchema, validateRequiredCustomFields, normalizeCandidateProfilePayload } from "@/lib/form-fields/validate-dynamic";
-import { ensureFormFieldsReady, loadFormFields } from "@/lib/form-fields/queries";
+import { loadFormFields } from "@/lib/form-fields/queries";
 import {
   calculateProfileCompletion,
 } from "@/lib/utils/profile";
@@ -26,13 +26,8 @@ import {
 } from "@/lib/matching/matrix-column-flow";
 
 async function getCandidateId(userId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("candidate_profiles")
-    .select("id")
-    .eq("user_id", userId)
-    .single();
-  return data?.id;
+  const profile = await getCandidateProfile(userId);
+  return profile?.id;
 }
 
 function buildProfilePayload(data: Record<string, unknown>, submit: boolean) {
@@ -82,11 +77,11 @@ export async function saveCandidateProfileCore(
   formData: FormData,
   submit: boolean
 ): Promise<SaveCandidateProfileResult> {
-  const user = await requireRole("candidate");
-  const supabase = await createClient();
-
-  await ensureFormFieldsReady();
-  const fields = await loadFormFields({ audience: "candidate", formGroup: "profile" });
+  const [user, supabase, fields] = await Promise.all([
+    requireRole("candidate"),
+    createClient(),
+    loadFormFields({ audience: "candidate", formGroup: "profile" }),
+  ]);
   // Draft saves (wizard Next / Save for later) allow incomplete later pages;
   // full submit still enforces required fields.
   const schemaOptions = { enforceRequired: submit };
@@ -299,8 +294,8 @@ export async function saveCandidateMatrixAnswers(
   submit = false
 ): Promise<{ error?: string; success?: boolean; redirectTo?: string }> {
   const user = await requireRole("candidate");
-  const supabase = await createClient();
-  const candidateId = await getCandidateId(user.id);
+  const [supabase, profile] = await Promise.all([createClient(), getCandidateProfile(user.id)]);
+  const candidateId = profile?.id;
   if (!candidateId) return { error: "Profile not found" };
 
   if (submit) {
@@ -328,18 +323,19 @@ export async function saveCandidateMatrixAnswers(
     if (validationError) return { error: validationError };
   }
 
-  for (const answer of answers) {
-    const matrixColumn = answer.matrix_column && answer.matrix_column >= 1 ? answer.matrix_column : 0;
-    await supabase.from("candidate_matrix_answers").upsert(
-      {
-        candidate_id: candidateId,
-        question_id: answer.question_id,
-        option_id: answer.option_id ?? null,
-        answer_text: answer.answer_text ?? null,
-        matrix_column: matrixColumn,
-      },
-      { onConflict: "candidate_id,question_id,matrix_column" }
-    );
+  if (answers.length > 0) {
+    const rows = answers.map((answer) => ({
+      candidate_id: candidateId,
+      question_id: answer.question_id,
+      option_id: answer.option_id ?? null,
+      answer_text: answer.answer_text ?? null,
+      matrix_column:
+        answer.matrix_column && answer.matrix_column >= 1 ? answer.matrix_column : 0,
+    }));
+    const { error: upsertError } = await supabase
+      .from("candidate_matrix_answers")
+      .upsert(rows, { onConflict: "candidate_id,question_id,matrix_column" });
+    if (upsertError) return { error: upsertError.message };
   }
 
   revalidatePath("/candidate/matrix");

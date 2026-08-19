@@ -88,7 +88,7 @@ export default async function JobMatchingPage({
       ? supabase
           .from("candidate_profiles")
           .select("id, full_name, years_of_experience, highest_education, skills, form_data")
-          .in("id", candidateIds)
+          .in("id", candidateIds.slice(0, 50))
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
   ]);
 

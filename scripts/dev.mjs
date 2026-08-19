@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, "..");
 const isSyncedFolder = /OneDrive/i.test(projectRoot);
-const useWebpack = process.argv.includes("--webpack") || isSyncedFolder;
+const useWebpack = process.argv.includes("--webpack");
 const shouldClean = process.argv.includes("--clean");
 
 function stopDevServers() {
@@ -49,9 +49,6 @@ if (shouldClean) {
 const nextArgs = ["dev"];
 if (useWebpack) {
   nextArgs.push("--webpack");
-  if (isSyncedFolder) {
-    console.log("Using webpack dev server (OneDrive-safe).");
-  }
 }
 
 await run("npx", ["next", ...nextArgs]);

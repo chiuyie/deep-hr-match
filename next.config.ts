@@ -22,8 +22,8 @@ const nextConfig: NextConfig = {
   },
   webpack: (config, { dev }) => {
     if (dev && isSyncedFolder) {
-      // Persistent webpack cache corrupts when OneDrive locks files mid-write.
-      config.cache = false;
+      // Filesystem cache corrupts when OneDrive locks files; use memory cache instead.
+      config.cache = { type: "memory" };
     }
     return config;
   },
