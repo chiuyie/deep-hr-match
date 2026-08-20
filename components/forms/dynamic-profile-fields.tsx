@@ -6,6 +6,10 @@ import {
 } from "@/components/forms/candidate-profile-field";
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
 import { resolveSelectOptions } from "@/lib/form-fields/select-options";
+import {
+  CANDIDATE_CUSTOM_STORED_FIELD_KEYS,
+  CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS,
+} from "@/lib/constants/job-form";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -18,9 +22,12 @@ export type ProfileFieldSection = {
 };
 
 function getDefaultValue(field: FormFieldDefinition, values: ProfileValues): string {
-  const raw = field.is_custom
-    ? (values.custom_fields as Record<string, unknown> | undefined)?.[field.field_key]
-    : values[field.field_key];
+  const customFields =
+    (values.custom_fields as Record<string, unknown> | undefined) ?? undefined;
+  const raw =
+    field.is_custom || CANDIDATE_CUSTOM_STORED_FIELD_KEYS.has(field.field_key)
+      ? customFields?.[field.field_key] ?? values[field.field_key]
+      : values[field.field_key];
 
   if (Array.isArray(raw)) return JSON.stringify(raw);
   if (raw === null || raw === undefined) return "";
@@ -109,7 +116,8 @@ function isWideCandidateField(field: FormFieldDefinition): boolean {
     field.field_type === "textarea" ||
     field.field_key === "skills" ||
     field.field_key === "certifications" ||
-    field.field_key === "languages"
+    field.field_key === "languages" ||
+    CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS.has(field.field_key)
   );
 }
 

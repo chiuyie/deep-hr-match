@@ -45,6 +45,44 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
       "availability",
     ],
   },
+  {
+    id: "matching-details",
+    title: "Matching details",
+    description:
+      "Optional — fill these in so employers’ matching filters can include you. Leave blank if you prefer not to share.",
+    fieldKeys: [
+      "age_range",
+      "employment_eligibility_visa",
+      "nationality",
+      "ethnicity",
+      "gender",
+      "race",
+      "religion",
+      "birth_country",
+      "months_in_current_country",
+      "dialect",
+      "height",
+      "weight",
+      "fitness_level",
+    ],
+  },
+  {
+    id: "role-requirements",
+    title: "Role requirements",
+    description:
+      "Answer Yes or No so employers can filter roles that match what you can take on.",
+    fieldKeys: [
+      "willing_overtime",
+      "work_outside_standard_hours",
+      "weekend_public_holiday_work",
+      "driving_licence",
+      "car_ownership",
+      "work_related_travel",
+      "willing_relocate",
+      "willing_background_check",
+      "accessibility_arrangements_required",
+    ],
+  },
 ];
 
 export const CANDIDATE_ADDITIONAL_SECTION: ProfileSectionDef = {

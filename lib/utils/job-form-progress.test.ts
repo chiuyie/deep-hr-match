@@ -68,13 +68,15 @@ describe("job-form-progress", () => {
         required_fitness_level: JOB_FORM_NO_FILTER_VALUE,
         required_nationality: JOB_FORM_NO_FILTER_VALUE,
         required_work_arrangement: JOB_FORM_NO_FILTER_VALUE,
-        faq_work_life_balance: true,
+        faq_willing_overtime: true,
+        faq_work_outside_standard_hours: false,
+        faq_weekend_public_holiday_work: true,
         faq_driving_licence: false,
         faq_car_ownership: false,
-        faq_willing_overtime: true,
-        faq_need_disability_support: true,
+        faq_work_related_travel: true,
         faq_willing_relocate: false,
         faq_willing_background_check: true,
+        faq_accessibility_arrangements_required: false,
         desired_minimum_salary: "9000",
         desired_maximum_salary: "5000",
       }).ok
@@ -85,7 +87,7 @@ describe("job-form-progress", () => {
     const values = {
       job_title: "Engineer",
       job_description: "Build things",
-      faq_work_life_balance: true,
+      faq_willing_overtime: true,
     };
     const progress = getJobFormSectionsProgress(values, 2);
     expect(progress.total).toBe(6);

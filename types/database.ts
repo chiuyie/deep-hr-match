@@ -48,6 +48,7 @@ export interface CandidateProfile {
   employment_type_preference: string | null;
   work_arrangement_preference: string | null;
   availability: string | null;
+  custom_fields?: Record<string, unknown> | null;
   status: CandidateStatus;
   completion_percentage: number;
   created_at: string;

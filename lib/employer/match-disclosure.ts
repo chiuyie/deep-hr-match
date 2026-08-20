@@ -1,4 +1,5 @@
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
+import { CANDIDATE_CUSTOM_STORED_FIELD_KEYS } from "@/lib/constants/job-form";
 
 const DEFAULT_ANONYMOUS_FIELD_KEYS = new Set([
   "years_of_experience",
@@ -37,10 +38,10 @@ export function getCandidateFieldRawValue(
   profile: Record<string, unknown> | null | undefined
 ): unknown {
   if (!profile) return null;
-  if (field.is_custom) {
-    const customFields =
-      (profile.custom_fields as Record<string, unknown> | null | undefined) ?? undefined;
-    return customFields?.[field.field_key] ?? null;
+  const customFields =
+    (profile.custom_fields as Record<string, unknown> | null | undefined) ?? undefined;
+  if (field.is_custom || CANDIDATE_CUSTOM_STORED_FIELD_KEYS.has(field.field_key)) {
+    return customFields?.[field.field_key] ?? profile[field.field_key] ?? null;
   }
   return profile[field.field_key] ?? null;
 }

@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getDefaultFormFields } from "@/lib/form-fields/defaults";
 import { groupFormFieldsBySection } from "@/lib/form-fields/grouping";
 import {
@@ -25,6 +25,11 @@ import type {
 } from "@/lib/form-fields/types";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+type SupabaseWriteClient = Awaited<ReturnType<typeof createServiceClient>>;
+
+async function getFormFieldsWriteClient(): Promise<SupabaseWriteClient> {
+  return createServiceClient();
+}
 
 function groupBySection(fields: FormFieldDefinition[]): FormFieldSectionGroup[] {
   return groupFormFieldsBySection(fields);
@@ -52,7 +57,7 @@ function defaultRow(field: ReturnType<typeof getDefaultFormFields>[number]) {
 }
 
 export async function ensureFormFieldsSeeded() {
-  const supabase = await createClient();
+  const supabase = await getFormFieldsWriteClient();
   const { count } = await supabase
     .from("form_fields")
     .select("id", { count: "exact", head: true });
@@ -64,7 +69,7 @@ export async function ensureFormFieldsSeeded() {
 }
 
 async function ensureFormSectionsReady() {
-  const supabase = await createClient();
+  const supabase = await getFormFieldsWriteClient();
   const audiences: Array<{ audience: FormFieldAudience; formGroup: FormFieldGroup }> = [
     { audience: "candidate", formGroup: "profile" },
     { audience: "employer", formGroup: "profile" },
@@ -116,11 +121,6 @@ async function ensureFormSectionsReady() {
       let order = 1;
       for (const title of defaults) {
         if (existingTitles.has(title)) {
-          order += 1;
-          continue;
-        }
-        // Only auto-seed default titles when the form has no sections yet.
-        if ((existing ?? []).length > 0 && !fromFields.has(title)) {
           order += 1;
           continue;
         }
@@ -204,7 +204,7 @@ function groupFieldsIntoSections(
   return ordered;
 }
 
-async function probeNeedsFormFieldMigration(supabase: SupabaseServerClient): Promise<boolean> {
+async function probeNeedsFormFieldMigration(supabase: SupabaseWriteClient): Promise<boolean> {
   const legacyMatrixTitle = `${FRAMEWORK_MATCHING_LANGUAGE} (optional)`;
   const { data } = await supabase
     .from("form_fields")
@@ -232,7 +232,7 @@ async function probeNeedsFormFieldMigration(supabase: SupabaseServerClient): Pro
   return (legacyLabels?.length ?? 0) > 0;
 }
 
-async function runFormFieldMigrations(supabase: SupabaseServerClient) {
+async function runFormFieldMigrations(supabase: SupabaseWriteClient) {
   // Keep Skills / Certifications / Languages labels clean (no legacy suffix).
   await Promise.all([
     supabase
@@ -420,11 +420,9 @@ export function invalidateFormFieldCaches() {
 }
 
 export const ensureFormFieldsReady = cache(async function ensureFormFieldsReady() {
-  if (formFieldsEnsured) return;
-
   await ensureFormFieldsSeeded();
 
-  const supabase = await createClient();
+  const supabase = await getFormFieldsWriteClient();
   const { data: existing } = await supabase
     .from("form_fields")
     .select("audience, form_group, field_key");
@@ -441,8 +439,18 @@ export const ensureFormFieldsReady = cache(async function ensureFormFieldsReady(
     .map(defaultRow);
 
   if (missing.length > 0) {
-    await supabase.from("form_fields").insert(missing);
+    const { error } = await supabase.from("form_fields").insert(missing);
+    if (error) {
+      console.error("[form-fields] Failed to insert missing defaults:", error.message);
+    } else {
+      formFieldsMemory.clear();
+    }
   }
+
+  // Always keep section order in sync — new profile sections/fields may ship after first boot.
+  await ensureFormSectionsReady();
+
+  if (formFieldsEnsured) return;
 
   const needsMigration =
     missing.length > 0 || (await probeNeedsFormFieldMigration(supabase));
@@ -450,7 +458,6 @@ export const ensureFormFieldsReady = cache(async function ensureFormFieldsReady(
     await runFormFieldMigrations(supabase);
   }
 
-  await ensureFormSectionsReady();
   formFieldsEnsured = true;
 });
 

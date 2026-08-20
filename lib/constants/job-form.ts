@@ -173,17 +173,155 @@ export const JOB_ELIMINATION_FIELDS = [
 ] as const;
 
 export const JOB_BACKGROUND_QUESTIONS = [
+  { name: "faq_willing_overtime", label: "Is overtime required for this role?" },
   {
-    name: "faq_work_life_balance",
-    label: "Does this role generally provide a good work-life balance?",
+    name: "faq_work_outside_standard_hours",
+    label: "Is work outside standard working hours required?",
   },
-  { name: "faq_driving_licence", label: "Is a driving licence required?" },
-  { name: "faq_car_ownership", label: "Is car ownership required?" },
-  { name: "faq_willing_overtime", label: "Must candidates be willing to work overtime?" },
-  { name: "faq_need_disability_support", label: "Will the role provide disability support if needed?" },
-  { name: "faq_willing_relocate", label: "Must candidates be willing to relocate?" },
-  { name: "faq_willing_background_check", label: "Must candidates agree to a background check?" },
+  {
+    name: "faq_weekend_public_holiday_work",
+    label: "Is weekend or public holiday work required?",
+  },
+  { name: "faq_driving_licence", label: "Is a valid driving licence required?" },
+  { name: "faq_car_ownership", label: "Is access to a personal vehicle required?" },
+  { name: "faq_work_related_travel", label: "Is work-related travel required?" },
+  {
+    name: "faq_willing_relocate",
+    label: "Is the candidate required to be willing to relocate?",
+  },
+  {
+    name: "faq_willing_background_check",
+    label: "Is the candidate required to undergo a background check?",
+  },
+  {
+    name: "faq_accessibility_arrangements_required",
+    label: "Are specific workplace accessibility arrangements required?",
+  },
 ] as const;
+
+/** Candidate Yes/No answers stored in `custom_fields` and used as hard match filters. */
+export const CANDIDATE_ROLE_REQUIREMENT_QUESTIONS = [
+  { name: "willing_overtime", label: "Are you willing to work overtime?" },
+  {
+    name: "work_outside_standard_hours",
+    label: "Are you willing to work outside standard working hours?",
+  },
+  {
+    name: "weekend_public_holiday_work",
+    label: "Are you willing to work on weekends or public holidays?",
+  },
+  { name: "driving_licence", label: "Do you have a valid driving licence?" },
+  { name: "car_ownership", label: "Do you have access to a personal vehicle?" },
+  {
+    name: "work_related_travel",
+    label: "Are you willing to undertake work-related travel?",
+  },
+  { name: "willing_relocate", label: "Are you willing to relocate?" },
+  {
+    name: "willing_background_check",
+    label: "Are you willing to undergo a background check?",
+  },
+  {
+    name: "accessibility_arrangements_required",
+    label: "Do you require specific workplace accessibility arrangements?",
+  },
+] as const;
+
+export const CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS: Set<string> = new Set(
+  CANDIDATE_ROLE_REQUIREMENT_QUESTIONS.map((question) => question.name)
+);
+
+export const YES_NO_OPTIONS = ["Yes", "No"] as const;
+
+function eliminationOptionsWithoutNoPreference(
+  fieldName: (typeof JOB_ELIMINATION_FIELDS)[number]["name"]
+): string[] {
+  const field = JOB_ELIMINATION_FIELDS.find((item) => item.name === fieldName);
+  return (field?.options ?? []).filter((option) => option !== JOB_FORM_NO_FILTER_VALUE);
+}
+
+/**
+ * Candidate attributes used by employer Matching filters.
+ * Stored in `custom_fields` (not top-level profile columns).
+ * Options mirror employer elimination fields (without "No preference").
+ */
+export const CANDIDATE_MATCHING_ATTRIBUTE_FIELDS = [
+  {
+    name: "age_range",
+    label: "Age range",
+    options: eliminationOptionsWithoutNoPreference("required_age"),
+  },
+  {
+    name: "employment_eligibility_visa",
+    label: "Work pass / eligibility",
+    options: eliminationOptionsWithoutNoPreference("required_employment_eligibility_visa"),
+  },
+  {
+    name: "nationality",
+    label: "Nationality",
+    options: eliminationOptionsWithoutNoPreference("required_nationality"),
+  },
+  {
+    name: "ethnicity",
+    label: "Ethnicity",
+    options: eliminationOptionsWithoutNoPreference("required_ethnicity"),
+  },
+  {
+    name: "gender",
+    label: "Gender",
+    options: eliminationOptionsWithoutNoPreference("required_gender"),
+  },
+  {
+    name: "race",
+    label: "Race",
+    options: eliminationOptionsWithoutNoPreference("required_race"),
+  },
+  {
+    name: "religion",
+    label: "Religion",
+    options: eliminationOptionsWithoutNoPreference("required_religion"),
+  },
+  {
+    name: "birth_country",
+    label: "Birth country",
+    options: eliminationOptionsWithoutNoPreference("required_birth_country"),
+  },
+  {
+    name: "months_in_current_country",
+    label: "Time in current country",
+    options: eliminationOptionsWithoutNoPreference("required_months_in_current_country"),
+  },
+  {
+    name: "dialect",
+    label: "Dialect",
+    options: eliminationOptionsWithoutNoPreference("required_dialect"),
+  },
+  {
+    name: "height",
+    label: "Height",
+    options: eliminationOptionsWithoutNoPreference("required_height"),
+  },
+  {
+    name: "weight",
+    label: "Weight",
+    options: eliminationOptionsWithoutNoPreference("required_weight"),
+  },
+  {
+    name: "fitness_level",
+    label: "Fitness level",
+    options: eliminationOptionsWithoutNoPreference("required_fitness_level"),
+  },
+] as const;
+
+export const CANDIDATE_MATCHING_ATTRIBUTE_FIELD_KEYS: Set<string> = new Set(
+  CANDIDATE_MATCHING_ATTRIBUTE_FIELDS.map((field) => field.name)
+);
+
+/** Built-in candidate fields that persist via `custom_fields` instead of profile columns. */
+export const CANDIDATE_CUSTOM_STORED_FIELD_KEYS: Set<string> = new Set([
+  ...CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS,
+  ...CANDIDATE_MATCHING_ATTRIBUTE_FIELD_KEYS,
+]);
 
 export type PreferredFieldConfig = {
   name: string;

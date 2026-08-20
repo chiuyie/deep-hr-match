@@ -14,9 +14,15 @@ type JobAnswer = {
 type CandidateAnswer = JobAnswer & { candidate_id: string };
 
 type Fixture = {
-  job: { id: string; employer_id: string } | null;
+  job: { id: string; employer_id: string; form_data?: Record<string, unknown> } | null;
   jobAnswers: JobAnswer[];
-  candidates: { id: string; status: string }[];
+  candidates: Array<{
+    id: string;
+    status: string;
+    custom_fields?: Record<string, unknown>;
+    country?: string;
+    availability?: string;
+  }>;
   candidateAnswers: CandidateAnswer[];
 };
 
@@ -208,6 +214,36 @@ describe("generatePlaceholderMatches", () => {
         employerId: "emp-1",
       })
     ).rejects.toThrow(/7\^7 matching language/);
+  });
+
+  it("excludes candidates who fail matching filters before ranking", async () => {
+    const { supabase, getInserted } = createSupabaseMock({
+      job: {
+        id: "job-1",
+        employer_id: "emp-1",
+        form_data: { required_nationality: "Singaporean" },
+      },
+      jobAnswers: [{ question_id: "q1", option_id: "a", matrix_column: 1 }],
+      candidates: [
+        { id: "cand-keep", status: "ready_for_matching", custom_fields: { nationality: "Singaporean" } },
+        { id: "cand-drop", status: "ready_for_matching", custom_fields: { nationality: "Malaysian" } },
+        { id: "cand-missing", status: "ready_for_matching" },
+      ],
+      candidateAnswers: [
+        { candidate_id: "cand-keep", question_id: "q1", option_id: "a", matrix_column: 1 },
+        { candidate_id: "cand-drop", question_id: "q1", option_id: "a", matrix_column: 1 },
+        { candidate_id: "cand-missing", question_id: "q1", option_id: "a", matrix_column: 1 },
+      ],
+    });
+
+    const { count, results } = await generatePlaceholderMatches(supabase, {
+      jobId: "job-1",
+      employerId: "emp-1",
+    });
+
+    expect(count).toBe(1);
+    expect(results?.map((r) => r.candidate_id)).toEqual(["cand-keep"]);
+    expect(getInserted()).toHaveLength(1);
   });
 
   it("caps inserted rows at MATCH_DISPLAY_LIMIT", async () => {

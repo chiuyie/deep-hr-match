@@ -19,6 +19,7 @@
     "seed-dummy-users": "node scripts/seed-dummy-users.mjs",
     "reseed-complete-demo-data": "node scripts/reseed-complete-demo-data.mjs",
     "seed-matrix-77": "node scripts/seed-matrix-77-placeholder.mjs",
+    "sync-form-fields": "npx tsx scripts/sync-form-fields.mjs",
     "generate-geo": "node scripts/generate-world-countries.mjs"
   },
   "dependencies": {

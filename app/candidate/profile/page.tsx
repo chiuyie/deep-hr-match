@@ -4,7 +4,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CandidateProfileForm } from "@/components/candidate/candidate-profile-form";
 import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { loadFormFields, loadFormSectionTitles } from "@/lib/form-fields/queries";
+import {
+  ensureFormFieldsReady,
+  loadFormFields,
+  loadFormSectionTitles,
+} from "@/lib/form-fields/queries";
 import { groupCandidateProfileFields } from "@/lib/candidate/profile-sections";
 import {
   fetchCandidateOnboardingState,
@@ -25,6 +29,7 @@ export default async function CandidateProfilePage({
   const supabase = await createClient();
   const params = await searchParams;
 
+  await ensureFormFieldsReady();
   const [fields, sectionOrder, profile] = await Promise.all([
     loadFormFields({ audience: "candidate", formGroup: "profile" }),
     loadFormSectionTitles("candidate", "profile"),

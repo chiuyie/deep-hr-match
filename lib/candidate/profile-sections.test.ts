@@ -29,5 +29,9 @@ describe("candidate profile sections", () => {
   it("maps built-in field keys to section titles", () => {
     expect(profileFieldGroupTitle("full_name")).toBe("About you");
     expect(profileFieldGroupTitle("skills")).toBe("Experience & skills");
+    expect(profileFieldGroupTitle("nationality")).toBe("Matching details");
+    expect(profileFieldGroupTitle("age_range")).toBe("Matching details");
+    expect(profileFieldGroupTitle("willing_overtime")).toBe("Role requirements");
+    expect(profileFieldGroupTitle("driving_licence")).toBe("Role requirements");
   });
 });

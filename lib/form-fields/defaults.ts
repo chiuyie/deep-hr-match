@@ -1,8 +1,11 @@
 import {
+  CANDIDATE_MATCHING_ATTRIBUTE_FIELDS,
+  CANDIDATE_ROLE_REQUIREMENT_QUESTIONS,
   JOB_BACKGROUND_QUESTIONS,
   JOB_ELIMINATION_FIELDS,
   JOB_FORM_SECTIONS,
   JOB_PREFERRED_FIELDS,
+  YES_NO_OPTIONS,
 } from "@/lib/constants/job-form";
 import {
   CANDIDATE_PROFILE_SECTIONS,
@@ -25,7 +28,10 @@ export type DefaultFormFieldInput = {
 };
 
 function candidateProfileFields(): DefaultFormFieldInput[] {
-  const labelByKey: Record<string, { label: string; field_type?: FormFieldType; is_required?: boolean }> = {
+  const labelByKey: Record<
+    string,
+    { label: string; field_type?: FormFieldType; is_required?: boolean; options?: string[] }
+  > = {
     full_name: { label: "Full Name", is_required: true },
     email: { label: "Email", field_type: "email", is_required: true },
     phone: { label: "Phone", field_type: "tel" },
@@ -44,6 +50,24 @@ function candidateProfileFields(): DefaultFormFieldInput[] {
     availability: { label: "Availability", field_type: "select" },
   };
 
+  for (const question of CANDIDATE_ROLE_REQUIREMENT_QUESTIONS) {
+    labelByKey[question.name] = {
+      label: question.label,
+      field_type: "select",
+      is_required: true,
+      options: [...YES_NO_OPTIONS],
+    };
+  }
+
+  for (const field of CANDIDATE_MATCHING_ATTRIBUTE_FIELDS) {
+    labelByKey[field.name] = {
+      label: field.label,
+      field_type: "select",
+      is_required: false,
+      options: [...field.options],
+    };
+  }
+
   let order = 1;
   const fields: DefaultFormFieldInput[] = [];
   for (const section of CANDIDATE_PROFILE_SECTIONS) {
@@ -58,9 +82,10 @@ function candidateProfileFields(): DefaultFormFieldInput[] {
         label: meta.label,
         field_type: meta.field_type,
         options:
-          meta.field_type === "select"
+          meta.options ??
+          (meta.field_type === "select"
             ? [...(DEFAULT_SELECT_OPTIONS_BY_KEY[field_key] ?? [])]
-            : undefined,
+            : undefined),
         is_required: meta.is_required,
         sort_order: order++,
       });

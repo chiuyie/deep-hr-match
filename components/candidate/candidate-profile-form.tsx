@@ -9,7 +9,9 @@ import {
   Check,
   CheckCircle2,
   CircleAlert,
+  ClipboardList,
   Coins,
+  IdCard,
   Loader2,
   MapPin,
   Sparkles,
@@ -35,7 +37,7 @@ import {
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
 import { cn } from "@/lib/utils";
 
-const SECTION_ICONS = [UserRound, Briefcase, Coins, MapPin, Sparkles] as const;
+const SECTION_ICONS = [UserRound, Briefcase, Coins, MapPin, IdCard, ClipboardList, Sparkles] as const;
 
 type CandidateProfileFormProps = {
   values: Record<string, unknown>;

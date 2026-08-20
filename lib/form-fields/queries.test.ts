@@ -15,6 +15,7 @@ const mockCreateClient = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: () => mockCreateClient(),
+  createServiceClient: () => mockCreateClient(),
 }));
 
 type QueryResult = { data?: unknown; count?: number | null; error?: null };

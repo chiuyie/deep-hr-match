@@ -450,13 +450,15 @@ export function JobCreationFormSectionBody({
                   }
                   highlightIncomplete={highlightIncompleteFaqs}
                   icon={
-                    question.name === "faq_work_life_balance" ? (
-                      <Heart className="h-5 w-5" />
-                    ) : question.name.includes("driving") || question.name.includes("car") ? (
+                    question.name.includes("driving") || question.name.includes("car") ? (
                       <Car className="h-5 w-5" />
-                    ) : question.name.includes("overtime") ? (
+                    ) : question.name.includes("overtime") ||
+                      question.name.includes("outside_standard_hours") ||
+                      question.name.includes("weekend_public_holiday_work") ? (
                       <Clock className="h-5 w-5" />
-                    ) : question.name.includes("disability") ? (
+                    ) : question.name.includes("travel") ? (
+                      <MapPin className="h-5 w-5" />
+                    ) : question.name.includes("accessibility") ? (
                       <Heart className="h-5 w-5" />
                     ) : question.name.includes("relocate") ? (
                       <MapPin className="h-5 w-5" />

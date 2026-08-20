@@ -6,6 +6,7 @@ import {
   normalizePhoneToE164,
   parseSalaryValue,
 } from "@/lib/constants/candidate-profile-options";
+import { CANDIDATE_CUSTOM_STORED_FIELD_KEYS } from "@/lib/constants/job-form";
 import {
   validateCandidateField,
   type ValidateFieldContext,
@@ -221,7 +222,7 @@ export function normalizeCandidateProfilePayload(
         }
       }
     }
-    return next;
+    return foldCandidateCustomStoredFields(next);
   }
 
   // Legacy path when field defs are unavailable
@@ -245,5 +246,41 @@ export function normalizeCandidateProfilePayload(
     next.phone = normalized ?? next.phone.trim();
   }
 
+  return foldCandidateCustomStoredFields(next);
+}
+
+/**
+ * Matching-attribute and role-requirement fields are built-in in the UI, but
+ * stored in `custom_fields` because they are not top-level DB columns.
+ */
+export function foldCandidateCustomStoredFields(
+  data: Record<string, unknown>
+): Record<string, unknown> {
+  const next = { ...data };
+  const existing =
+    next.custom_fields &&
+    typeof next.custom_fields === "object" &&
+    !Array.isArray(next.custom_fields)
+      ? { ...(next.custom_fields as Record<string, unknown>) }
+      : {};
+
+  for (const key of CANDIDATE_CUSTOM_STORED_FIELD_KEYS) {
+    if (!(key in next)) continue;
+    const value = next[key];
+    delete next[key];
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (!text) continue;
+    existing[key] = text;
+  }
+
+  next.custom_fields = existing;
   return next;
+}
+
+/** @deprecated Prefer foldCandidateCustomStoredFields */
+export function foldCandidateRoleRequirementsIntoCustomFields(
+  data: Record<string, unknown>
+): Record<string, unknown> {
+  return foldCandidateCustomStoredFields(data);
 }

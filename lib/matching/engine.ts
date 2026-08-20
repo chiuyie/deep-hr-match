@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { filterCandidatesForJob } from "@/lib/matching/job-filters";
 import {
   scoreMatrixMatch,
   type MatrixAnswerPick,
@@ -87,18 +88,50 @@ export async function generatePlaceholderMatches(
     await Promise.all([
       supabase.from("jobs").select("*").eq("id", jobId).eq("employer_id", employerId).single(),
       supabase.from("job_matrix_answers").select("question_id, option_id, matrix_column").eq("job_id", jobId),
-      supabase.from("candidate_profiles").select("id").eq("status", "ready_for_matching"),
+      supabase
+        .from("candidate_profiles")
+        .select(
+          "id, years_of_experience, highest_education, skills, languages, country, city, availability, work_arrangement_preference, custom_fields"
+        )
+        .eq("status", "ready_for_matching"),
     ]);
 
   if (jobError || !job) {
     throw new Error("Job not found or access denied");
   }
 
-  if (!candidates?.length) {
+  const jobPicks: MatrixAnswerPick[] = (jobAnswers ?? []).map((a) => ({
+    question_id: a.question_id,
+    option_id: a.option_id,
+    matrix_column: a.matrix_column,
+  }));
+  const jobHasMatrix = jobPicks.some((a) => a.option_id);
+  if (!jobHasMatrix) {
+    throw new Error(
+      "Job has no 7^7 matching language answers. Complete the form before generating matches."
+    );
+  }
+
+  const eligibleCandidates = filterCandidatesForJob(job, candidates ?? []);
+
+  const generatedAt = new Date().toISOString();
+
+  const { error: deleteError } = await supabase
+    .from("match_results")
+    .delete()
+    .eq("job_id", jobId);
+
+  if (deleteError) {
+    throw new Error(
+      `Could not clear previous match snapshot: ${deleteError.message}`
+    );
+  }
+
+  if (!eligibleCandidates.length) {
     return { count: 0, results: [] };
   }
 
-  const candidateIds = candidates.map((c) => c.id);
+  const candidateIds = eligibleCandidates.map((c) => c.id);
   const { data: candidateAnswers } = await supabase
     .from("candidate_matrix_answers")
     .select("candidate_id, question_id, option_id, matrix_column")
@@ -115,32 +148,7 @@ export async function generatePlaceholderMatches(
     answersByCandidate.set(row.candidate_id, list);
   }
 
-  const jobPicks: MatrixAnswerPick[] = (jobAnswers ?? []).map((a) => ({
-    question_id: a.question_id,
-    option_id: a.option_id,
-    matrix_column: a.matrix_column,
-  }));
-  const jobHasMatrix = jobPicks.some((a) => a.option_id);
-  if (!jobHasMatrix) {
-    throw new Error(
-      "Job has no 7^7 matching language answers. Complete the form before generating matches."
-    );
-  }
-
-  const generatedAt = new Date().toISOString();
-
-  const { error: deleteError } = await supabase
-    .from("match_results")
-    .delete()
-    .eq("job_id", jobId);
-
-  if (deleteError) {
-    throw new Error(
-      `Could not clear previous match snapshot: ${deleteError.message}`
-    );
-  }
-
-  const results = candidates.map((candidate) => {
+  const results = eligibleCandidates.map((candidate) => {
     const { matrixScore, matchedCount, totalCount, columnScores } = scoreMatrixMatch(
       jobPicks,
       answersByCandidate.get(candidate.id) ?? []

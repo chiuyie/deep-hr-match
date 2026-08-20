@@ -4,6 +4,11 @@ import {
   HIGHEST_EDUCATION_OPTIONS,
   WORK_ARRANGEMENT_OPTIONS,
 } from "@/lib/constants/candidate-profile-options";
+import {
+  CANDIDATE_MATCHING_ATTRIBUTE_FIELDS,
+  CANDIDATE_ROLE_REQUIREMENT_QUESTIONS,
+  YES_NO_OPTIONS,
+} from "@/lib/constants/job-form";
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
 
 /** Built-in profile select defaults used when DB options are empty. */
@@ -12,6 +17,12 @@ export const DEFAULT_SELECT_OPTIONS_BY_KEY: Record<string, readonly string[]> = 
   employment_type_preference: EMPLOYMENT_TYPE_OPTIONS,
   work_arrangement_preference: WORK_ARRANGEMENT_OPTIONS,
   availability: AVAILABILITY_OPTIONS,
+  ...Object.fromEntries(
+    CANDIDATE_ROLE_REQUIREMENT_QUESTIONS.map((question) => [question.name, YES_NO_OPTIONS])
+  ),
+  ...Object.fromEntries(
+    CANDIDATE_MATCHING_ATTRIBUTE_FIELDS.map((field) => [field.name, field.options])
+  ),
 };
 
 export function normalizeSelectOptions(raw: unknown): string[] | null {
