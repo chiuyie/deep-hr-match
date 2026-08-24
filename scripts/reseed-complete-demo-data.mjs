@@ -312,6 +312,34 @@ function buildCandidateLanguages(index) {
 }
 
 function buildCandidateProfile([email, name, title, skills], index) {
+  const custom_fields = {
+    // Employer matching-filter attributes (stored in candidate_profiles.custom_fields)
+    age_range: ["18-25", "26-30", "31-35", "36-40"][index % 4],
+    employment_eligibility_visa: "Singapore citizen",
+    nationality: "Singaporean",
+    ethnicity: "Chinese",
+    gender: "Prefer not to say",
+    race: "Chinese",
+    religion: "No Religion",
+    birth_country: "Singapore",
+    months_in_current_country: "1-2 years",
+    dialect: "Mandarin",
+    height: "161-170cm",
+    weight: "61-70kg",
+    fitness_level: "Lightly Active",
+
+    // Role requirements (Yes/No stored as "Yes"/"No")
+    willing_overtime: "Yes",
+    work_outside_standard_hours: "Yes",
+    weekend_public_holiday_work: "Yes",
+    driving_licence: "Yes",
+    car_ownership: "Yes",
+    work_related_travel: "Yes",
+    willing_relocate: "Yes",
+    willing_background_check: "Yes",
+    accessibility_arrangements_required: "Yes",
+  };
+
   return {
     full_name: name,
     email,
@@ -327,8 +355,10 @@ function buildCandidateProfile([email, name, title, skills], index) {
     current_salary: `SGD ${(5000 + index * 450).toLocaleString()}`,
     expected_salary: `SGD ${(6500 + index * 500).toLocaleString()} - ${(8000 + index * 550).toLocaleString()}`,
     employment_type_preference: "Full-time",
-    work_arrangement_preference: ["Hybrid", "On-site", "Remote"][index % 3],
-    availability: ["Immediate", "2 weeks notice", "1 month notice"][index % 3],
+    // Must align with employer elimination filter option strings.
+    work_arrangement_preference: ["Hybrid", "On-site", "Fully remote"][index % 3],
+    availability: ["Immediate", "1 week", "2 weeks", "1 month"][index % 4],
+    custom_fields,
     status: "ready_for_matching",
     completion_percentage: 100,
   };
