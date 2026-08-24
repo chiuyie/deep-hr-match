@@ -83,6 +83,15 @@ describe("job matching filters", () => {
     ).toBe("language_needs");
   });
 
+  it("reads languages stored as JSON strings (text[] seed shape)", () => {
+    const job = { form_data: { language_needs: ["English"] } };
+    expect(
+      candidatePassesJobFilters(job, {
+        languages: ['{"language":"English","proficiency":"Fluent"}'],
+      })
+    ).toBe(true);
+  });
+
   it("filters matching attributes from candidate custom_fields", () => {
     const job = {
       form_data: {

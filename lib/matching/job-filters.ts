@@ -158,7 +158,18 @@ function parseBoolean(value: unknown): boolean | null {
 function candidateLanguages(candidate: CandidateFilterSource): string[] {
   return (candidate.languages ?? [])
     .map((entry) => {
-      if (typeof entry === "string") return normalize(entry);
+      if (typeof entry === "string") {
+        const trimmed = entry.trim();
+        if (trimmed.startsWith("{")) {
+          try {
+            const parsed = JSON.parse(trimmed) as { language?: unknown };
+            return normalize(parsed?.language ?? trimmed);
+          } catch {
+            return normalize(trimmed);
+          }
+        }
+        return normalize(trimmed);
+      }
       return normalize(entry?.language);
     })
     .filter(Boolean);

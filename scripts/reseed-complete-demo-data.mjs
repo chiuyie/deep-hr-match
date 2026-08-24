@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { candidatePassesJobFilters } from "../lib/matching/job-filters.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const envPath = join(__dirname, "..", ".env.local");
@@ -299,14 +300,14 @@ async function createAuthUser({ email, name, role }) {
 }
 
 function buildCandidateLanguages(index) {
+  // Demo jobs require English (some also Mandarin / Malay). Extra languages do not fail filters.
   return [
+    { language: "English", proficiency: "Fluent" },
+    { language: "Mandarin Chinese", proficiency: PROFICIENCIES[index % PROFICIENCIES.length] },
+    { language: "Malay", proficiency: PROFICIENCIES[(index + 1) % PROFICIENCIES.length] },
     {
-      language: LANGUAGE_OPTIONS[index % LANGUAGE_OPTIONS.length],
-      proficiency: PROFICIENCIES[index % PROFICIENCIES.length],
-    },
-    {
-      language: LANGUAGE_OPTIONS[(index + 3) % LANGUAGE_OPTIONS.length],
-      proficiency: PROFICIENCIES[(index + 1) % PROFICIENCIES.length],
+      language: LANGUAGE_OPTIONS[(index + 4) % LANGUAGE_OPTIONS.length],
+      proficiency: PROFICIENCIES[(index + 2) % PROFICIENCIES.length],
     },
   ];
 }
@@ -578,7 +579,7 @@ function buildJobFormData(jobTemplate, employer, templateIndex) {
     desired_minimum_salary: String(4500 + templateIndex * 700 + employer.index * 150),
     desired_maximum_salary: String(7000 + templateIndex * 900 + employer.index * 200),
     benefits_package: BENEFITS.slice(0, 3 + (templateIndex % 3)),
-    required_availability: ["Immediate", "1 week", "2 weeks", "1 Month"][templateIndex % 4],
+    required_availability: NO_PREFERENCE,
     required_age: NO_PREFERENCE,
     required_employment_eligibility_visa: "Singapore citizen",
     required_ethnicity: NO_PREFERENCE,
@@ -595,15 +596,17 @@ function buildJobFormData(jobTemplate, employer, templateIndex) {
     required_fitness_level: NO_PREFERENCE,
     required_nationality: NO_PREFERENCE,
     not_required_nationality: "Others",
-    required_work_arrangement: ["Hybrid", "On-site", "Fully Remote"][templateIndex % 3],
+    required_work_arrangement: NO_PREFERENCE,
     language_needs: jobTemplate.languageNeeds,
-    faq_work_life_balance: templateIndex % 2 === 0,
     faq_driving_licence: templateIndex === 4,
     faq_car_ownership: false,
     faq_willing_overtime: templateIndex % 2 === 1,
-    faq_need_disability_support: true,
+    faq_work_outside_standard_hours: false,
+    faq_weekend_public_holiday_work: false,
+    faq_work_related_travel: false,
     faq_willing_relocate: templateIndex === 2,
     faq_willing_background_check: true,
+    faq_accessibility_arrangements_required: false,
   };
 }
 
@@ -715,6 +718,20 @@ function scoreMatrixMatch(jobAnswers, candidateAnswers) {
 async function generateMatchesForJobs(jobs, candidates) {
   const candidateIds = candidates.map((c) => c.id);
   const jobIds = jobs.map((j) => j.id);
+
+  const [{ data: jobRows, error: jobError }, { data: candidateRows, error: profileError }] =
+    await Promise.all([
+      supabase.from("jobs").select("id, title, form_data").in("id", jobIds),
+      supabase
+        .from("candidate_profiles")
+        .select(
+          "id, years_of_experience, highest_education, skills, languages, country, city, availability, work_arrangement_preference, custom_fields"
+        )
+        .in("id", candidateIds),
+    ]);
+  if (jobError) throw jobError;
+  if (profileError) throw profileError;
+
   const { data: jobAnswers, error: jobAnswerError } = await supabase
     .from("job_matrix_answers")
     .select("job_id, question_id, option_id, matrix_column")
@@ -727,24 +744,35 @@ async function generateMatchesForJobs(jobs, candidates) {
     .in("candidate_id", candidateIds);
   if (candidateAnswerError) throw candidateAnswerError;
 
-  const jobMap = new Map();
+  const jobById = new Map((jobRows ?? []).map((row) => [row.id, row]));
+  const profileById = new Map((candidateRows ?? []).map((row) => [row.id, row]));
+
+  const jobAnswerMap = new Map();
   for (const row of jobAnswers ?? []) {
-    const list = jobMap.get(row.job_id) ?? [];
+    const list = jobAnswerMap.get(row.job_id) ?? [];
     list.push(row);
-    jobMap.set(row.job_id, list);
+    jobAnswerMap.set(row.job_id, list);
   }
-  const candidateMap = new Map();
+  const candidateAnswerMap = new Map();
   for (const row of candidateAnswers ?? []) {
-    const list = candidateMap.get(row.candidate_id) ?? [];
+    const list = candidateAnswerMap.get(row.candidate_id) ?? [];
     list.push(row);
-    candidateMap.set(row.candidate_id, list);
+    candidateAnswerMap.set(row.candidate_id, list);
   }
 
+  let inserted = 0;
   for (const job of jobs) {
     await supabase.from("match_results").delete().eq("job_id", job.id);
+    const jobRecord = jobById.get(job.id) ?? job;
+    const eligible = candidates.filter((candidate) =>
+      candidatePassesJobFilters(jobRecord, profileById.get(candidate.id) ?? candidate)
+    );
     const generatedAt = new Date().toISOString();
-    const rows = candidates.map((candidate) => {
-      const score = scoreMatrixMatch(jobMap.get(job.id) ?? [], candidateMap.get(candidate.id) ?? []);
+    const rows = eligible.map((candidate) => {
+      const score = scoreMatrixMatch(
+        jobAnswerMap.get(job.id) ?? [],
+        candidateAnswerMap.get(candidate.id) ?? []
+      );
       return {
         job_id: job.id,
         candidate_id: candidate.id,
@@ -757,11 +785,15 @@ async function generateMatchesForJobs(jobs, candidates) {
         match_summary: `7^7 match (equal column weights): ${score.matchedCount}/${score.totalCount} word picks aligned across ${score.columnCount} factor${score.columnCount === 1 ? "" : "s"} (${score.matrixScore}%).`,
         strengths:
           score.matchedCount > 0
-            ? [`${score.matchedCount} exact word match${score.matchedCount === 1 ? "" : "es"} at the same factor column and level`]
+            ? [
+                `${score.matchedCount} exact word match${score.matchedCount === 1 ? "" : "es"} at the same factor column and level`,
+              ]
             : [],
         gaps:
           score.totalCount - score.matchedCount > 0
-            ? [`${score.totalCount - score.matchedCount} word pick${score.totalCount - score.matchedCount === 1 ? "" : "s"} differ between job and candidate`]
+            ? [
+                `${score.totalCount - score.matchedCount} word pick${score.totalCount - score.matchedCount === 1 ? "" : "s"} differ between job and candidate`,
+              ]
             : [],
         ranking_position: 0,
         is_placeholder: false,
@@ -772,9 +804,13 @@ async function generateMatchesForJobs(jobs, candidates) {
     rows.forEach((row, index) => {
       row.ranking_position = index + 1;
     });
-    const { error } = await supabase.from("match_results").insert(rows);
-    if (error) throw error;
+    if (rows.length > 0) {
+      const { error } = await supabase.from("match_results").insert(rows);
+      if (error) throw error;
+      inserted += rows.length;
+    }
   }
+  return inserted;
 }
 
 async function summarizeResults(jobs) {
@@ -836,8 +872,8 @@ async function main() {
     jobs.push(...employerJobs);
   }
 
-  console.log("Generating match snapshots...");
-  await generateMatchesForJobs(jobs, candidates);
+  console.log("Generating match snapshots (hard filters applied)...");
+  const matchRowsInserted = await generateMatchesForJobs(jobs, candidates);
 
   console.log("Verifying results...");
   const summary = await summarizeResults(jobs);
@@ -849,7 +885,7 @@ async function main() {
         jobCount: jobs.length,
         candidateCount: candidates.length,
         matchResultRows: summary.totalMatchRows,
-        expectedMatchResultRows: jobs.length * candidates.length,
+        matchRowsInserted,
         employerLogins: employers.map((e) => ({ email: e.email, password })),
         candidateLogins: candidates.map((c) => ({ email: c.email, password })),
         sampleTopMatches: summary.sample,
