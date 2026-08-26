@@ -14,8 +14,24 @@ Run in order via Supabase SQL Editor (or `SUPABASE_DB_URL`):
 | 004 | `supabase/migrations/004_job_form_data.sql` | `jobs.form_data` JSONB column |
 | 005 | `supabase/migrations/005_role_security.sql` | Role-change protection, signup metadata trigger |
 | 006 | `supabase/migrations/006_fix_signup_trigger.sql` | **Required** — signup INSERT policies + hardened trigger |
+| 007 | `supabase/migrations/007_form_fields.sql` | Dynamic `form_fields` table |
+| 008 | `supabase/migrations/008_form_field_disclosure.sql` | Employer disclosure modes on form fields |
+| 009 | `supabase/migrations/009_matrix_word_description_sublevels.sql` | Matrix word/description sublevels |
+| 010 | `supabase/migrations/010_anonymous_match_disclosure.sql` | Anonymous match disclosure flags |
+| 011 | `supabase/migrations/011_platform_disclosure.sql` | Platform disclosure items |
+| 012 | `supabase/migrations/012_unlocked_matrix_answers_read.sql` | Unlocked matrix answer RLS |
+| 013 | `supabase/migrations/013_candidate_languages_jsonb.sql` | Candidate languages JSONB |
+| 014 | `supabase/migrations/014_matrix_answer_column.sql` | Matrix answer column shape |
+| 015 | `supabase/migrations/015_form_field_options.sql` | Select options on form fields |
+| 016 | `supabase/migrations/016_form_sections.sql` | Form section titles |
+| 017 | `supabase/migrations/017_form_field_type_date.sql` | Date field type |
+| 018 | `supabase/migrations/018_employer_match_results_write.sql` | Employer match-results write policy |
+
+**Deprecated:** `supabase/migrations/APPLY_DISCLOSURE_NOW.sql` — emergency paste of 008/011/012 only; do not use on new environments.
 
 **Seed data (manual):** `supabase/seed.sql` — placeholder 7^7 matrix categories, questions, options.
+
+**Form fields (after migrations):** `npm run sync-form-fields` — seeds/syncs `form_fields` and sections (required for the full candidate profile wizard).
 
 ## Enums
 

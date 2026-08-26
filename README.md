@@ -97,7 +97,7 @@ cp .env.example .env.local
 ### 3. Supabase setup
 
 1. Create a project at [supabase.com](https://supabase.com)
-2. Run **all migrations in order** in the Supabase SQL Editor (or via `SUPABASE_DB_URL`):
+2. Run **all migrations in order** (`001` → `018`) in the Supabase SQL Editor (or via `SUPABASE_DB_URL`). Full table: [docs/database.md](./docs/database.md#migrations) and [docs/deployment.md](./docs/deployment.md).
 
 | # | File | Purpose |
 |---|------|---------|
@@ -107,6 +107,7 @@ cp .env.example .env.local
 | 004 | `supabase/migrations/004_job_form_data.sql` | `form_data` JSONB column on `jobs` |
 | 005 | `supabase/migrations/005_role_security.sql` | Role-change protection + signup metadata |
 | 006 | `supabase/migrations/006_fix_signup_trigger.sql` | **Required** — fixes signup trigger + RLS for new users |
+| 007–018 | See [docs/database.md](./docs/database.md#migrations) | Form fields, disclosure, matrix, languages, match write policy |
 
 3. Run seed data for 7^7 matrix placeholders:
 
@@ -114,7 +115,13 @@ cp .env.example .env.local
 -- Paste contents of supabase/seed.sql in SQL Editor
 ```
 
-4. **Verify signup works.** If sign-up returns *"Database error saving new user"*, migration `006` has not been applied. You can also run:
+4. Sync dynamic form fields (candidate profile pages, job filter fields):
+
+```bash
+npm run sync-form-fields
+```
+
+5. **Verify signup works.** If sign-up returns *"Database error saving new user"*, migration `006` has not been applied. You can also run:
 
 ```bash
 node scripts/apply-signup-fix.mjs
@@ -133,21 +140,26 @@ Then sign in at `/auth/admin/sign-in` using `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 ### 5. Seed demo data (optional)
 
 ```bash
-# 5 dummy employers + 5 dummy candidates (ready_for_matching)
+# Preferred: full demo with matching filters + scored snapshots
+npm run reseed-complete-demo-data
+
+# Lighter alternative: 5 employers + 5 candidates only
 npm run seed-dummy-users
 
-# 5 dummy jobs for first employer (or EMPLOYER_EMAIL in .env.local)
+# Optional: 5 jobs for one employer (or EMPLOYER_EMAIL in .env.local)
 npm run seed-employer-jobs
 ```
 
-**Demo accounts** (after `seed-dummy-users`):
+**Demo accounts** (after reseed / `seed-dummy-users`):
 
 | Type | Emails | Password |
 |------|--------|----------|
 | Employers | `employer-demo-1@deephrmatch.test` … `employer-demo-5@deephrmatch.test` | `DemoUser123!` |
 | Candidates | `candidate-demo-1@deephrmatch.test` … `candidate-demo-5@deephrmatch.test` | `DemoUser123!` |
 
-Scripts are idempotent — existing accounts get profile updates, not duplicates.
+Scripts are idempotent where noted — existing accounts get profile updates, not duplicates.
+
+> Avoid `scripts/seed-employer-match-demo.mjs` for filter QA — it writes hardcoded scores and skips hard filters.
 
 ### 6. Stripe setup (test mode)
 
@@ -167,7 +179,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Use `npm run dev:turbo` for Turbopack (default `dev` uses webpack for stability).
+- Default `dev` uses **Turbopack**. Use `npm run dev:webpack` if you hit OneDrive/cache issues.
+- After sync/lock problems: `npm run clean` or `npm run dev:clean`. Prefer cloning outside OneDrive for daily work.
 
 ---
 
@@ -175,19 +188,26 @@ Use `npm run dev:turbo` for Turbopack (default `dev` uses webpack for stability)
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start dev server (webpack) |
-| `npm run dev:turbo` | Start dev server (Turbopack) |
+| `npm run dev` | Start dev server (Turbopack) |
+| `npm run dev:webpack` | Start dev server (webpack; more stable on OneDrive) |
+| `npm run dev:clean` | Clean `.next` then start dev |
+| `npm run clean` | Remove `.next` cache |
 | `npm run build` | Production build |
 | `npm run start` | Start production server |
 | `npm run lint` | Run ESLint |
 | `npm run test` | Run unit tests once (Vitest) |
 | `npm run test:watch` | Run unit tests in watch mode |
 | `npm run create-admin` | Create/update bootstrap admin user |
+| `npm run sync-form-fields` | Seed/sync `form_fields` after migrations |
+| `npm run reseed-complete-demo-data` | Full demo data with filters + match snapshots |
 | `npm run seed-dummy-users` | Seed 5 demo employers + 5 demo candidates |
 | `npm run seed-employer-jobs` | Seed 5 demo jobs for an employer account |
+| `npm run seed-matrix-77` | Seed placeholder 7^7 matrix content |
 | `node --env-file=.env.local scripts/backfill-unlocks.mjs --dry-run` | Preview unlock rows derivable from paid payments |
 | `node --env-file=.env.local scripts/backfill-unlocks.mjs` | Backfill missing `unlocks` rows from paid payments |
 | `node --env-file=.env.local scripts/create-dummy-unlock.mjs <employer_id> <job_id> <candidate_id>` | Create one paid dummy unlock for testing unlocked-profile/CV flow |
+
+Full script inventory: [docs/deployment.md](./docs/deployment.md#scripts-inventory).
 
 ---
 
@@ -223,6 +243,7 @@ Use seed scripts and the checklist below for flows that need a live database, St
 |---------|----------------|
 | Unit tests | `npm test` |
 | Admin | `npm run create-admin` → sign in at `/auth/admin/sign-in` |
+| Full demo (filters + matches) | `npm run reseed-complete-demo-data` |
 | Demo employers (×5) | `npm run seed-dummy-users` → `employer-demo-1@deephrmatch.test` … `-5@` |
 | Demo candidates (×5) | `npm run seed-dummy-users` → `candidate-demo-1@deephrmatch.test` … `-5@` |
 | Demo jobs (×5) | `npm run seed-employer-jobs` (optionally set `EMPLOYER_EMAIL`) |
@@ -497,35 +518,40 @@ Posted jobs are **read-only** — create a new job if requirements change. Match
 |---------|--------------|-----|
 | Sign-up fails with "Database error saving new user" | Migration 006 not applied | Run `006_fix_signup_trigger.sql` or `node scripts/apply-signup-fix.mjs` |
 | Job save fails on `form_data` column | Migration 004 not applied | Run `004_job_form_data.sql` |
+| Candidate profile only shows 4 pages | `form_fields` not synced | Run `npm run sync-form-fields` (needs service role) |
 | Employer dashboard blank (header/sidebar only) | Client boundary swallowing children | Ensure page content renders inside server `DashboardChrome` |
-| No candidates in matching results | No `ready_for_matching` candidates | Run `npm run seed-dummy-users` or complete candidate onboarding |
+| No candidates in matching results | No `ready_for_matching` candidates / filters | Run `npm run reseed-complete-demo-data` or complete candidate onboarding |
+| `EBUSY` / corrupted `.next` on OneDrive | Synced-folder file locks | `npm run clean` or `npm run dev:clean`; pause OneDrive or clone outside it |
 | Stripe unlock not completing | Webhook not forwarded | Run `stripe listen --forward-to localhost:3000/api/stripe/webhook` |
 
 ---
 
 ## Deploy to Vercel
 
-1. Push to GitHub
-2. Import project in Vercel
-3. Add all environment variables from `.env.example`
-4. Apply all Supabase migrations on the production database
-5. Run `npm run create-admin` against production env (or set admin manually)
-6. Set Stripe webhook endpoint to `https://your-domain.com/api/stripe/webhook`
+See the full checklist in **[docs/deployment.md](./docs/deployment.md)**. Short version:
+
+1. Push to GitHub → import in Vercel → set env vars from `.env.example`
+2. Apply Supabase migrations **001 → 018** on production
+3. Run `supabase/seed.sql`, then `npm run sync-form-fields` against production env
+4. Run `npm run create-admin` against production env
+5. Set Stripe webhook to `https://your-domain.com/api/stripe/webhook`
+6. Set Supabase Auth site URL + redirect URLs to the production domain
 
 ---
 
-## Current State (Jul 2026)
+## Current State (Aug 2026)
 
 Recent work completed:
 
-- **Auth:** Signup trigger fix (006), portal-specific sign-in/sign-up, wrong-portal UX
-- **Dashboard:** Unified header/sidebar alignment, server-side chrome rendering
-- **Employer portal:** Shared layout shell, "Employer Profile" naming, job form UX fixes
-- **Seeding:** Demo users and jobs scripts for local/staging testing
-- **Testing:** Vitest unit tests for profile, onboarding, job-form, and Zod schemas
+- **Matching filters:** Hard filters before 7^7 ranking; candidate Matching details + Role requirements pages
+- **Form fields:** Service-role sync (`npm run sync-form-fields`); demo reseed applies the same filters as the engine
+- **Auth / portals:** Signup trigger fix (006), portal-specific sign-in/sign-up
+- **Performance:** Employer/candidate/admin page load optimizations
+- **Testing:** Vitest unit tests across matching, form-fields, employer/candidate flows
 
-**Pending on remote DB if not yet run:** migrations 004 and 006.
-**Pending for test automation:** integration tests, E2E (Playwright), CI workflow.
+**Deploy tip:** production needs migrations through **018**, not only 001–006.
+
+**Deferred:** unify demo scripts with `engine.ts`, freeze request-path form-field migrations, field catalog rewrite, CI workflow.
 
 ---
 

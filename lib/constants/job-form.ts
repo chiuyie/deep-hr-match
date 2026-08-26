@@ -57,7 +57,7 @@ export const JOB_ELIMINATION_FIELDS = [
     name: "required_availability",
     label: "Required availability",
     placeholder: "Select availability",
-    options: ["Immediate", "1 week", "2 weeks", "1 Month", "Other", JOB_FORM_NO_FILTER_VALUE],
+    options: ["Immediate", "1 week", "2 weeks", "1 month", "Other", JOB_FORM_NO_FILTER_VALUE],
   },
   {
     name: "required_age",
@@ -168,7 +168,7 @@ export const JOB_ELIMINATION_FIELDS = [
     name: "required_work_arrangement",
     label: "Required work arrangement",
     placeholder: "Select work arrangement",
-    options: ["Fully Remote", "Hybrid", "On-site", "Flexible", JOB_FORM_NO_FILTER_VALUE],
+    options: ["Fully remote", "Hybrid", "On-site", "Flexible", JOB_FORM_NO_FILTER_VALUE],
   },
 ] as const;
 

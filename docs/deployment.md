@@ -38,27 +38,48 @@ Create a new Supabase project and note URL + keys from Project Settings → API.
 
 ### 2. Apply migrations
 
-Run each file in order in **SQL Editor**:
+Run **every** numbered file in order in the Supabase **SQL Editor** (or via `SUPABASE_DB_URL`):
 
-```
-supabase/migrations/001_schema.sql
-supabase/migrations/002_rls.sql
-supabase/migrations/003_storage.sql
-supabase/migrations/004_job_form_data.sql
-supabase/migrations/005_role_security.sql
-supabase/migrations/006_fix_signup_trigger.sql   ← required for signup
-```
+| # | File | Purpose |
+|---|------|---------|
+| 001 | `001_schema.sql` | Core tables, enums, `handle_new_user` trigger |
+| 002 | `002_rls.sql` | Row Level Security policies |
+| 003 | `003_storage.sql` | Storage buckets for CV/JD files |
+| 004 | `004_job_form_data.sql` | `jobs.form_data` JSONB |
+| 005 | `005_role_security.sql` | Role-change protection + signup metadata |
+| 006 | `006_fix_signup_trigger.sql` | **Required for signup** — hardened trigger + INSERT policies |
+| 007 | `007_form_fields.sql` | Dynamic `form_fields` table |
+| 008 | `008_form_field_disclosure.sql` | Employer disclosure modes on form fields |
+| 009 | `009_matrix_word_description_sublevels.sql` | Matrix word/description sublevels |
+| 010 | `010_anonymous_match_disclosure.sql` | Anonymous match disclosure flags |
+| 011 | `011_platform_disclosure.sql` | Platform disclosure items |
+| 012 | `012_unlocked_matrix_answers_read.sql` | Unlocked matrix answer RLS |
+| 013 | `013_candidate_languages_jsonb.sql` | Candidate languages JSONB |
+| 014 | `014_matrix_answer_column.sql` | Matrix answer column shape |
+| 015 | `015_form_field_options.sql` | Select options on form fields |
+| 016 | `016_form_sections.sql` | Form section titles |
+| 017 | `017_form_field_type_date.sql` | Date field type |
+| 018 | `018_employer_match_results_write.sql` | Employer match-results write policy |
 
-Or use direct Postgres:
+> **Do not** use `APPLY_DISCLOSURE_NOW.sql` on new environments — it is a deprecated emergency paste of migrations 008/011/012.
+
+Signup-only hotfix (if 001–005 already applied but signup fails):
 
 ```bash
 # Set SUPABASE_DB_URL in .env.local, then:
 node scripts/apply-signup-fix.mjs   # applies 006 specifically
 ```
 
-### 3. Seed matrix data
+### 3. Seed matrix + form fields
 
-Paste contents of `supabase/seed.sql` into SQL Editor.
+1. Paste contents of `supabase/seed.sql` into SQL Editor (7^7 matrix placeholders).
+2. Sync dynamic form fields (candidate 6-page profile, job filters, etc.):
+
+```bash
+npm run sync-form-fields
+```
+
+The app can also seed missing fields on first boot via `ensureFormFieldsReady()` when `SUPABASE_SERVICE_ROLE_KEY` is set, but running the script after migrations is more reliable for production.
 
 ### 4. Verify signup
 
@@ -80,12 +101,26 @@ npm install
 cp .env.example .env.local
 # fill in .env.local
 
+# After all migrations + seed.sql:
+npm run sync-form-fields
 npm run create-admin
-npm run seed-dummy-users    # optional
+npm run reseed-complete-demo-data   # preferred demo (filters + scoring)
+# or: npm run seed-dummy-users      # lighter demo users only
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### OneDrive / Windows note
+
+This repo includes workarounds for OneDrive-synced folders (cache locks, corrupted `.next`). If `next dev` fails with `EBUSY` or odd type errors:
+
+```bash
+npm run clean
+npm run dev:clean
+```
+
+Prefer cloning outside OneDrive (e.g. `C:\dev\deep-hr-match`) for daily work.
 
 ### Stripe local webhooks
 
@@ -117,7 +152,9 @@ Use production Supabase URL/keys and live Stripe keys for production environment
 
 ### 4. Supabase production
 
-Apply all migrations on production database (same order as local).
+1. Apply migrations **001 → 018** on the production database (same order as local).
+2. Run `supabase/seed.sql` (matrix).
+3. Run `npm run sync-form-fields` against production env (service role required).
 
 ### 5. Bootstrap admin
 
@@ -152,38 +189,60 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Dev server (webpack) |
-| `npm run dev:turbo` | Dev server (Turbopack) |
+| `npm run dev` | Dev server (Turbopack by default) |
+| `npm run dev:webpack` | Dev server with webpack (more stable on OneDrive) |
+| `npm run dev:clean` | Clean `.next` then start dev |
+| `npm run clean` | Remove `.next` cache only |
 | `npm run build` | Production build |
 | `npm run start` | Start production server |
 | `npm run lint` | ESLint |
 | `npm run test` | Vitest unit tests |
 | `npm run create-admin` | Bootstrap admin |
-| `npm run seed-dummy-users` | Demo employers + candidates |
-| `npm run seed-employer-jobs` | Demo jobs |
+| `npm run sync-form-fields` | Seed/sync `form_fields` + sections (post-migration) |
+| `npm run reseed-complete-demo-data` | **Canonical demo** — users, jobs, filters, match snapshots |
+| `npm run seed-dummy-users` | Lighter demo: 5 employers + 5 candidates |
+| `npm run seed-employer-jobs` | Demo jobs for an employer |
+| `npm run seed-matrix-77` | Placeholder 7^7 matrix content |
+| `npm run generate-geo` | Regenerate world countries constants |
 
-## Scripts (Standalone)
+## Scripts inventory
 
-| Script | Purpose |
-|--------|---------|
-| `scripts/create-admin.mjs` | Auth user + admin role |
-| `scripts/seed-dummy-users.mjs` | 5 employers + 5 candidates |
-| `scripts/seed-employer-jobs.mjs` | 5 jobs for an employer |
-| `scripts/apply-signup-fix.mjs` | Apply migration 006 |
-| `scripts/extract-job-form-data.mjs` | One-off form data utility |
+| Script | npm alias | When to use | Prod-safe? |
+|--------|-----------|-------------|------------|
+| `scripts/create-admin.mjs` | `create-admin` | First admin account | Yes (bootstrap) |
+| `scripts/sync-form-fields.mjs` | `sync-form-fields` | After fresh migrations / missing profile pages | Yes |
+| `scripts/reseed-complete-demo-data.mjs` | `reseed-complete-demo-data` | Full demo with hard filters + scoring | Staging/demo only |
+| `scripts/seed-dummy-users.mjs` | `seed-dummy-users` | Quick demo users | Staging/demo only |
+| `scripts/seed-employer-jobs.mjs` | `seed-employer-jobs` | Demo jobs for one employer | Staging/demo only |
+| `scripts/seed-matrix-77-placeholder.mjs` | `seed-matrix-77` | Matrix seed if `seed.sql` not used | Staging/demo |
+| `scripts/cleanup-jobs-without-matrix.mjs` | `cleanup-jobs-without-matrix` | Remove jobs missing matrix | Careful |
+| `scripts/generate-world-countries.mjs` | `generate-geo` | Codegen geo constants | Dev only |
+| `scripts/dev.mjs` / `clean-next.mjs` | `dev*` / `clean` | Local Next.js | Local |
+| `scripts/apply-signup-fix.mjs` | — | Apply migration 006 only | Yes (hotfix) |
+| `scripts/apply-disclosure-migrations.mjs` | — | Legacy disclosure apply helper | Prefer 008/011/012 |
+| `scripts/backfill-unlocks.mjs` | — | Backfill unlocks from paid payments | Careful |
+| `scripts/create-dummy-unlock.mjs` | — | One paid dummy unlock for QA | Staging only |
+| `scripts/extract-job-form-data.mjs` | — | One-off form data utility | Dev only |
+| `scripts/seed-employer-match-demo.mjs` | — | **Legacy** — fake scores, skips filters | Avoid for filter QA |
+
+**Demo password** (after reseed / seed-dummy-users): `DemoUser123!` (override with `DUMMY_USER_PASSWORD`).
 
 ## Deployment Checklist
 
-- [ ] All 6 migrations applied on target database
+- [ ] Migrations **001 → 018** applied on target database
 - [ ] `supabase/seed.sql` run (matrix content)
-- [ ] Environment variables set in Vercel
+- [ ] `npm run sync-form-fields` run against target env
+- [ ] Environment variables set in Vercel (including `SUPABASE_SERVICE_ROLE_KEY`)
 - [ ] `NEXT_PUBLIC_APP_URL` matches production domain
 - [ ] Supabase Auth redirect URLs configured
 - [ ] Admin account bootstrapped
-- [ ] Stripe webhook endpoint registered
+- [ ] Stripe webhook endpoint registered (`checkout.session.completed`)
 - [ ] `npm run build` succeeds locally
 - [ ] `npm test` passes
 - [ ] Sign-up and sign-in tested on production
+- [ ] Candidate profile shows **6** wizard pages (Matching details + Role requirements)
+- [ ] Employer job post creates a match snapshot (placeholder engine)
+- [ ] Matching filters exclude non-matching candidates
 
 ## Troubleshooting
 

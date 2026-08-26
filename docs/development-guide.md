@@ -138,11 +138,23 @@ Requires migration 004 (`form_data` column).
 | When to use | Script |
 |-------------|--------|
 | First admin account | `npm run create-admin` |
-| Local demo users | `npm run seed-dummy-users` |
+| After migrations: sync profile/job form fields | `npm run sync-form-fields` |
+| Full demo (filters + match snapshots) | `npm run reseed-complete-demo-data` |
+| Lighter demo users only | `npm run seed-dummy-users` |
 | Local demo jobs | `npm run seed-employer-jobs` |
 | Signup broken on remote DB | `node scripts/apply-signup-fix.mjs` |
 
+Full inventory (including legacy scripts): [Deployment → Scripts inventory](./deployment.md#scripts-inventory).
+
 Scripts read `.env.local` automatically (except `create-admin` uses `--env-file`).
+
+### Git branches
+
+Active development is on `main`. Local/remote branches `feature/dashboard-onboarding-admin` and `candidate-technical-test` are **behind `main`** — merge, rebase, or delete them when you no longer need their history.
+
+### OneDrive / synced folders
+
+If the project lives under OneDrive and `next dev` fails with file locks or corrupted `.next` types, use `npm run clean` / `npm run dev:clean`, or clone outside OneDrive for daily work. See [Deployment](./deployment.md#onedrive--windows-note).
 
 ## Code Quality
 

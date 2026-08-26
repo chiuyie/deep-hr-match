@@ -66,6 +66,33 @@ describe("job matching filters", () => {
     );
   });
 
+  it("matches work arrangement and availability case-insensitively", () => {
+    expect(
+      candidatePassesJobFilters(
+        { form_data: { required_work_arrangement: "Fully Remote" } },
+        { work_arrangement_preference: "Fully remote" }
+      )
+    ).toBe(true);
+    expect(
+      candidatePassesJobFilters(
+        { form_data: { required_work_arrangement: "Fully remote" } },
+        { work_arrangement_preference: "Fully Remote" }
+      )
+    ).toBe(true);
+    expect(
+      candidatePassesJobFilters(
+        { form_data: { required_availability: "1 Month" } },
+        { availability: "1 month" }
+      )
+    ).toBe(true);
+    expect(
+      candidateFailsJobFilter(
+        { form_data: { required_work_arrangement: "Hybrid" } },
+        { work_arrangement_preference: "Fully remote" }
+      )
+    ).toBe("required_work_arrangement");
+  });
+
   it("requires all selected job languages", () => {
     const job = { form_data: { language_needs: ["English", "Mandarin"] } };
     expect(

@@ -1,3 +1,11 @@
+/**
+ * LEGACY / inaccurate for filter QA.
+ *
+ * Writes hardcoded placeholder match scores and does NOT run
+ * `filterCandidatesForJob` / `generatePlaceholderMatches`.
+ *
+ * Prefer: `npm run reseed-complete-demo-data` (applies hard filters + matrix scoring).
+ */
 import { createClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";

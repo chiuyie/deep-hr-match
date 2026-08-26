@@ -1,5 +1,10 @@
-﻿-- Paste this entire file into Supabase Dashboard → SQL Editor → Run
--- Applies: 008 employer_disclosure_mode, 011 platform_disclosure_items, 012 unlocked matrix RLS
+﻿-- DEPRECATED: Do not use for new environments.
+-- Prefer numbered migrations in order: 008_form_field_disclosure.sql,
+-- 011_platform_disclosure.sql, 012_unlocked_matrix_answers_read.sql.
+-- Kept only as an emergency paste-into-Dashboard escape hatch for older DBs.
+--
+-- Legacy note: Applies 008 employer_disclosure_mode, 011 platform_disclosure_items,
+-- 012 unlocked matrix RLS when pasted into Supabase Dashboard → SQL Editor → Run.
 
 -- Employer-facing disclosure controls for candidate form fields.
 -- Admin may remove a field entirely from employer-facing surfaces,
