@@ -138,24 +138,37 @@ function collectColumnWordOptions(
 }
 
 /**
- * Which Level 2–7 question (if any) holds this factor’s chosen word for the column.
+ * Which Level 2–7 questions hold this factor’s chosen word(s) for the column.
+ * Order follows word-root sort order (Level 2 → 7).
  */
-function findFactorWordPick(
+export function findFactorWordPicks(
   wordRoots: QuestionWithOptions[],
   column: number,
   answers: ColumnAnswersMap
-): { question: QuestionWithOptions; optionId: string } | null {
+): Array<{ question: QuestionWithOptions; optionId: string }> {
+  const picks: Array<{ question: QuestionWithOptions; optionId: string }> = [];
   for (const root of wordRoots) {
     const key = columnAnswerKey(root.id, column);
     const answer = answers[key];
     if (!answer?.option_id) continue;
     const colOpts = optionsInColumn(root.matrix_options, column);
     if (colOpts.some((o) => o.id === answer.option_id)) {
-      return { question: root, optionId: answer.option_id };
+      picks.push({ question: root, optionId: answer.option_id });
     }
   }
-  return null;
+  return picks;
 }
+
+export type MatrixColumnFlowOptions = {
+  /** Max words on the factor word-pick step. Default 1 (employer / legacy). */
+  maxFactorWordSelections?: number;
+  /**
+   * When set (candidate multi-select), keep showing the factor word-pick step
+   * for this column even after 1+ words are selected, until the UI clears it
+   * via Continue.
+   */
+  holdingFactorColumn?: number | null;
+};
 
 /**
  * Live admin layout (confirmed from DB):
@@ -167,15 +180,21 @@ function findFactorWordPick(
  * Level 7 Col1 = Negotiator
  *
  * Factor 1 choices = ALL Col1 words from Level 2–7 (Initiator…Negotiator).
- * Pick one → drill that word’s sub-levels → Factor 2 (Col2), etc.
+ * Candidates may pick up to 3 → drill each word’s sub-levels → Factor 2 (Col2), etc.
+ * Employers pick one.
  */
 function resolveFactorStep(
   questions: QuestionWithOptions[],
   level1: QuestionWithOptions,
   wordRoots: QuestionWithOptions[],
   column: number,
-  answers: ColumnAnswersMap
+  answers: ColumnAnswersMap,
+  options: MatrixColumnFlowOptions = {}
 ): ColumnFlowStep | "complete" {
+  const maxSelections = Math.max(1, options.maxFactorWordSelections ?? 1);
+  const holdingThisColumn =
+    maxSelections > 1 && options.holdingFactorColumn === column;
+
   const factorOption = optionsInColumn(level1.matrix_options, column)[0];
   const factorLabel =
     factorOption?.option_text?.trim() ||
@@ -187,15 +206,15 @@ function resolveFactorStep(
   if (factorOption) {
     const underFactor = getChildQuestion(questions, factorOption.id);
     if (underFactor) {
-      const options = activeOptions(underFactor.matrix_options);
-      if (options.length) {
+      const underOptions = activeOptions(underFactor.matrix_options);
+      if (underOptions.length) {
         const key = columnAnswerKey(underFactor.id, column);
         if (!isAnswered(underFactor, answers[key])) {
           return {
             column,
             factorLabel,
             question: underFactor,
-            options,
+            options: underOptions,
             isFactorWordPick: false,
           };
         }
@@ -215,9 +234,9 @@ function resolveFactorStep(
   const columnWords = collectColumnWordOptions(wordRoots, column);
   if (!columnWords.length) return "complete";
 
-  const pick = findFactorWordPick(wordRoots, column, answers);
-  if (!pick) {
-    // First pick: Initiator, Leader, … Negotiator (Col N across Level 2–7)
+  const picks = findFactorWordPicks(wordRoots, column, answers);
+  if (!picks.length || holdingThisColumn) {
+    // First pick (or still editing multi-select): Initiator, Leader, … Negotiator
     return {
       column,
       factorLabel,
@@ -227,14 +246,16 @@ function resolveFactorStep(
     };
   }
 
-  const drilled = drillSubLevels(
-    questions,
-    answers,
-    column,
-    factorLabel,
-    pick.optionId
-  );
-  if (drilled) return drilled;
+  for (const pick of picks) {
+    const drilled = drillSubLevels(
+      questions,
+      answers,
+      column,
+      factorLabel,
+      pick.optionId
+    );
+    if (drilled) return drilled;
+  }
   return "complete";
 }
 
@@ -270,7 +291,8 @@ function drillSubLevels(
 
 export function getMatrixColumnFlowState(
   category: MatrixCategoryTree,
-  answers: ColumnAnswersMap
+  answers: ColumnAnswersMap,
+  flowOptions: MatrixColumnFlowOptions = {}
 ): {
   current: ColumnFlowStep | null;
   formComplete: boolean;
@@ -288,7 +310,14 @@ export function getMatrixColumnFlowState(
   let completedColumns = 0;
 
   for (let column = 1; column <= MATRIX_WORDS_PER_LEVEL; column += 1) {
-    const step = resolveFactorStep(questions, level1, wordRoots, column, answers);
+    const step = resolveFactorStep(
+      questions,
+      level1,
+      wordRoots,
+      column,
+      answers,
+      flowOptions
+    );
     if (step !== "complete") {
       return {
         current: step,
@@ -307,18 +336,21 @@ export function getMatrixColumnFlowState(
 }
 
 /**
- * Clear sibling Level 2–7 picks in this column when the user changes the factor word.
- * Only one of Initiator/Leader/…/Negotiator should remain selected per factor.
+ * Clear Level 2–7 picks in this column that are not in `keepQuestionIds`.
+ * With single-select, pass one id; with multi-select, pass all currently selected ids.
  */
 export function clearOtherFactorWordPicks(
   answers: ColumnAnswersMap,
   wordRoots: QuestionWithOptions[],
   column: number,
-  keepQuestionId: string
+  keepQuestionIds: string | string[]
 ): ColumnAnswersMap {
+  const keep = new Set(
+    Array.isArray(keepQuestionIds) ? keepQuestionIds : [keepQuestionIds]
+  );
   const next = { ...answers };
   for (const root of wordRoots) {
-    if (root.id === keepQuestionId) continue;
+    if (keep.has(root.id)) continue;
     const key = columnAnswerKey(root.id, column);
     if (next[key]) delete next[key];
   }
@@ -340,23 +372,27 @@ export function getAnsweredColumnPath(
   const questions = (category.matrix_questions ?? []).filter((q) => q.is_active);
   const roots = getRootMatrixQuestions(questions);
   const wordRoots = roots.slice(1);
-  const path: QuestionWithOptions[] = [];
+  const picks = findFactorWordPicks(wordRoots, column, answers);
+  if (!picks.length) return [];
 
-  const pick = findFactorWordPick(wordRoots, column, answers);
-  if (!pick) return path;
-  path.push(pick.question);
-
-  let parentOptionId: string | undefined = pick.optionId;
-  while (parentOptionId) {
-    const child = getChildQuestion(questions, parentOptionId);
-    if (!child) break;
-    const childKey = columnAnswerKey(child.id, column);
-    if (!isAnswered(child, answers[childKey])) break;
-    path.push(child);
-    parentOptionId = answers[childKey]?.option_id;
+  // Prefer the deepest sub-path among picks (last pick first),
+  // so Back undoes sub-levels before removing a factor word.
+  for (let i = picks.length - 1; i >= 0; i -= 1) {
+    const pick = picks[i]!;
+    const path: QuestionWithOptions[] = [pick.question];
+    let parentOptionId: string | undefined = pick.optionId;
+    while (parentOptionId) {
+      const child = getChildQuestion(questions, parentOptionId);
+      if (!child) break;
+      const childKey = columnAnswerKey(child.id, column);
+      if (!isAnswered(child, answers[childKey])) break;
+      path.push(child);
+      parentOptionId = answers[childKey]?.option_id;
+    }
+    if (path.length > 1) return path;
   }
 
-  return path;
+  return picks.map((pick) => pick.question);
 }
 
 export function validateMatrixColumnSubmission(

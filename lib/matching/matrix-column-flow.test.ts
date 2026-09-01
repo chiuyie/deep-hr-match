@@ -253,3 +253,65 @@ describe("column walk Col1 → Col7 (admin spreadsheet)", () => {
     expect(done.current).toBeNull();
   });
 });
+
+describe("candidate multi factor-word picks (up to 3)", () => {
+  it("stays on factor word pick while holding that column, even after selecting words", () => {
+    const answers: ColumnAnswersMap = {
+      [columnAnswerKey("lvl2", 1)]: { option_id: "lvl2-c1", matrix_column: 1 },
+      [columnAnswerKey("lvl3", 1)]: { option_id: "lvl3-c1", matrix_column: 1 },
+    };
+    const state = getMatrixColumnFlowState(buildAdminSpreadsheetCategory(), answers, {
+      maxFactorWordSelections: 3,
+      holdingFactorColumn: 1,
+    });
+    expect(state.current?.isFactorWordPick).toBe(true);
+    expect(state.current?.column).toBe(1);
+    expect(state.current?.options.map((o) => o.option_text)).toContain("Initiator");
+  });
+
+  it("after release, drills sub-levels for each selected word in order", () => {
+    const answers: ColumnAnswersMap = {
+      [columnAnswerKey("lvl2", 1)]: { option_id: "lvl2-c1", matrix_column: 1 },
+      [columnAnswerKey("lvl3", 1)]: { option_id: "lvl3-c1", matrix_column: 1 },
+    };
+    const state = getMatrixColumnFlowState(buildAdminSpreadsheetCategory(), answers, {
+      maxFactorWordSelections: 3,
+      holdingFactorColumn: null,
+    });
+    // Initiator has a sub-level; Leader does not — drill Initiator first
+    expect(state.current?.isFactorWordPick).toBe(false);
+    expect(state.current?.options.map((o) => o.option_text)).toEqual([
+      "Level2SubLevel1Word1",
+      "Level2SubLevel1Word2",
+    ]);
+  });
+
+  it("does not re-hold a completed earlier column when holding a later one", () => {
+    const answers: ColumnAnswersMap = {
+      [columnAnswerKey("lvl2", 1)]: { option_id: "lvl2-c1", matrix_column: 1 },
+      [columnAnswerKey("lvl3", 1)]: { option_id: "lvl3-c1", matrix_column: 1 },
+      [columnAnswerKey("sub-initiator", 1)]: { option_id: "sub1", matrix_column: 1 },
+    };
+    const state = getMatrixColumnFlowState(buildAdminSpreadsheetCategory(), answers, {
+      maxFactorWordSelections: 3,
+      holdingFactorColumn: 2,
+    });
+    expect(state.current?.column).toBe(2);
+    expect(state.current?.factorLabel).toBe("Experience");
+    expect(state.current?.isFactorWordPick).toBe(true);
+  });
+
+  it("moves to next factor after all selected words’ sub-levels are done", () => {
+    const answers: ColumnAnswersMap = {
+      [columnAnswerKey("lvl2", 1)]: { option_id: "lvl2-c1", matrix_column: 1 },
+      [columnAnswerKey("lvl3", 1)]: { option_id: "lvl3-c1", matrix_column: 1 },
+      [columnAnswerKey("sub-initiator", 1)]: { option_id: "sub1", matrix_column: 1 },
+    };
+    const state = getMatrixColumnFlowState(buildAdminSpreadsheetCategory(), answers, {
+      maxFactorWordSelections: 3,
+      holdingFactorColumn: null,
+    });
+    expect(state.current?.column).toBe(2);
+    expect(state.current?.factorLabel).toBe("Experience");
+  });
+});

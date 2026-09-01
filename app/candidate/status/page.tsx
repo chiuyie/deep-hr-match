@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   UserRound,
 } from "lucide-react";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { CandidateReadyConsent } from "@/components/candidate/candidate-ready-consent";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -98,12 +97,6 @@ export default async function CandidateStatusPage({
   const errorMessage = errorKey ? statusMessages[errorKey] : null;
 
   return (
-    <DashboardShell
-      role="candidate"
-      userName={user.name}
-      title="Matching status"
-      description="Check what’s done, then go live when you’re ready"
-    >
       <div className="mx-auto max-w-3xl space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -247,6 +240,5 @@ export default async function CandidateStatusPage({
 
         {!isReady ? <CandidateReadyConsent enabled={checklistComplete} /> : null}
       </div>
-    </DashboardShell>
   );
 }

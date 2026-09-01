@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { CandidateCvManager } from "@/components/candidate/candidate-cv-manager";
 import { Button } from "@/components/ui/button";
 import { requireRole, getCandidateProfile } from "@/lib/auth/session";
@@ -48,12 +47,6 @@ export default async function CandidateCVPage({
   const cvFiles = (files ?? []) as CandidateCvFile[];
 
   return (
-    <DashboardShell
-      role="candidate"
-      userName={user.name}
-      title="CV / Résumé"
-      description="Upload, replace, or download the CV employers receive after unlock"
-    >
       <div className="mx-auto max-w-3xl space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <nav aria-label="Onboarding path" className="flex flex-wrap items-center gap-2 text-sm">
@@ -94,6 +87,5 @@ export default async function CandidateCVPage({
           redirectOnFirstUpload={onboardingStep === "cv"}
         />
       </div>
-    </DashboardShell>
   );
 }

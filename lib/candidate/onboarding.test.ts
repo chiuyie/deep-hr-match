@@ -55,7 +55,8 @@ describe("getOnboardingPath", () => {
 });
 
 describe("isOnboardingPathAllowed", () => {
-  it("restricts profile step to profile page only", () => {
+  it("allows overview and profile during the profile step", () => {
+    expect(isOnboardingPathAllowed("/candidate", "profile")).toBe(true);
     expect(isOnboardingPathAllowed("/candidate/profile", "profile")).toBe(true);
     expect(isOnboardingPathAllowed("/candidate/profile/", "profile")).toBe(true);
     expect(isOnboardingPathAllowed("/candidate/cv", "profile")).toBe(false);
@@ -75,7 +76,7 @@ describe("isOnboardingPathAllowed", () => {
 
 describe("getAllowedOnboardingPaths", () => {
   it("expands allowed routes at each step", () => {
-    expect(getAllowedOnboardingPaths("profile")).toEqual(["/candidate/profile"]);
+    expect(getAllowedOnboardingPaths("profile")).toEqual(["/candidate", "/candidate/profile"]);
     expect(getAllowedOnboardingPaths("matrix")).toContain("/candidate/matrix");
     expect(getAllowedOnboardingPaths("done")).toContain("/candidate/status");
   });

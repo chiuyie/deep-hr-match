@@ -106,7 +106,8 @@ docs/                   # Technical documentation
 
 1. Create page under `app/candidate/`
 2. If part of onboarding, update `lib/candidate/onboarding.ts` allowed paths
-3. Wrap in `DashboardShell` in the page component (candidate has no shared layout shell)
+3. Add title/description in `lib/constants/candidate-pages.ts` (`getCandidatePageMeta`)
+4. Page content renders inside `CandidateLayoutShell` automatically — no `DashboardShell` needed
 
 ## Adding a Database Migration
 

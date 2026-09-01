@@ -1,9 +1,9 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { MatrixForm } from "@/components/forms/matrix-form";
 import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { MATRIX_CANDIDATE_MAX_FACTOR_WORD_SELECTIONS } from "@/lib/matching/matrix-constants";
 import { saveCandidateMatrixAnswers } from "@/lib/candidate/actions";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 import { loadPrimaryMatrixCategoryTree } from "@/lib/matching/matrix-queries";
@@ -52,12 +52,6 @@ export default async function CandidateMatrixPage({
       : "Continue";
 
   return (
-    <DashboardShell
-      role="candidate"
-      userName={user.name}
-      title={FRAMEWORK_MATCHING_LANGUAGE}
-      description="Choose one best-fit word at each step to build your profile."
-    >
       <div className="space-y-4">
         {params.step === "cv-complete" && !alreadySubmitted ? (
           <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
@@ -73,9 +67,9 @@ export default async function CandidateMatrixPage({
           categories={filtered}
           existingAnswers={answerRows}
           onSave={saveCandidateMatrixAnswers}
+          maxFactorWordSelections={MATRIX_CANDIDATE_MAX_FACTOR_WORD_SELECTIONS}
           wizard={{
-            instructionText:
-              "Only choose one word that you feel describes you the most.",
+            instructionText: `Choose up to ${MATRIX_CANDIDATE_MAX_FACTOR_WORD_SELECTIONS} words that describe you best for each factor, then continue.`,
             alreadySubmitted,
             continueHref,
             continueLabel,
@@ -83,6 +77,5 @@ export default async function CandidateMatrixPage({
           hideFooterActions
         />
       </div>
-    </DashboardShell>
   );
 }

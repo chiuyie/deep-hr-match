@@ -212,7 +212,15 @@ describe("candidate actions", () => {
           };
         }
         if (table === "candidate_matrix_answers") {
-          return { upsert: vi.fn(async () => ({ error: null })) };
+          return {
+            upsert: vi.fn(async () => ({ error: null })),
+            select: vi.fn(() => ({
+              eq: vi.fn(async () => ({ data: [], error: null })),
+            })),
+            delete: vi.fn(() => ({
+              in: vi.fn(async () => ({ error: null })),
+            })),
+          };
         }
         return profileIdChain(null);
       });
@@ -228,7 +236,15 @@ describe("candidate actions", () => {
       mockFrom.mockImplementation((table: string) => {
         if (table === "candidate_profiles") return profileIdChain("cand-1");
         if (table === "candidate_matrix_answers") {
-          return { upsert: vi.fn(async () => ({ error: null })) };
+          return {
+            upsert: vi.fn(async () => ({ error: null })),
+            select: vi.fn(() => ({
+              eq: vi.fn(async () => ({ data: [], error: null })),
+            })),
+            delete: vi.fn(() => ({
+              in: vi.fn(async () => ({ error: null })),
+            })),
+          };
         }
         return profileIdChain(null);
       });

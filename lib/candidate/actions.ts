@@ -338,6 +338,35 @@ export async function saveCandidateMatrixAnswers(
     if (upsertError) return { error: upsertError.message };
   }
 
+  // Drop answers removed in this save (e.g. deselected factor words).
+  const { data: existingRows, error: existingError } = await supabase
+    .from("candidate_matrix_answers")
+    .select("id, question_id, matrix_column")
+    .eq("candidate_id", candidateId);
+  if (existingError) return { error: existingError.message };
+
+  const keepKeys = new Set(
+    answers.map(
+      (answer) =>
+        `${answer.question_id}__${
+          answer.matrix_column && answer.matrix_column >= 1 ? answer.matrix_column : 0
+        }`
+    )
+  );
+  const orphanIds = (existingRows ?? [])
+    .filter(
+      (row) => !keepKeys.has(`${row.question_id}__${row.matrix_column ?? 0}`)
+    )
+    .map((row) => row.id);
+
+  if (orphanIds.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("candidate_matrix_answers")
+      .delete()
+      .in("id", orphanIds);
+    if (deleteError) return { error: deleteError.message };
+  }
+
   revalidatePath("/candidate/matrix");
   revalidatePath("/candidate");
   revalidatePath("/candidate/status");

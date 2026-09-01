@@ -30,6 +30,7 @@ function getDefaultValue(field: FormFieldDefinition, values: ProfileValues): str
       : values[field.field_key];
 
   if (Array.isArray(raw)) return JSON.stringify(raw);
+  if (typeof raw === "boolean") return raw ? "Yes" : "No";
   if (raw === null || raw === undefined) return "";
   return String(raw);
 }
@@ -117,6 +118,7 @@ function isWideCandidateField(field: FormFieldDefinition): boolean {
     field.field_key === "skills" ||
     field.field_key === "certifications" ||
     field.field_key === "languages" ||
+    field.field_key === "employment_eligibility_visa" ||
     CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS.has(field.field_key)
   );
 }
@@ -135,13 +137,14 @@ function CandidateFieldsGrid({
   const flushNarrowRun = (run: FormFieldDefinition[]) => {
     if (run.length === 0) return;
     nodes.push(
-      <div key={run.map((f) => f.id).join("-")} className="grid gap-4 md:grid-cols-2">
+      <div key={run.map((f) => f.id).join("-")} className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
         {run.map((field) => (
-          <CandidateProfileField
-            key={field.id}
-            field={field}
-            defaultValue={getDefaultValue(field, values)}
-          />
+          <div key={field.id} className="min-w-0">
+            <CandidateProfileField
+              field={field}
+              defaultValue={getDefaultValue(field, values)}
+            />
+          </div>
         ))}
       </div>
     );
@@ -157,7 +160,7 @@ function CandidateFieldsGrid({
       flushNarrowRun(narrowRun);
       narrowRun = [];
       nodes.push(
-        <div key={`${field.id}-${next.id}`} className="grid gap-4 md:grid-cols-2">
+        <div key={`${field.id}-${next.id}`} className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
           <CandidateCountryCityPair
             countryField={field}
             cityField={next}

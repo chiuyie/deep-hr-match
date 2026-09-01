@@ -52,12 +52,15 @@ import {
   phoneOptionValueForIso,
   resolvePhoneInput,
 } from "@/lib/constants/candidate-profile-options";
+import {
+  CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS,
+} from "@/lib/constants/job-form";
 
 const countrySearchOptions = countrySelectOptions();
 const phoneDialSearchOptions = phoneDialSelectOptions();
 
 const selectClassName =
-  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50";
+  "h-11 w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50";
 
 const inputClassName =
   "h-11 rounded-xl border-slate-200 bg-white shadow-sm focus-visible:ring-sky-500/20";
@@ -80,7 +83,10 @@ function useFieldTracking(fieldKey: string) {
 
 function FieldLabel({ field }: { field: FormFieldDefinition }) {
   return (
-    <Label htmlFor={field.field_key} className="text-sm font-medium text-slate-700">
+    <Label
+      htmlFor={field.field_key}
+      className="block text-pretty text-sm font-medium leading-snug text-slate-700"
+    >
       {field.label}
       {field.is_required ? <span className="text-rose-500"> *</span> : null}
     </Label>
@@ -177,58 +183,62 @@ function PhoneField({ field, defaultValue }: Props) {
     <div className="space-y-2" data-field-key={field.field_key}>
       <FieldLabel field={field} />
       <input type="hidden" name={field.field_key} value={submitValue} />
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
-        <SearchableSelect
-          value={optionValue}
-          onChange={(next) => {
-            const parsed = parsePhoneOptionValue(next);
-            const iso = parsed.isoCode ?? "SG";
-            setOptionValue(next);
-            applyResolved(national.replace(/[^\d\s+\-()]/g, ""), iso);
-          }}
-          options={phoneDialSearchOptions}
-          placeholder="Country code"
-          maxVisibleOptions={8}
-        />
-        <Input
-          id={field.field_key}
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel-national"
-          value={national}
-          onChange={(e) => {
-            applyResolved(e.target.value, selectedIso);
-            syncValidity(e.target, e.target.value, selectedIso);
-          }}
-          onPaste={(e) => {
-            const pasted = e.clipboardData.getData("text");
-            if (!pasted.trim()) return;
-            e.preventDefault();
-            const result = resolvePhoneInput(pasted, selectedIso);
-            setOptionValue(phoneOptionValueForIso(result.isoCode));
-            setNational(result.nationalDisplay || pasted.trim());
-            const input = e.currentTarget;
-            requestAnimationFrame(() => {
-              syncValidity(input, result.nationalDisplay || pasted.trim(), result.isoCode);
-            });
-          }}
-          onBlur={(e) => {
-            const result = resolvePhoneInput(national, selectedIso);
-            if (result.valid) {
-              setNational(result.nationalDisplay);
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        <div className="min-w-0">
+          <SearchableSelect
+            value={optionValue}
+            onChange={(next) => {
+              const parsed = parsePhoneOptionValue(next);
+              const iso = parsed.isoCode ?? "SG";
+              setOptionValue(next);
+              applyResolved(national.replace(/[^\d\s+\-()]/g, ""), iso);
+            }}
+            options={phoneDialSearchOptions}
+            placeholder="Country code"
+            maxVisibleOptions={8}
+          />
+        </div>
+        <div className="min-w-0">
+          <Input
+            id={field.field_key}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            value={national}
+            onChange={(e) => {
+              applyResolved(e.target.value, selectedIso);
+              syncValidity(e.target, e.target.value, selectedIso);
+            }}
+            onPaste={(e) => {
+              const pasted = e.clipboardData.getData("text");
+              if (!pasted.trim()) return;
+              e.preventDefault();
+              const result = resolvePhoneInput(pasted, selectedIso);
               setOptionValue(phoneOptionValueForIso(result.isoCode));
-            }
-            syncValidity(e.target, national, selectedIso);
-            report(
-              result.valid ? result.e164 : national.trim() ? submitValue : "",
-              { reveal: true }
-            );
-          }}
-          placeholder="Phone number"
-          className={cn(inputClassName, invalid && invalidInputClassName)}
-          required={field.is_required}
-          aria-invalid={invalid || undefined}
-        />
+              setNational(result.nationalDisplay || pasted.trim());
+              const input = e.currentTarget;
+              requestAnimationFrame(() => {
+                syncValidity(input, result.nationalDisplay || pasted.trim(), result.isoCode);
+              });
+            }}
+            onBlur={(e) => {
+              const result = resolvePhoneInput(national, selectedIso);
+              if (result.valid) {
+                setNational(result.nationalDisplay);
+                setOptionValue(phoneOptionValueForIso(result.isoCode));
+              }
+              syncValidity(e.target, national, selectedIso);
+              report(
+                result.valid ? result.e164 : national.trim() ? submitValue : "",
+                { reveal: true }
+              );
+            }}
+            placeholder="Phone number"
+            className={cn(inputClassName, invalid && invalidInputClassName)}
+            required={field.is_required}
+            aria-invalid={invalid || undefined}
+          />
+        </div>
       </div>
       <FieldInlineError message={error} />
       {!error ? (
@@ -357,7 +367,7 @@ function CountryCityFields({
 
   return (
     <>
-      <div className="space-y-2" data-field-key={countryField.field_key}>
+      <div className="min-w-0 space-y-2" data-field-key={countryField.field_key}>
         <FieldLabel field={countryField} />
         <input type="hidden" name={countryField.field_key} value={countrySubmitValue} />
         <SearchableSelect
@@ -392,7 +402,7 @@ function CountryCityFields({
         ) : null}
         <FieldInlineError message={countryTrack.error} />
       </div>
-      <div className="space-y-2" data-field-key={cityField.field_key}>
+      <div className="min-w-0 space-y-2" data-field-key={cityField.field_key}>
         <FieldLabel field={cityField} />
         <input type="hidden" name={cityField.field_key} value={citySubmitValue} />
         <SearchableSelect
@@ -639,12 +649,12 @@ function SalaryField({ field, defaultValue }: Props) {
     <div className="space-y-2" data-field-key={field.field_key}>
       <FieldLabel field={field} />
       <input type="hidden" name={field.field_key} value={combined} />
-      <div className="grid gap-2 sm:grid-cols-[7.5rem_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[8.5rem_minmax(0,1fr)]">
         <select
           aria-label={`${field.label} currency`}
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
-          className={selectClassName}
+          className={cn(selectClassName, "min-w-0")}
         >
           {SALARY_CURRENCY_OPTIONS.map((code) => (
             <option key={code} value={code}>
@@ -660,7 +670,7 @@ function SalaryField({ field, defaultValue }: Props) {
           onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))}
           onBlur={() => report(combined, { reveal: true })}
           placeholder="e.g. 5500"
-          className={cn(inputClassName, invalid && invalidInputClassName)}
+          className={cn(inputClassName, "min-w-0", invalid && invalidInputClassName)}
           required={field.is_required}
           aria-invalid={invalid || undefined}
         />
@@ -671,6 +681,68 @@ function SalaryField({ field, defaultValue }: Props) {
           Monthly amount in numbers only (no commas or symbols).
         </p>
       ) : null}
+    </div>
+  );
+}
+
+function YesNoField({ field, defaultValue }: Props) {
+  const normalized =
+    defaultValue === "Yes" || defaultValue === "true" || defaultValue === "1"
+      ? "Yes"
+      : defaultValue === "No" || defaultValue === "false" || defaultValue === "0"
+        ? "No"
+        : "";
+  const [value, setValue] = useState(normalized);
+  const name = field.is_custom ? `custom_${field.field_key}` : field.field_key;
+  const { error, report, invalid } = useFieldTracking(field.field_key);
+
+  useEffect(() => {
+    report(value, { reveal: Boolean(value) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  return (
+    <div className="space-y-2" data-field-key={field.field_key}>
+      <FieldLabel field={field} />
+      <input type="hidden" name={name} value={value} />
+      <div
+        id={field.field_key}
+        className={cn(
+          "grid grid-cols-2 gap-2 rounded-xl p-0.5",
+          invalid && "ring-2 ring-rose-300/70"
+        )}
+        role="radiogroup"
+        aria-label={field.label}
+        aria-invalid={invalid || undefined}
+        aria-required={field.is_required || undefined}
+      >
+        {(["Yes", "No"] as const).map((option) => {
+          const selected = value === option;
+          return (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              className={cn(
+                "rounded-xl border px-3 py-2.5 text-sm font-medium leading-snug transition",
+                selected
+                  ? option === "Yes"
+                    ? "border-sky-500 bg-sky-50 text-sky-950 ring-1 ring-sky-200"
+                    : "border-slate-400 bg-slate-100 text-slate-900 ring-1 ring-slate-300"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+              )}
+              onClick={() => {
+                setValue(option);
+                report(option, { reveal: true });
+              }}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+      <FieldInlineError message={error} />
     </div>
   );
 }
@@ -941,6 +1013,9 @@ export function CandidateProfileField({ field, defaultValue }: Props) {
   }
   if (field.field_key === "languages") {
     return <LanguagesField field={field} defaultValue={defaultValue} />;
+  }
+  if (CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS.has(field.field_key)) {
+    return <YesNoField field={field} defaultValue={defaultValue} />;
   }
   if (field.field_key === "highest_education" && field.field_type === "select") {
     return (

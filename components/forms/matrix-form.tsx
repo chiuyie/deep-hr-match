@@ -17,6 +17,7 @@ import { MATRIX_WORDS_PER_LEVEL } from "@/lib/matching/matrix-constants";
 import {
   clearOtherFactorWordPicks,
   columnAnswerKey,
+  findFactorWordPicks,
   flattenColumnAnswers,
   getAnsweredColumnPath,
   getMatrixColumnFlowState,
@@ -77,6 +78,11 @@ interface MatrixFormProps {
     continueLabel?: string;
   };
   hideFooterActions?: boolean;
+  /**
+   * Max words on each factor’s first pick (Initiator / Leader / …).
+   * Candidates: 3. Employers / default: 1.
+   */
+  maxFactorWordSelections?: number;
 }
 
 function normalizeExistingAnswers(
@@ -135,6 +141,7 @@ export function MatrixForm({
   headerIcon = <Grid3X3 className="h-6 w-6" />,
   wizard,
   hideFooterActions = false,
+  maxFactorWordSelections = 1,
 }: MatrixFormProps) {
   const router = useRouter();
   const [answers, setAnswers] = useState<ColumnAnswersMap>(() =>
@@ -142,8 +149,14 @@ export function MatrixForm({
   );
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(Boolean(wizard?.alreadySubmitted));
+  /**
+   * Candidate multi-select: which factor column is currently held on the word-pick
+   * step so the user can choose up to N words before Continue.
+   */
+  const [holdingFactorColumn, setHoldingFactorColumn] = useState<number | null>(null);
 
   const category = useMemo(() => prepareCategory(categories), [categories]);
+  const allowMultiFactorWords = maxFactorWordSelections > 1;
 
   useEffect(() => {
     onAnswersChange?.(flattenColumnAnswers(answers));
@@ -152,10 +165,21 @@ export function MatrixForm({
   const flow = useMemo(
     () =>
       category
-        ? getMatrixColumnFlowState(category, answers)
+        ? getMatrixColumnFlowState(category, answers, {
+            maxFactorWordSelections,
+            holdingFactorColumn: allowMultiFactorWords ? holdingFactorColumn : null,
+          })
         : { current: null, formComplete: false, completedColumns: 0 },
-    [answers, category]
+    [allowMultiFactorWords, answers, category, holdingFactorColumn, maxFactorWordSelections]
   );
+
+  // Hold the factor word-pick step whenever the flow lands on one (new column or Back).
+  useEffect(() => {
+    if (!allowMultiFactorWords) return;
+    if (flow.current?.isFactorWordPick) {
+      setHoldingFactorColumn(flow.current.column);
+    }
+  }, [allowMultiFactorWords, flow.current?.column, flow.current?.isFactorWordPick]);
 
   const current = flow.current;
   const formComplete = flow.formComplete;
@@ -216,16 +240,23 @@ export function MatrixForm({
         return next;
       }
 
-      // Factor word pick spans Level 2–7 in this column — keep only the chosen question.
+      // Factor word pick spans Level 2–7 in this column.
       if (options?.isFactorWordPick) {
-        for (const root of wordRoots) {
-          const rootKey = columnAnswerKey(root.id, column);
-          const prior = next[rootKey]?.option_id;
-          if (prior) {
-            clearDescendants(next, next, prior, column, allQuestions);
+        if (allowMultiFactorWords) {
+          // Multi-select: keep sibling factor words; only clear this option’s descendants if replaced.
+          if (value.option_id && previousOption && previousOption !== value.option_id) {
+            clearDescendants(next, prev, previousOption, column, allQuestions);
           }
+        } else {
+          for (const root of wordRoots) {
+            const rootKey = columnAnswerKey(root.id, column);
+            const prior = next[rootKey]?.option_id;
+            if (prior) {
+              clearDescendants(next, next, prior, column, allQuestions);
+            }
+          }
+          next = clearOtherFactorWordPicks(next, wordRoots, column, questionId);
         }
-        next = clearOtherFactorWordPicks(next, wordRoots, column, questionId);
       }
 
       next[key] = {
@@ -233,7 +264,12 @@ export function MatrixForm({
         matrix_column: column,
       };
 
-      if (value.option_id && previousOption && previousOption !== value.option_id) {
+      if (
+        !options?.isFactorWordPick &&
+        value.option_id &&
+        previousOption &&
+        previousOption !== value.option_id
+      ) {
         clearDescendants(next, prev, previousOption, column, allQuestions);
       }
       return next;
@@ -244,6 +280,31 @@ export function MatrixForm({
     if (!current) return;
     const selected = current.options.find((o) => o.id === optionId);
     const questionId = selected?.question_id || current.question.id;
+
+    if (current.isFactorWordPick && allowMultiFactorWords) {
+      const key = columnAnswerKey(questionId, current.column);
+      const alreadySelected = answers[key]?.option_id === optionId;
+      if (alreadySelected) {
+        setAnswer(questionId, current.column, {}, { isFactorWordPick: true });
+        return;
+      }
+      const pickCount = current.options.filter((option) => {
+        const answer = answers[columnAnswerKey(option.question_id, current.column)];
+        return answer?.option_id === option.id;
+      }).length;
+      if (pickCount >= maxFactorWordSelections) {
+        toast.error(`You can choose up to ${maxFactorWordSelections} words for this factor.`);
+        return;
+      }
+      setAnswer(
+        questionId,
+        current.column,
+        { option_id: optionId },
+        { isFactorWordPick: true }
+      );
+      return;
+    }
+
     setAnswer(
       questionId,
       current.column,
@@ -256,7 +317,10 @@ export function MatrixForm({
     if (!category) return;
 
     if (submit) {
-      const state = getMatrixColumnFlowState(category, answers);
+      const state = getMatrixColumnFlowState(category, answers, {
+        maxFactorWordSelections,
+        holdingFactorColumn: null,
+      });
       if (!state.formComplete) {
         toast.error("Please complete all 7 factors before submitting.");
         return;
@@ -306,17 +370,21 @@ export function MatrixForm({
     return Boolean(answer?.option_id);
   }, [answers, current]);
 
-  const currentSelectedOptionId = useMemo(() => {
-    if (!current) return undefined;
+  const currentSelectedOptionIds = useMemo(() => {
+    if (!current) return [] as string[];
     if (current.isFactorWordPick) {
-      for (const option of current.options) {
-        const answer = answers[columnAnswerKey(option.question_id, current.column)];
-        if (answer?.option_id === option.id) return option.id;
-      }
-      return undefined;
+      return current.options
+        .filter((option) => {
+          const answer = answers[columnAnswerKey(option.question_id, current.column)];
+          return answer?.option_id === option.id;
+        })
+        .map((option) => option.id);
     }
-    return answers[columnAnswerKey(current.question.id, current.column)]?.option_id;
+    const optionId = answers[columnAnswerKey(current.question.id, current.column)]?.option_id;
+    return optionId ? [optionId] : [];
   }, [answers, current]);
+
+  const currentSelectedOptionId = currentSelectedOptionIds[0];
 
   function clearPreviousStep() {
     if (!category) return;
@@ -327,6 +395,12 @@ export function MatrixForm({
       const last = path[path.length - 1];
       if (!last) return false;
       setAnswer(last.id, column, {});
+      // After clearing the first sub-level under a factor word (or a sibling
+      // factor word), return to the multi word-pick step so the candidate can
+      // edit up to N selections.
+      if (allowMultiFactorWords && path.length <= 2) {
+        setHoldingFactorColumn(column);
+      }
       return true;
     };
 
@@ -358,25 +432,46 @@ export function MatrixForm({
   const selectionsSoFar = useMemo(() => {
     if (!category) return [] as Array<{ column: number; value: string }>;
     const rows: Array<{ column: number; value: string }> = [];
+    const wordRoots = getWordRootQuestions(category);
     for (let column = 1; column <= MATRIX_WORDS_PER_LEVEL; column += 1) {
-      const path = getAnsweredColumnPath(category, answers, column);
-      const first = path[0];
-      if (!first) continue;
-      const answer = answers[columnAnswerKey(first.id, column)];
-      const label =
-        optionLookup.get(answer?.option_id ?? "")?.option_text ??
-        answer?.answer_text?.trim() ??
-        "";
-      if (!label) continue;
-      rows.push({ column, value: label });
+      const picks = findFactorWordPicks(wordRoots, column, answers);
+      if (!picks.length) continue;
+      const labels = picks
+        .map((pick) => optionLookup.get(pick.optionId)?.option_text?.trim() ?? "")
+        .filter(Boolean);
+      if (!labels.length) continue;
+      rows.push({ column, value: labels.join(", ") });
     }
     return rows;
   }, [answers, category, optionLookup]);
 
-  const currentSelectedLabel = useMemo(() => {
-    if (!currentSelectedOptionId) return null;
-    return optionLookup.get(currentSelectedOptionId)?.option_text ?? null;
-  }, [currentSelectedOptionId, optionLookup]);
+  const currentSelectedLabels = useMemo(() => {
+    return currentSelectedOptionIds
+      .map((id) => optionLookup.get(id)?.option_text)
+      .filter((label): label is string => Boolean(label));
+  }, [currentSelectedOptionIds, optionLookup]);
+
+  const factorPickHint = allowMultiFactorWords
+    ? `Choose up to ${maxFactorWordSelections} words`
+    : "Choose one best-fit word";
+
+  const factorPickInstruction =
+    wizard?.instructionText ||
+    (allowMultiFactorWords
+      ? `Choose up to ${maxFactorWordSelections} words that describe you best for this factor, then continue.`
+      : "Choose the one word that describes you best for this factor.");
+
+  function continueFromFactorWordPick() {
+    if (!isCurrentAnswered) {
+      toast.error(
+        allowMultiFactorWords
+          ? `Select at least one word (up to ${maxFactorWordSelections}).`
+          : "Select a word to continue."
+      );
+      return;
+    }
+    setHoldingFactorColumn(null);
+  }
 
   if (!category) {
     return (
@@ -414,19 +509,17 @@ export function MatrixForm({
               ) : null}
               <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                 {current.isFactorWordPick
-                  ? wizard?.instructionText ||
-                    "Choose the one word that describes you best for this factor."
+                  ? factorPickInstruction
                   : current.question.parent_option_id
                     ? "Refine your choice by selecting one word from the sub-level below."
-                    : wizard?.instructionText ||
-                      "Choose the one word that describes you best for this factor."}
+                    : factorPickInstruction}
               </p>
             </div>
           </div>
           <div className="rounded-2xl bg-primary/5 px-4 py-3 text-sm text-primary">
             <div className="flex items-center gap-2 font-medium">
               <Sparkles className="h-4 w-4" />
-              Choose one best-fit word
+              {current.isFactorWordPick ? factorPickHint : "Choose one best-fit word"}
             </div>
           </div>
         </div>
@@ -449,14 +542,16 @@ export function MatrixForm({
           </div>
         ) : null}
 
-        {currentSelectedLabel ? (
+        {currentSelectedLabels.length > 0 ? (
           <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-primary">
             Selected for this step:{" "}
-            <span className="font-semibold">{currentSelectedLabel}</span>
+            <span className="font-semibold">{currentSelectedLabels.join(", ")}</span>
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-border/70 px-4 py-3 text-sm text-muted-foreground">
-            Pick one option below to continue.
+            {current.isFactorWordPick && allowMultiFactorWords
+              ? `Pick up to ${maxFactorWordSelections} options below, then continue.`
+              : "Pick one option below to continue."}
           </div>
         )}
 
@@ -492,7 +587,21 @@ export function MatrixForm({
           <MatrixWordSearchPicker
             key={`factor-${current.column}-${current.options.map((o) => o.id).join(",")}`}
             options={current.options}
-            value={currentSelectedOptionId}
+            value={
+              current.isFactorWordPick && allowMultiFactorWords
+                ? undefined
+                : currentSelectedOptionId
+            }
+            values={
+              current.isFactorWordPick && allowMultiFactorWords
+                ? currentSelectedOptionIds
+                : undefined
+            }
+            maxSelections={
+              current.isFactorWordPick && allowMultiFactorWords
+                ? maxFactorWordSelections
+                : undefined
+            }
             onChange={selectOption}
           />
         )}
@@ -508,14 +617,28 @@ export function MatrixForm({
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <Button
-            type="button"
-            className="rounded-xl px-5"
-            disabled={saving}
-            onClick={() => handleSave(false, { silent: true })}
-          >
-            {saving ? "Saving..." : "Save progress"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              className="rounded-xl px-5"
+              variant="secondary"
+              disabled={saving}
+              onClick={() => handleSave(false, { silent: true })}
+            >
+              {saving ? "Saving..." : "Save progress"}
+            </Button>
+            {current.isFactorWordPick && allowMultiFactorWords ? (
+              <Button
+                type="button"
+                className="rounded-xl px-5"
+                disabled={saving || !isCurrentAnswered}
+                onClick={continueFromFactorWordPick}
+              >
+                Continue
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            ) : null}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -713,7 +836,21 @@ export function MatrixForm({
               ) : (
                 <MatrixWordSearchPicker
                   options={current.options}
-                  value={currentSelectedOptionId}
+                  value={
+                    current.isFactorWordPick && allowMultiFactorWords
+                      ? undefined
+                      : currentSelectedOptionId
+                  }
+                  values={
+                    current.isFactorWordPick && allowMultiFactorWords
+                      ? currentSelectedOptionIds
+                      : undefined
+                  }
+                  maxSelections={
+                    current.isFactorWordPick && allowMultiFactorWords
+                      ? maxFactorWordSelections
+                      : undefined
+                  }
                   onChange={selectOption}
                 />
               )}
@@ -741,13 +878,23 @@ export function MatrixForm({
           >
             Save draft
           </Button>
-          <Button
-            className="rounded-lg"
-            disabled={saving || (!formComplete && !isCurrentAnswered)}
-            onClick={() => handleSave(Boolean(formComplete))}
-          >
-            {saving ? "Submitting…" : formComplete ? "Submit & continue" : "Next"}
-          </Button>
+          {current?.isFactorWordPick && allowMultiFactorWords ? (
+            <Button
+              className="rounded-lg"
+              disabled={saving || !isCurrentAnswered}
+              onClick={continueFromFactorWordPick}
+            >
+              Continue
+            </Button>
+          ) : (
+            <Button
+              className="rounded-lg"
+              disabled={saving || (!formComplete && !isCurrentAnswered)}
+              onClick={() => handleSave(Boolean(formComplete))}
+            >
+              {saving ? "Submitting…" : formComplete ? "Submit & continue" : "Next"}
+            </Button>
+          )}
         </div>
       ) : null}
     </div>

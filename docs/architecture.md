@@ -61,13 +61,13 @@ Deep HR Match is a **Next.js 16 App Router** application backed by **Supabase** 
 
 | Route | Purpose |
 |-------|---------|
-| `/candidate` | Dashboard (after onboarding) |
+| `/candidate` | Dashboard (always reachable; shows remaining onboarding steps) |
 | `/candidate/profile` | Profile form — onboarding step 1 |
 | `/candidate/cv` | CV upload — step 2 |
 | `/candidate/matrix` | 7^7 matrix — step 3 |
 | `/candidate/status` | Readiness checklist |
 
-**Layout:** `app/candidate/layout.tsx` enforces onboarding order. Pages wrap content in per-page `DashboardShell`.
+**Layout:** `app/candidate/layout.tsx` wraps all routes in `CandidateLayoutShell` (shared header + sidebar).
 
 ### Employer Portal
 
@@ -126,8 +126,11 @@ app/layout.tsx
 EmployerLayoutShell (client)
 └── reads pathname → getEmployerPageMeta() → DashboardChrome props
 
+CandidateLayoutShell (client)
+└── reads pathname → getCandidatePageMeta() → DashboardChrome props
+
 DashboardShell
-└── thin wrapper → DashboardChrome (candidate + admin pages)
+└── thin wrapper → DashboardChrome (admin pages)
 ```
 
 ### Key layout files

@@ -1,18 +1,9 @@
-import { redirect } from "next/navigation";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
-import {
-  CandidateDashboardView,
-  type CandidateDashboardStep,
-} from "@/components/candidate/candidate-dashboard-view";
+import { CandidateDashboardView, type CandidateDashboardStep } from "@/components/candidate/candidate-dashboard-view";
 import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, statusLabel } from "@/lib/utils/profile";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
-import {
-  fetchCandidateOnboardingState,
-  getOnboardingPath,
-  getOnboardingStep,
-} from "@/lib/candidate/onboarding";
+import { fetchCandidateOnboardingState } from "@/lib/candidate/onboarding";
 import { Grid3X3, Upload, User } from "lucide-react";
 
 export default async function CandidateDashboard() {
@@ -20,11 +11,6 @@ export default async function CandidateDashboard() {
   const supabase = await createClient();
   const profile = await getCandidateProfile(user.id);
   const onboarding = await fetchCandidateOnboardingState(supabase, user.id, profile);
-  const nextStep = getOnboardingStep(onboarding);
-
-  if (nextStep !== "done") {
-    redirect(getOnboardingPath(nextStep));
-  }
 
   const hasCv = onboarding.hasCv;
   const hasMatrix = onboarding.hasMatrix;
@@ -60,21 +46,14 @@ export default async function CandidateDashboard() {
   ];
 
   return (
-    <DashboardShell
-      role="candidate"
-      userName={user.name}
-      title="Dashboard"
-      description="Track your progress and get match-ready"
-    >
-      <CandidateDashboardView
-        userName={user.name ?? profile?.full_name}
-        completionPercentage={profile?.completion_percentage ?? 0}
-        status={profile?.status ?? "draft"}
-        statusLabel={statusLabel(profile?.status ?? "draft")}
-        lastUpdated={formatDate(profile?.updated_at)}
-        isReady={isReady}
-        steps={steps}
-      />
-    </DashboardShell>
+    <CandidateDashboardView
+      userName={user.name ?? profile?.full_name}
+      completionPercentage={profile?.completion_percentage ?? 0}
+      status={profile?.status ?? "draft"}
+      statusLabel={statusLabel(profile?.status ?? "draft")}
+      lastUpdated={formatDate(profile?.updated_at)}
+      isReady={isReady}
+      steps={steps}
+    />
   );
 }

@@ -31,11 +31,11 @@ export function getOnboardingPath(step: CandidateOnboardingStep): string {
 export function getAllowedOnboardingPaths(step: CandidateOnboardingStep): string[] {
   switch (step) {
     case "profile":
-      return ["/candidate/profile"];
+      return ["/candidate", "/candidate/profile"];
     case "cv":
-      return ["/candidate/profile", "/candidate/cv"];
+      return ["/candidate", "/candidate/profile", "/candidate/cv"];
     case "matrix":
-      return ["/candidate/profile", "/candidate/cv", "/candidate/matrix"];
+      return ["/candidate", "/candidate/profile", "/candidate/cv", "/candidate/matrix"];
     case "done":
       return [
         "/candidate",

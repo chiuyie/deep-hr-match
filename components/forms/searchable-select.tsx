@@ -35,7 +35,7 @@ const VIEWPORT_GAP = 8;
 const DEFAULT_VISIBLE = 8;
 
 const triggerClassName =
-  "flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 text-left text-sm shadow-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50";
+  "flex min-h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm shadow-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50";
 
 type PanelPos = {
   top: number;
@@ -104,7 +104,7 @@ export function SearchableSelect({
     setPos({
       top: placeBottom ? rect.bottom + 4 : rect.top - 4,
       left: Math.min(rect.left, window.innerWidth - Math.max(rect.width, 200) - VIEWPORT_GAP),
-      width: Math.max(rect.width, Math.min(280, window.innerWidth - VIEWPORT_GAP * 2)),
+      width: Math.max(rect.width, Math.min(360, window.innerWidth - VIEWPORT_GAP * 2)),
       maxHeight,
       placement: placeBottom ? "bottom" : "top",
     });
@@ -194,7 +194,9 @@ export function SearchableSelect({
                     setQuery("");
                   }}
                 >
-                  <span className="truncate">{option.label}</span>
+                  <span className="whitespace-normal break-words leading-snug">
+                    {option.label}
+                  </span>
                 </button>
               </li>
             ))
@@ -229,7 +231,12 @@ export function SearchableSelect({
           setQuery("");
         }}
       >
-        <span className={cn("min-w-0 flex-1 truncate", !value && "text-slate-400")}>
+        <span
+          className={cn(
+            "min-w-0 flex-1 whitespace-normal break-words text-left leading-snug line-clamp-2",
+            !value && "text-slate-400"
+          )}
+        >
           {value ? selectedLabel : placeholder}
         </span>
         <ChevronDown className="size-4 shrink-0 text-slate-400" />

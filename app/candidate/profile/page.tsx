@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CandidateProfileForm } from "@/components/candidate/candidate-profile-form";
 import { requireRole, getCandidateProfile } from "@/lib/auth/session";
@@ -64,13 +63,7 @@ export default async function CandidateProfilePage({
   const showOverviewLink = onboardingStep === "done";
 
   return (
-    <DashboardShell
-      role="candidate"
-      userName={user.name}
-      title="Profile"
-      description="Build your match-ready profile, one page at a time"
-    >
-      <div className="mx-auto max-w-3xl space-y-5">
+      <div className="mx-auto max-w-4xl space-y-5">
         {params.welcome === "1" ? (
           <Alert className="border-sky-200 bg-sky-50 text-sky-950">
             <Sparkles />
@@ -82,22 +75,29 @@ export default async function CandidateProfilePage({
           </Alert>
         ) : null}
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="Onboarding path" className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="rounded-full bg-sky-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <nav
+            aria-label="Onboarding path"
+            className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm"
+          >
+            <span className="rounded-full bg-sky-600 px-2.5 py-0.5 text-xs font-semibold leading-snug text-white">
               1 · Profile
             </span>
-            <span className="text-slate-300">→</span>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+            <span className="text-slate-300" aria-hidden>
+              →
+            </span>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium leading-snug text-slate-500">
               2 · CV
             </span>
-            <span className="text-slate-300">→</span>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+            <span className="text-slate-300" aria-hidden>
+              →
+            </span>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium leading-snug text-slate-500">
               3 · {FRAMEWORK_MATCHING_LANGUAGE}
             </span>
           </nav>
           {showOverviewLink ? (
-            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-slate-500" asChild>
+            <Button variant="ghost" size="sm" className="h-8 shrink-0 gap-1.5 text-slate-500" asChild>
               <Link href="/candidate">
                 <LayoutDashboard className="h-3.5 w-3.5" />
                 Overview
@@ -118,6 +118,5 @@ export default async function CandidateProfilePage({
           showIncompleteError={params.error === "profile-incomplete"}
         />
       </div>
-    </DashboardShell>
   );
 }

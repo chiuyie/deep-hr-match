@@ -8,6 +8,8 @@ import { resolveAuthUser } from "@/lib/supabase/resolve-auth-user";
 // Key: session cookie value, Value: { userId, sessionJson, expiresAt }
 const SESSION_CACHE = new Map<string, { userId: string; sessionJson: string; expiresAt: number }>();
 const CACHE_TTL_MS = 120_000; // 2 minutes
+/** Node request headers blow up around 16KB; leave headroom for cookies and other headers. */
+const MAX_SESSION_HEADER_CHARS = 8_000;
 
 function signInPathForRoute(pathname: string): string {
   if (pathname.startsWith("/admin")) return "/auth/admin/sign-in";
@@ -49,7 +51,9 @@ export async function updateSession(request: NextRequest) {
     const cached = SESSION_CACHE.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       requestHeaders.set(AUTH_USER_ID_HEADER, cached.userId);
-      requestHeaders.set(AUTH_SESSION_HEADER, cached.sessionJson);
+      if (cached.sessionJson) {
+        requestHeaders.set(AUTH_SESSION_HEADER, cached.sessionJson);
+      }
       const fast = NextResponse.next({ request: { headers: requestHeaders } });
       request.cookies.getAll().forEach(c => fast.cookies.set(c.name, c.value));
       return fast;
@@ -91,7 +95,11 @@ export async function updateSession(request: NextRequest) {
       .single();
     if (data) {
       sessionJson = JSON.stringify(data);
-      requestHeaders.set(AUTH_SESSION_HEADER, sessionJson);
+      if (sessionJson.length <= MAX_SESSION_HEADER_CHARS) {
+        requestHeaders.set(AUTH_SESSION_HEADER, sessionJson);
+      } else {
+        sessionJson = "";
+      }
     }
   }
 

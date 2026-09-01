@@ -423,7 +423,8 @@ See **[docs/architecture.md](./docs/architecture.md)** for the full system overv
 ### Dashboard layout
 
 - **Employer portal** uses a shared `EmployerLayoutShell` in `app/employer/layout.tsx`. All employer pages inherit sticky header + sidebar; page titles come from `lib/constants/employer-pages.ts`.
-- **Candidate** and **admin** pages still use per-page `DashboardShell` wrapping `DashboardChrome`.
+- **Candidate portal** uses a shared `CandidateLayoutShell` in `app/candidate/layout.tsx`. Page titles come from `lib/constants/candidate-pages.ts`. Overview is always reachable; incomplete steps show on the dashboard instead of redirecting away.
+- **Admin** pages still use per-page `DashboardShell` wrapping `DashboardChrome`.
 - `DashboardChrome` is a **server component** — page content must not be trapped inside unnecessary client boundaries (this caused a prior blank-dashboard bug).
 
 ### Candidate onboarding

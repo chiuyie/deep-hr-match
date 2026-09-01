@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   DynamicProfileFields,
   type ProfileFieldSection,
@@ -221,16 +220,16 @@ function CandidateProfileFormInner({
 
   return (
     <form ref={formRef} action={formAction} className="space-y-5" noValidate>
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-        <div className="relative bg-gradient-to-br from-sky-50 via-white to-emerald-50/60 px-5 py-5 sm:px-6">
+      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <div className="relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-sky-50 via-white to-emerald-50/60 px-5 py-5 sm:px-6">
           <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-sky-200/30 blur-2xl" />
-          <div className="relative text-sm text-slate-600">
-            Page {step + 1} of {totalSteps}
+          <div className="relative text-sm leading-snug text-slate-600">
+            <span className="tabular-nums">Page {step + 1} of {totalSteps}</span>
             <span className="mx-1.5 text-slate-300">·</span>
             <span className="font-medium text-slate-800">{current.title}</span>
           </div>
           {showIncompleteError || (!meetsThreshold && missingFieldLabels.length > 0) ? (
-            <p className="mt-3 text-sm text-slate-600">
+            <p className="mt-3 text-pretty text-sm leading-snug text-slate-600">
               <span className="font-medium text-slate-800">Still empty:</span>{" "}
               {missingFieldLabels.slice(0, 4).join(", ")}
               {missingFieldLabels.length > 4 ? ` (+${missingFieldLabels.length - 4} more)` : ""}
@@ -239,19 +238,20 @@ function CandidateProfileFormInner({
         </div>
 
         <div className="border-t border-slate-100 px-3 py-3 sm:px-4">
-          <ol className="flex gap-1 overflow-x-auto pb-1">
+          <ol className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
             {stepMeta.map((section, index) => {
               const active = index === step;
               const done = visited.has(index) && index < step;
               const Icon = section.Icon;
               return (
-                <li key={section.title} className="min-w-0 flex-1">
+                <li key={section.title} className="min-w-0">
                   <button
                     type="button"
                     onClick={() => goTo(index)}
                     disabled={busy}
+                    title={section.title}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left transition",
+                      "flex h-full w-full items-start gap-2 rounded-xl px-2.5 py-2.5 text-left transition",
                       active
                         ? "bg-sky-100/80 text-sky-950 ring-1 ring-sky-200"
                         : done
@@ -263,7 +263,7 @@ function CandidateProfileFormInner({
                   >
                     <span
                       className={cn(
-                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                        "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
                         active
                           ? "bg-sky-600 text-white"
                           : done
@@ -273,23 +273,32 @@ function CandidateProfileFormInner({
                     >
                       {done ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
                     </span>
-                    <span className="hidden min-w-0 sm:block">
-                      <span className="block truncate text-xs font-semibold">{section.title}</span>
-                      <span className="block truncate text-[11px] opacity-70">
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs font-semibold leading-snug">
+                        {section.title}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] leading-snug opacity-70">
                         {section.fields.length} field{section.fields.length === 1 ? "" : "s"}
                       </span>
                     </span>
-                    <span className="truncate text-xs font-medium sm:hidden">{index + 1}</span>
                   </button>
                 </li>
               );
             })}
           </ol>
-          <Progress
-            value={stepProgress}
-            className="mt-2 h-1.5 bg-slate-100"
+          <div
+            className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={stepProgress}
             aria-label="Form page progress"
-          />
+          >
+            <div
+              className="h-full rounded-full bg-sky-600 transition-[width] duration-300"
+              style={{ width: `${stepProgress}%` }}
+            />
+          </div>
         </div>
       </div>
 
@@ -331,8 +340,8 @@ function CandidateProfileFormInner({
         </Alert>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-        <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-4 sm:px-6">
+      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <div className="rounded-t-2xl border-b border-slate-100 bg-slate-50/80 px-5 py-4 sm:px-6">
           <div className="flex items-start gap-3">
             {(() => {
               const Icon = stepMeta[step]?.Icon ?? UserRound;
@@ -342,12 +351,14 @@ function CandidateProfileFormInner({
                 </div>
               );
             })()}
-            <div className="min-w-0">
-              <h2 className="text-lg font-semibold tracking-tight text-slate-900">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-balance text-lg font-semibold leading-snug tracking-tight text-slate-900">
                 {current.title}
               </h2>
               {current.description ? (
-                <p className="mt-1 text-sm leading-relaxed text-slate-500">{current.description}</p>
+                <p className="mt-1 text-pretty text-sm leading-relaxed text-slate-500">
+                  {current.description}
+                </p>
               ) : null}
             </div>
           </div>
@@ -371,23 +382,23 @@ function CandidateProfileFormInner({
           ))}
         </div>
 
-        <div className="sticky bottom-0 border-t border-slate-100 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
+        <div className="sticky bottom-0 z-10 rounded-b-2xl border-t border-slate-100 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-xl"
+                className="h-auto min-h-9 rounded-xl px-3 py-2"
                 disabled={step === 0 || busy}
                 onClick={() => goTo(step - 1, { bypassValidation: true })}
               >
-                <ArrowLeft className="mr-1.5 h-4 w-4" />
+                <ArrowLeft className="mr-1.5 h-4 w-4 shrink-0" />
                 Back
               </Button>
               {!isLastStep ? (
                 <Button
                   type="button"
-                  className="rounded-xl bg-sky-600 hover:bg-sky-700"
+                  className="h-auto min-h-9 rounded-xl bg-sky-600 px-3 py-2 hover:bg-sky-700"
                   disabled={busy || !currentSectionValid}
                   onClick={handleNext}
                   title={
@@ -396,9 +407,9 @@ function CandidateProfileFormInner({
                       : "Complete the required fields on this page to continue"
                   }
                 >
-                  {stepSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {stepSaving ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : null}
                   Next
-                  {!stepSaving ? <ArrowRight className="ml-1.5 h-4 w-4" /> : null}
+                  {!stepSaving ? <ArrowRight className="ml-1.5 h-4 w-4 shrink-0" /> : null}
                 </Button>
               ) : null}
             </div>
@@ -412,10 +423,10 @@ function CandidateProfileFormInner({
                     value="draft"
                     variant="secondary"
                     disabled={busy}
-                    className="rounded-xl"
+                    className="h-auto min-h-9 whitespace-normal rounded-xl px-3 py-2"
                     onClick={handleSubmitClick}
                   >
-                    {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {pending ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : null}
                     Save for later
                   </Button>
                   {isLastStep ? (
@@ -424,12 +435,12 @@ function CandidateProfileFormInner({
                       name="intent"
                       value="submit"
                       disabled={busy || !currentSectionValid}
-                      className="rounded-xl"
+                      className="h-auto min-h-9 whitespace-normal rounded-xl px-3 py-2 text-left"
                       onClick={handleSubmitClick}
                     >
-                      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Save &amp; continue to CV
-                      <ArrowRight className="ml-1.5 h-4 w-4" />
+                      {pending ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : null}
+                      <span>Save &amp; continue to CV</span>
+                      <ArrowRight className="ml-1.5 h-4 w-4 shrink-0" />
                     </Button>
                   ) : null}
                 </>
@@ -440,14 +451,19 @@ function CandidateProfileFormInner({
                     name="intent"
                     value="draft"
                     disabled={busy}
-                    className="rounded-xl"
+                    className="h-auto min-h-9 whitespace-normal rounded-xl px-3 py-2"
                     onClick={handleSubmitClick}
                   >
-                    {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {pending ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : null}
                     Save profile
                   </Button>
                   {isLastStep && continueHref && continueLabel ? (
-                    <Button type="button" variant="outline" className="rounded-xl" asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-auto min-h-9 whitespace-normal rounded-xl px-3 py-2"
+                      asChild
+                    >
                       <Link href={continueHref}>{continueLabel}</Link>
                     </Button>
                   ) : null}
@@ -456,12 +472,12 @@ function CandidateProfileFormInner({
             </div>
           </div>
           {!isLastStep ? (
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-pretty text-xs leading-relaxed text-slate-500">
               Next validates this page, saves your progress, then moves on. You can also use Save
               for later anytime.
             </p>
           ) : (
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-pretty text-xs leading-relaxed text-slate-500">
               Last page — save when you&apos;re ready
               {isOnboardingProfileStep ? ", or continue to CV once you hit 60%." : "."}
             </p>

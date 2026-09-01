@@ -7,6 +7,12 @@ export const MATRIX_FACTOR_LEVEL = 1;
 /** Word choices at each word level (Levels 2–7+). */
 export const MATRIX_WORDS_PER_LEVEL = 7;
 
+/**
+ * Candidates may select up to this many words on each factor’s word-pick step
+ * (e.g. Character - Roles: Initiator, Leader, Planner). Employers stay at 1.
+ */
+export const MATRIX_CANDIDATE_MAX_FACTOR_WORD_SELECTIONS = 3;
+
 /** Root word rows in the spreadsheet (Level 1 = factor columns; up to 7 rows for full 7^7 depth). */
 export const MATRIX_LEVELS_PER_FACTOR = 7;
 

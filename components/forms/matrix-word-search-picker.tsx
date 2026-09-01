@@ -12,17 +12,29 @@ import type { MatrixOption } from "@/types/database";
 
 interface MatrixWordSearchPickerProps {
   options: MatrixOption[];
+  /** Single-select value (employer / sub-levels). Ignored when `values` is set. */
   value?: string;
+  /** Multi-select values (candidate factor word pick). */
+  values?: string[];
+  /** Max selectable words when multi-select. Default unlimited within options. */
+  maxSelections?: number;
   onChange: (optionId: string) => void;
 }
 
 export function MatrixWordSearchPicker({
   options,
   value,
+  values,
+  maxSelections,
   onChange,
 }: MatrixWordSearchPickerProps) {
   const [query, setQuery] = useState("");
   const sorted = useMemo(() => sortMatrixOptions(options), [options]);
+  const multi = Array.isArray(values);
+  const selectedIds = useMemo(
+    () => new Set(multi ? values : value ? [value] : []),
+    [multi, value, values]
+  );
 
   useEffect(() => {
     setQuery("");
@@ -46,6 +58,12 @@ export function MatrixWordSearchPicker({
         />
       </div>
 
+      {multi && typeof maxSelections === "number" ? (
+        <p className="text-sm text-muted-foreground">
+          Selected {selectedIds.size} of {maxSelections} max
+        </p>
+      ) : null}
+
       {visible.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-muted-foreground dark:border-slate-700 dark:bg-slate-900/40">
           No words match your search on this level.
@@ -55,21 +73,30 @@ export function MatrixWordSearchPicker({
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
           role="listbox"
           aria-label="Word options for this level"
+          aria-multiselectable={multi || undefined}
         >
           {visible.map((option) => {
-            const selected = value === option.id;
+            const selected = selectedIds.has(option.id);
+            const atMax =
+              multi &&
+              typeof maxSelections === "number" &&
+              selectedIds.size >= maxSelections &&
+              !selected;
             return (
               <button
                 key={option.id}
                 type="button"
                 role="option"
                 aria-selected={selected}
+                disabled={atMax}
                 onClick={() => onChange(option.id)}
                 className={cn(
                   "cursor-pointer rounded-2xl border px-4 py-4 text-left text-sm font-medium shadow-sm transition-all",
                   selected
                     ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/15"
-                    : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                    : atMax
+                      ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 opacity-60 dark:border-slate-800 dark:bg-slate-900/40"
+                      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                 )}
               >
                 <div className="flex items-start justify-between gap-3">

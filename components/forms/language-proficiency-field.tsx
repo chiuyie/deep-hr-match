@@ -178,12 +178,12 @@ export function LanguageProficiencyField({
               className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3 sm:flex-row sm:items-center"
             >
               <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                <span className="truncate text-sm font-medium text-slate-800">
+                <span className="break-words text-sm font-medium leading-snug text-slate-800">
                   {entry.language}
                 </span>
                 <button
                   type="button"
-                  className="rounded-md p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-800"
+                  className="shrink-0 rounded-md p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-800"
                   aria-label={`Remove ${entry.language}`}
                   disabled={disabled}
                   onClick={() => removeLanguage(entry.language)}
@@ -191,10 +191,10 @@ export function LanguageProficiencyField({
                   <X className="size-4" />
                 </button>
               </div>
-              <label className="flex items-center gap-2 text-xs text-slate-600 sm:w-56">
-                <span className="shrink-0">Proficiency</span>
+              <label className="flex min-w-0 flex-col gap-1.5 text-xs text-slate-600 sm:w-56">
+                <span className="shrink-0 leading-snug">Proficiency</span>
                 <select
-                  className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm"
+                  className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-sm"
                   value={entry.proficiency ?? ""}
                   disabled={disabled}
                   aria-label={`${entry.language} proficiency`}

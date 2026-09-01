@@ -123,16 +123,16 @@ export function DashboardHeader({
       <div className="flex min-w-0 flex-1 items-center gap-3 px-4 sm:px-6">
         <BrandLogo href={nav.homeHref} className="shrink-0 lg:hidden" />
 
-        <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="min-w-0 flex-1">
           <h1
-            className="truncate text-base font-semibold leading-snug tracking-tight text-foreground sm:text-lg"
+            className="text-balance text-base font-semibold leading-snug tracking-tight text-foreground sm:text-lg"
             title={title}
           >
             {title}
           </h1>
           {description && (
             <p
-              className="hidden truncate text-sm leading-snug text-muted-foreground sm:block"
+              className="mt-0.5 hidden text-pretty text-sm leading-snug text-muted-foreground sm:line-clamp-2 sm:block"
               title={description}
             >
               {description}

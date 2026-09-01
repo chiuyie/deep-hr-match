@@ -141,9 +141,9 @@ export function TagInput({
           {values.map((tag, index) => (
             <span
               key={`${tag}-${index}`}
-              className="inline-flex max-w-full items-center gap-1 rounded-lg bg-sky-50 px-2 py-1 text-xs font-medium text-sky-900 ring-1 ring-sky-100"
+              className="inline-flex max-w-full items-center gap-1 rounded-lg bg-sky-50 px-2 py-1 text-xs font-medium leading-snug text-sky-900 ring-1 ring-sky-100"
             >
-              <span className="truncate">{tag}</span>
+              <span className="break-words">{tag}</span>
               <button
                 type="button"
                 className="rounded p-0.5 text-sky-700 hover:bg-sky-100"
