@@ -70,7 +70,7 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
     id: "role-requirements",
     title: "Role requirements",
     description:
-      "Answer Yes or No so employers can filter roles that match what you can take on.",
+      "Quick Yes / No answers help employers match you to roles with the right expectations.",
     fieldKeys: [
       "willing_overtime",
       "work_outside_standard_hours",

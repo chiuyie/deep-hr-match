@@ -201,31 +201,64 @@ export const JOB_BACKGROUND_QUESTIONS = [
 
 /** Candidate Yes/No answers stored in `custom_fields` and used as hard match filters. */
 export const CANDIDATE_ROLE_REQUIREMENT_QUESTIONS = [
-  { name: "willing_overtime", label: "Are you willing to work overtime?" },
+  {
+    name: "willing_overtime",
+    shortLabel: "Overtime",
+    label: "Are you willing to work overtime?",
+  },
   {
     name: "work_outside_standard_hours",
+    shortLabel: "Outside standard hours",
     label: "Are you willing to work outside standard working hours?",
   },
   {
     name: "weekend_public_holiday_work",
+    shortLabel: "Weekends / public holidays",
     label: "Are you willing to work on weekends or public holidays?",
   },
-  { name: "driving_licence", label: "Do you have a valid driving licence?" },
-  { name: "car_ownership", label: "Do you have access to a personal vehicle?" },
+  {
+    name: "driving_licence",
+    shortLabel: "Driving licence",
+    label: "Do you have a valid driving licence?",
+  },
+  {
+    name: "car_ownership",
+    shortLabel: "Personal vehicle",
+    label: "Do you have access to a personal vehicle?",
+  },
   {
     name: "work_related_travel",
+    shortLabel: "Work-related travel",
     label: "Are you willing to undertake work-related travel?",
   },
-  { name: "willing_relocate", label: "Are you willing to relocate?" },
+  {
+    name: "willing_relocate",
+    shortLabel: "Relocate",
+    label: "Are you willing to relocate?",
+  },
   {
     name: "willing_background_check",
+    shortLabel: "Background check",
     label: "Are you willing to undergo a background check?",
   },
   {
     name: "accessibility_arrangements_required",
+    shortLabel: "Accessibility arrangements",
     label: "Do you require specific workplace accessibility arrangements?",
   },
 ] as const;
+
+export const CANDIDATE_ROLE_REQUIREMENT_BY_KEY = Object.fromEntries(
+  CANDIDATE_ROLE_REQUIREMENT_QUESTIONS.map((question) => [question.name, question])
+) as Record<
+  (typeof CANDIDATE_ROLE_REQUIREMENT_QUESTIONS)[number]["name"],
+  (typeof CANDIDATE_ROLE_REQUIREMENT_QUESTIONS)[number]
+>;
+
+/** Identity fields candidates can set once, then cannot change on their profile. */
+export const CANDIDATE_LOCKABLE_IDENTITY_FIELD_KEYS = ["full_name", "email", "gender"] as const;
+export type CandidateLockableIdentityFieldKey =
+  (typeof CANDIDATE_LOCKABLE_IDENTITY_FIELD_KEYS)[number];
 
 export const CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS: Set<string> = new Set(
   CANDIDATE_ROLE_REQUIREMENT_QUESTIONS.map((question) => question.name)

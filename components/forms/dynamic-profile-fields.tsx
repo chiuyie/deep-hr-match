@@ -3,6 +3,7 @@ import { employerInputClassName, employerLabelClassName } from "@/components/emp
 import {
   CandidateCountryCityPair,
   CandidateProfileField,
+  CandidateRoleRequirementsList,
 } from "@/components/forms/candidate-profile-field";
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
 import { resolveSelectOptions } from "@/lib/form-fields/select-options";
@@ -10,6 +11,7 @@ import {
   CANDIDATE_CUSTOM_STORED_FIELD_KEYS,
   CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS,
 } from "@/lib/constants/job-form";
+import { isCandidateIdentityFieldLocked } from "@/lib/candidate/lock-identity-fields";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -118,8 +120,7 @@ function isWideCandidateField(field: FormFieldDefinition): boolean {
     field.field_key === "skills" ||
     field.field_key === "certifications" ||
     field.field_key === "languages" ||
-    field.field_key === "employment_eligibility_visa" ||
-    CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS.has(field.field_key)
+    field.field_key === "employment_eligibility_visa"
   );
 }
 
@@ -143,6 +144,7 @@ function CandidateFieldsGrid({
             <CandidateProfileField
               field={field}
               defaultValue={getDefaultValue(field, values)}
+              locked={isCandidateIdentityFieldLocked(field.field_key, values)}
             />
           </div>
         ))}
@@ -173,6 +175,31 @@ function CandidateFieldsGrid({
       continue;
     }
 
+    if (CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS.has(field.field_key)) {
+      flushNarrowRun(narrowRun);
+      narrowRun = [];
+      const roleFields: FormFieldDefinition[] = [];
+      while (
+        index < sorted.length &&
+        CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS.has(sorted[index]!.field_key)
+      ) {
+        roleFields.push(sorted[index]!);
+        index += 1;
+      }
+      const roleValues: Record<string, string> = {};
+      for (const roleField of roleFields) {
+        roleValues[roleField.field_key] = getDefaultValue(roleField, values);
+      }
+      nodes.push(
+        <CandidateRoleRequirementsList
+          key={roleFields.map((f) => f.id).join("-")}
+          fields={roleFields}
+          values={roleValues}
+        />
+      );
+      continue;
+    }
+
     if (isWideCandidateField(field)) {
       flushNarrowRun(narrowRun);
       narrowRun = [];
@@ -181,6 +208,7 @@ function CandidateFieldsGrid({
           key={field.id}
           field={field}
           defaultValue={getDefaultValue(field, values)}
+          locked={isCandidateIdentityFieldLocked(field.field_key, values)}
         />
       );
       index += 1;

@@ -18,6 +18,7 @@ import {
   validateSkillsList,
 } from "@/lib/form-fields/profile-tags";
 import { fetchCandidateOnboardingState } from "@/lib/candidate/onboarding";
+import { preserveLockedCandidateIdentityFields } from "@/lib/candidate/lock-identity-fields";
 import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategory } from "@/lib/matching/matrix-queries";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 import {
@@ -95,15 +96,26 @@ export async function saveCandidateProfileCore(
   const custom_fields = extractCustomFields(formData);
   const customCheck = validateRequiredCustomFields(fields, custom_fields, schemaOptions);
   if (customCheck.ok === false) return { error: customCheck.message };
-  const payload = buildProfilePayload(
-    normalizeCandidateProfilePayload(
-      {
-        ...(parsed.data as Record<string, unknown>),
-        custom_fields,
-      },
-      fields
+
+  const existingProfile = await getCandidateProfile(user.id);
+  const payload = preserveLockedCandidateIdentityFields(
+    buildProfilePayload(
+      normalizeCandidateProfilePayload(
+        {
+          ...(parsed.data as Record<string, unknown>),
+          custom_fields,
+        },
+        fields
+      ),
+      submit
     ),
-    submit
+    existingProfile
+      ? {
+          full_name: existingProfile.full_name,
+          email: existingProfile.email,
+          custom_fields: existingProfile.custom_fields ?? null,
+        }
+      : null
   );
 
   const { error } = await supabase

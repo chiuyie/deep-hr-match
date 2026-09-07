@@ -53,8 +53,11 @@ import {
   resolvePhoneInput,
 } from "@/lib/constants/candidate-profile-options";
 import {
+  CANDIDATE_MATCHING_ATTRIBUTE_FIELDS,
+  CANDIDATE_ROLE_REQUIREMENT_BY_KEY,
   CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS,
 } from "@/lib/constants/job-form";
+import { Lock } from "lucide-react";
 
 const countrySearchOptions = countrySelectOptions();
 const phoneDialSearchOptions = phoneDialSelectOptions();
@@ -70,6 +73,8 @@ const invalidInputClassName = "border-rose-400 focus-visible:ring-rose-500/20";
 type Props = {
   field: FormFieldDefinition;
   defaultValue: string;
+  /** When true, show a read-only value (identity fields locked after first save). */
+  locked?: boolean;
 };
 
 function useFieldTracking(fieldKey: string) {
@@ -81,15 +86,56 @@ function useFieldTracking(fieldKey: string) {
   return { error, report, invalid: Boolean(error) };
 }
 
-function FieldLabel({ field }: { field: FormFieldDefinition }) {
+function FieldLabel({
+  field,
+  locked,
+}: {
+  field: FormFieldDefinition;
+  locked?: boolean;
+}) {
   return (
     <Label
       htmlFor={field.field_key}
       className="block text-pretty text-sm font-medium leading-snug text-slate-700"
     >
-      {field.label}
-      {field.is_required ? <span className="text-rose-500"> *</span> : null}
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        {field.label}
+        {field.is_required && !locked ? <span className="text-rose-500"> *</span> : null}
+        {locked ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+            <Lock className="h-3 w-3" aria-hidden />
+            Locked
+          </span>
+        ) : null}
+      </span>
     </Label>
+  );
+}
+
+function LockedValueField({ field, defaultValue }: Props) {
+  const name = field.is_custom ? `custom_${field.field_key}` : field.field_key;
+  const display = defaultValue.trim() || "—";
+  const { report } = useFieldTracking(field.field_key);
+
+  useEffect(() => {
+    report(defaultValue, { reveal: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultValue]);
+
+  return (
+    <div className="space-y-2" data-field-key={field.field_key}>
+      <FieldLabel field={field} locked />
+      <input type="hidden" name={name} value={defaultValue} />
+      <div
+        id={field.field_key}
+        className="flex min-h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700"
+      >
+        {display}
+      </div>
+      <p className="text-xs leading-relaxed text-slate-500">
+        This can&apos;t be changed after it&apos;s set. Contact support if you need an update.
+      </p>
+    </div>
   );
 }
 
@@ -685,7 +731,11 @@ function SalaryField({ field, defaultValue }: Props) {
   );
 }
 
-function YesNoField({ field, defaultValue }: Props) {
+function YesNoField({ field, defaultValue, compact = false }: Props & { compact?: boolean }) {
+  const meta =
+    CANDIDATE_ROLE_REQUIREMENT_BY_KEY[
+      field.field_key as keyof typeof CANDIDATE_ROLE_REQUIREMENT_BY_KEY
+    ];
   const normalized =
     defaultValue === "Yes" || defaultValue === "true" || defaultValue === "1"
       ? "Yes"
@@ -695,54 +745,114 @@ function YesNoField({ field, defaultValue }: Props) {
   const [value, setValue] = useState(normalized);
   const name = field.is_custom ? `custom_${field.field_key}` : field.field_key;
   const { error, report, invalid } = useFieldTracking(field.field_key);
+  const title = meta?.shortLabel ?? field.label;
+  const description = meta?.label ?? null;
 
   useEffect(() => {
     report(value, { reveal: Boolean(value) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
+  const choices = (
+    <div
+      id={field.field_key}
+      className={cn(
+        "inline-flex shrink-0 rounded-full border border-slate-200 bg-slate-50 p-1",
+        invalid && "ring-2 ring-rose-300/70"
+      )}
+      role="radiogroup"
+      aria-label={field.label}
+      aria-invalid={invalid || undefined}
+      aria-required={field.is_required || undefined}
+    >
+      {(["Yes", "No"] as const).map((option) => {
+        const selected = value === option;
+        return (
+          <button
+            key={option}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            className={cn(
+              "min-w-[4.25rem] rounded-full px-3.5 py-1.5 text-sm font-medium transition",
+              selected
+                ? option === "Yes"
+                  ? "bg-sky-600 text-white shadow-sm"
+                  : "bg-slate-700 text-white shadow-sm"
+                : "text-slate-600 hover:bg-white hover:text-slate-900"
+            )}
+            onClick={() => {
+              setValue(option);
+              report(option, { reveal: true });
+            }}
+          >
+            {option}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "flex flex-col gap-3 border-b border-slate-100 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6",
+          invalid && "bg-rose-50/40"
+        )}
+        data-field-key={field.field_key}
+      >
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="text-sm font-medium text-slate-900">
+            {title}
+            {field.is_required ? <span className="text-rose-500"> *</span> : null}
+          </p>
+          {description && description !== title ? (
+            <p className="text-sm leading-relaxed text-slate-500">{description}</p>
+          ) : null}
+          <FieldInlineError message={error} />
+        </div>
+        <input type="hidden" name={name} value={value} />
+        {choices}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2" data-field-key={field.field_key}>
       <FieldLabel field={field} />
       <input type="hidden" name={name} value={value} />
-      <div
-        id={field.field_key}
-        className={cn(
-          "grid grid-cols-2 gap-2 rounded-xl p-0.5",
-          invalid && "ring-2 ring-rose-300/70"
-        )}
-        role="radiogroup"
-        aria-label={field.label}
-        aria-invalid={invalid || undefined}
-        aria-required={field.is_required || undefined}
-      >
-        {(["Yes", "No"] as const).map((option) => {
-          const selected = value === option;
-          return (
-            <button
-              key={option}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              className={cn(
-                "rounded-xl border px-3 py-2.5 text-sm font-medium leading-snug transition",
-                selected
-                  ? option === "Yes"
-                    ? "border-sky-500 bg-sky-50 text-sky-950 ring-1 ring-sky-200"
-                    : "border-slate-400 bg-slate-100 text-slate-900 ring-1 ring-slate-300"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-              )}
-              onClick={() => {
-                setValue(option);
-                report(option, { reveal: true });
-              }}
-            >
-              {option}
-            </button>
-          );
-        })}
-      </div>
+      {choices}
       <FieldInlineError message={error} />
+    </div>
+  );
+}
+
+export function CandidateRoleRequirementsList({
+  fields,
+  values,
+}: {
+  fields: FormFieldDefinition[];
+  values: Record<string, string>;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
+        <p className="text-sm font-medium text-slate-800">Your answers</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+          Tap Yes or No for each item. Employers use these to match role expectations.
+        </p>
+      </div>
+      <div className="px-4 sm:px-5">
+        {fields.map((field) => (
+          <YesNoField
+            key={field.id}
+            field={field}
+            defaultValue={values[field.field_key] ?? ""}
+            compact
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -995,7 +1105,16 @@ function TrackedTextField({
   );
 }
 
-export function CandidateProfileField({ field, defaultValue }: Props) {
+export function CandidateProfileField({ field, defaultValue, locked = false }: Props) {
+  if (
+    locked &&
+    (field.field_key === "email" ||
+      field.field_key === "gender" ||
+      field.field_key === "full_name")
+  ) {
+    return <LockedValueField field={field} defaultValue={defaultValue} locked />;
+  }
+
   if (field.field_key === "phone") {
     return <PhoneField field={field} defaultValue={defaultValue} />;
   }
@@ -1016,6 +1135,19 @@ export function CandidateProfileField({ field, defaultValue }: Props) {
   }
   if (CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS.has(field.field_key)) {
     return <YesNoField field={field} defaultValue={defaultValue} />;
+  }
+  if (field.field_key === "gender") {
+    const genderOptions =
+      CANDIDATE_MATCHING_ATTRIBUTE_FIELDS.find((item) => item.name === "gender")?.options ??
+      resolveSelectOptions(field);
+    return (
+      <SimpleSelectField
+        field={field}
+        defaultValue={defaultValue}
+        options={genderOptions}
+        placeholder="Select gender"
+      />
+    );
   }
   if (field.field_key === "highest_education" && field.field_type === "select") {
     return (
