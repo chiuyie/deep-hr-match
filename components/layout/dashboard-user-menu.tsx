@@ -68,10 +68,15 @@ export function DashboardUserMenu({ role, userName }: DashboardUserMenuProps) {
               : "Admin home"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={() => void signOut()}>
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </DropdownMenuItem>
+        <form action={signOut} className="p-0">
+          <button
+            type="submit"
+            className="relative flex w-full cursor-default items-center gap-2 rounded-md px-1.5 py-1 text-sm text-destructive outline-hidden select-none hover:bg-destructive/10 focus:bg-destructive/10"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        </form>
       </DropdownMenuContent>
     </DropdownMenu>
   );

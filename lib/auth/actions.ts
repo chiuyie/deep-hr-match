@@ -267,11 +267,13 @@ export async function signIn(formData: FormData): Promise<void> {
   const actualRole = dbUser?.role as UserRole | undefined;
 
   if (actualRole === "admin") {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "global" });
     redirect("/auth/admin/sign-in?error=use-admin-portal");
   }
 
   if (expectedRole && actualRole !== expectedRole) {
+    // Stay signed in so the notice can offer "continue as {role}", but send
+    // them to the notice page instead of the wrong portal dashboard.
     const accountRole =
       actualRole === "candidate" || actualRole === "employer" ? actualRole : null;
     signInRedirectPath(
@@ -281,6 +283,7 @@ export async function signIn(formData: FormData): Promise<void> {
     );
   }
 
+  // Force a full navigation into the correct portal with the new session cookies.
   redirect(getDashboardPath(actualRole ?? "candidate"));
 }
 
@@ -312,7 +315,7 @@ export async function signInAsAdmin(formData: FormData): Promise<void> {
     .single();
 
   if (dbUser?.role !== "admin") {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "global" });
     redirect("/auth/admin/sign-in?error=not-admin");
   }
 
@@ -321,7 +324,7 @@ export async function signInAsAdmin(formData: FormData): Promise<void> {
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "global" });
   revalidatePath("/", "layout");
   redirect("/");
 }
@@ -329,7 +332,7 @@ export async function signOut() {
 export async function signOutToPortalSignIn(formData: FormData): Promise<void> {
   const portalRole = parsePortalRole(formData.get("role"));
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "global" });
   revalidatePath("/", "layout");
   redirect(portalRole ? `/auth/sign-in?role=${portalRole}` : "/auth/sign-in");
 }

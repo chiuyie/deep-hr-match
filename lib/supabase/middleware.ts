@@ -4,33 +4,52 @@ import { AUTH_USER_ID_HEADER, AUTH_SESSION_HEADER } from "@/lib/auth/forwarded-u
 import { getSupabaseEnv, isSupabaseConfigured } from "@/lib/supabase/env";
 import { resolveAuthUser } from "@/lib/supabase/resolve-auth-user";
 
-// Short-lived in-memory cache to avoid hitting Supabase auth on every request.
-// Key: session cookie value, Value: { userId, sessionJson, expiresAt }
-const SESSION_CACHE = new Map<string, { userId: string; sessionJson: string; expiresAt: number }>();
-const CACHE_TTL_MS = 120_000; // 2 minutes
-/** Node request headers blow up around 16KB; leave headroom for cookies and other headers. */
+/**
+ * Cache only the users-row JSON after JWT verification, keyed by auth user id.
+ * Never skip getUser() — that caused cross-user identity bugs and stale sessions.
+ */
+const USER_ROW_CACHE = new Map<
+  string,
+  { sessionJson: string; expiresAt: number }
+>();
+const CACHE_TTL_MS = 60_000;
+const CACHE_MAX_ENTRIES = 100;
 const MAX_SESSION_HEADER_CHARS = 8_000;
 
 function signInPathForRoute(pathname: string): string {
-  if (pathname.startsWith("/admin")) return "/auth/admin/sign-in";
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
+    return "/auth/admin/sign-in";
+  }
   if (pathname.startsWith("/employer")) return "/auth/sign-in?role=employer";
   if (pathname.startsWith("/candidate")) return "/auth/sign-in?role=candidate";
   return "/auth/sign-in";
 }
 
+/** Identity only — keep header small; full profiles load in RSC when needed. */
 const SESSION_SELECT =
-  "id, auth_user_id, role, name, email, created_at, updated_at, employer_profiles(id, user_id, company_name, registration_number, industry, company_size, website, company_description, contact_person_name, contact_person_email, contact_person_phone, created_at, updated_at), candidate_profiles(*)";
+  "id, auth_user_id, role, name, email, created_at, updated_at";
+
+function pruneUserRowCache() {
+  const now = Date.now();
+  for (const [key, value] of USER_ROW_CACHE) {
+    if (value.expiresAt < now) USER_ROW_CACHE.delete(key);
+  }
+  while (USER_ROW_CACHE.size > CACHE_MAX_ENTRIES) {
+    const oldest = USER_ROW_CACHE.keys().next().value;
+    if (oldest === undefined) break;
+    USER_ROW_CACHE.delete(oldest);
+  }
+}
 
 export async function updateSession(request: NextRequest) {
+  // Never trust client-supplied identity headers (spoofable).
   const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete(AUTH_USER_ID_HEADER);
+  requestHeaders.delete(AUTH_SESSION_HEADER);
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
 
-  let supabaseResponse = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
-
   if (!isSupabaseConfigured()) {
-    return supabaseResponse;
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   const { url, anonKey } = getSupabaseEnv();
@@ -39,26 +58,19 @@ export async function updateSession(request: NextRequest) {
   const isProtectedRoute =
     pathname.startsWith("/candidate") ||
     pathname.startsWith("/employer") ||
-    pathname.startsWith("/admin");
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api/admin");
 
-  // Check in-memory cache first to skip auth + DB round-trips entirely
-  const sessionCookie = request.cookies.get("sb-access-token")?.value
-    ?? request.cookies.getAll().find(c => c.name.includes("-auth-token"))?.value
-    ?? "";
-  const cacheKey = sessionCookie ? sessionCookie.slice(0, 64) : "";
+  type CookieToSet = {
+    name: string;
+    value: string;
+    options?: Parameters<NextResponse["cookies"]["set"]>[2];
+  };
+  const cookiesToApply: CookieToSet[] = [];
 
-  if (cacheKey) {
-    const cached = SESSION_CACHE.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-      requestHeaders.set(AUTH_USER_ID_HEADER, cached.userId);
-      if (cached.sessionJson) {
-        requestHeaders.set(AUTH_SESSION_HEADER, cached.sessionJson);
-      }
-      const fast = NextResponse.next({ request: { headers: requestHeaders } });
-      request.cookies.getAll().forEach(c => fast.cookies.set(c.name, c.value));
-      return fast;
-    }
-  }
+  let supabaseResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 
   const supabase = createServerClient(url!, anonKey!, {
     cookies: {
@@ -67,6 +79,7 @@ export async function updateSession(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        cookiesToApply.push(...cookiesToSet);
         supabaseResponse = NextResponse.next({
           request: { headers: requestHeaders },
         });
@@ -77,52 +90,56 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
+  // Always verify/refresh the JWT — never short-circuit auth on a cookie-prefix cache.
   const user = await resolveAuthUser(supabase);
   requestHeaders.set(AUTH_USER_ID_HEADER, user?.id ?? "");
 
   if (isProtectedRoute && !user) {
     const signInUrl = new URL(signInPathForRoute(pathname), request.url);
-    return NextResponse.redirect(signInUrl);
+    const redirectResponse = NextResponse.redirect(signInUrl);
+    cookiesToApply.forEach(({ name, value, options }) =>
+      redirectResponse.cookies.set(name, value, options)
+    );
+    return redirectResponse;
   }
 
-  // Pre-fetch session row so RSC skips a DB round-trip
-  let sessionJson = "";
   if (user && isProtectedRoute) {
-    const { data } = await supabase
-      .from("users")
-      .select(SESSION_SELECT)
-      .eq("auth_user_id", user.id)
-      .single();
-    if (data) {
-      sessionJson = JSON.stringify(data);
-      if (sessionJson.length <= MAX_SESSION_HEADER_CHARS) {
-        requestHeaders.set(AUTH_SESSION_HEADER, sessionJson);
-      } else {
-        sessionJson = "";
+    const cached = USER_ROW_CACHE.get(user.id);
+    let sessionJson = "";
+
+    if (cached && cached.expiresAt > Date.now()) {
+      sessionJson = cached.sessionJson;
+    } else {
+      const { data } = await supabase
+        .from("users")
+        .select(SESSION_SELECT)
+        .eq("auth_user_id", user.id)
+        .single();
+      if (data && data.auth_user_id === user.id) {
+        sessionJson = JSON.stringify(data);
+        if (sessionJson.length > MAX_SESSION_HEADER_CHARS) {
+          sessionJson = "";
+        } else {
+          USER_ROW_CACHE.set(user.id, {
+            sessionJson,
+            expiresAt: Date.now() + CACHE_TTL_MS,
+          });
+          pruneUserRowCache();
+        }
       }
+    }
+
+    if (sessionJson) {
+      requestHeaders.set(AUTH_SESSION_HEADER, sessionJson);
     }
   }
 
-  // Cache for subsequent requests
-  if (cacheKey && user) {
-    SESSION_CACHE.set(cacheKey, {
-      userId: user.id,
-      sessionJson,
-      expiresAt: Date.now() + CACHE_TTL_MS,
-    });
-    // Evict old entries
-    if (SESSION_CACHE.size > 100) {
-      const now = Date.now();
-      for (const [k, v] of SESSION_CACHE) {
-        if (v.expiresAt < now) SESSION_CACHE.delete(k);
-      }
-    }
-  }
-
-  const forwarded = NextResponse.next({
+  // Rebuild so RSC sees the AUTH_* headers we set after getUser().
+  const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
-  supabaseResponse.cookies.getAll().forEach((cookie) => forwarded.cookies.set(cookie));
-
-  return forwarded;
+  cookiesToApply.forEach(({ name, value, options }) =>
+    response.cookies.set(name, value, options)
+  );
+  return response;
 }

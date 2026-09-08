@@ -2,9 +2,10 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AUTH_USER_ID_HEADER, AUTH_SESSION_HEADER } from "@/lib/auth/forwarded-user";
+import { parseForwardedSession } from "@/lib/auth/parse-forwarded-session";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAuthUser } from "@/lib/supabase/resolve-auth-user";
-import type { CandidateProfile, EmployerProfile, User, UserRole } from "@/types/database";
+import type { User, UserRole } from "@/types/database";
 
 async function loadCandidateProfile(userId: string) {
   const supabase = await createClient();
@@ -19,17 +20,10 @@ async function loadCandidateProfile(userId: string) {
 const EMPLOYER_PROFILE_SELECT =
   "id, user_id, company_name, registration_number, industry, company_size, website, company_description, contact_person_name, contact_person_email, contact_person_phone, created_at, updated_at";
 
-const SESSION_USER_SELECT = `id, auth_user_id, role, name, email, created_at, updated_at, employer_profiles(${EMPLOYER_PROFILE_SELECT}), candidate_profiles(*)`;
+const SESSION_USER_SELECT =
+  "id, auth_user_id, role, name, email, created_at, updated_at";
 
-type SessionRow = User & {
-  employer_profiles?: EmployerProfile | EmployerProfile[] | null;
-  candidate_profiles?: CandidateProfile | CandidateProfile[] | null;
-};
-
-function unwrapEmbed<T>(value: T | T[] | null | undefined): T | null {
-  if (!value) return null;
-  return (Array.isArray(value) ? value[0] : value) ?? null;
-}
+type SessionRow = User;
 
 function toUser(row: SessionRow): User {
   return {
@@ -56,6 +50,8 @@ async function loadEmployerProfile(userId: string) {
 export const getAuthUser = cache(async function getAuthUser() {
   const headerList = await headers();
   const forwardedId = headerList.get(AUTH_USER_ID_HEADER);
+  // Middleware always sets this header ("" when logged out). Only trust non-empty
+  // values that middleware wrote after JWT verification.
   if (forwardedId !== null) {
     if (!forwardedId) return null;
     return { id: forwardedId };
@@ -67,14 +63,13 @@ export const getAuthUser = cache(async function getAuthUser() {
 
 const loadSessionRow = cache(async function loadSessionRow(): Promise<SessionRow | null> {
   const headerList = await headers();
+  const forwardedAuthUserId = headerList.get(AUTH_USER_ID_HEADER);
 
-  // Use pre-fetched session from proxy to avoid a DB round-trip
-  const sessionJson = headerList.get(AUTH_SESSION_HEADER);
-  if (sessionJson) {
-    try {
-      return JSON.parse(sessionJson) as SessionRow;
-    } catch { /* fall through to DB query */ }
-  }
+  const forwarded = parseForwardedSession(
+    headerList.get(AUTH_SESSION_HEADER),
+    forwardedAuthUserId
+  );
+  if (forwarded) return forwarded;
 
   const authUser = await getAuthUser();
   if (!authUser) return null;
@@ -144,29 +139,16 @@ export function getDashboardPath(role: UserRole): string {
 }
 
 export const getCandidateProfile = cache(async function getCandidateProfile(userId: string) {
-  const row = await loadSessionRow();
-  if (row?.id === userId) {
-    const embedded = unwrapEmbed(row.candidate_profiles);
-    if (embedded) return embedded;
-  }
+  // Always load from DB. Middleware only forwards identity (role/name/email) so
+  // we never return a stale/partial embedded profile after account switches.
   return loadCandidateProfile(userId);
 });
 
 export const getEmployerProfile = cache(async function getEmployerProfile(userId: string) {
-  const row = await loadSessionRow();
-  if (row?.id === userId) {
-    return unwrapEmbed(row.employer_profiles);
-  }
   return loadEmployerProfile(userId);
 });
 
 export async function ensureCandidateProfile(userId: string) {
-  const row = await loadSessionRow();
-  if (row?.id === userId) {
-    const embedded = unwrapEmbed(row.candidate_profiles);
-    if (embedded) return embedded;
-  }
-
   const existing = await loadCandidateProfile(userId);
   if (existing) return existing;
 
