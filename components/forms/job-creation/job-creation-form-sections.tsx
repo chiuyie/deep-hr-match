@@ -118,7 +118,7 @@ export function JobCreationFormSectionBody({
           description=""
           gradient="from-cyan-500 to-cyan-600"
           icon={<Briefcase className="h-6 w-6 text-white" />}
-          className="mb-0 pb-24 shadow-md"
+          className="mb-0 pb-20 shadow-md sm:pb-24"
           hideHeader
         >
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
@@ -183,7 +183,7 @@ export function JobCreationFormSectionBody({
           description=""
           gradient="from-indigo-500 to-indigo-600"
           icon={<Briefcase className="h-6 w-6 text-white" />}
-          className="mb-0 pb-24 shadow-md"
+          className="mb-0 pb-20 shadow-md sm:pb-24"
           hideHeader
         >
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
@@ -278,7 +278,7 @@ export function JobCreationFormSectionBody({
           description=""
           gradient="from-emerald-500 to-emerald-600"
           icon={<Gift className="h-6 w-6 text-white" />}
-          className="mb-0 pb-24 shadow-md"
+          className="mb-0 pb-20 shadow-md sm:pb-24"
           hideHeader
         >
           <p className="mb-6 text-sm text-slate-600">
@@ -320,13 +320,13 @@ export function JobCreationFormSectionBody({
                 {jobFieldLabel(fieldMeta, "benefits_package", "Benefits included")}
               </h3>
               <p className="mb-4 text-sm text-slate-500">Select all that apply, or leave empty.</p>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
                 {JOB_BENEFIT_OPTIONS.map((benefit) => {
                   const selected = selectedBenefits.includes(benefit);
                   return (
                     <label
                       key={benefit}
-                      className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-all duration-200 ${
+                      className={`flex min-w-0 cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all duration-200 sm:p-4 ${
                         selected
                           ? "border-emerald-500 bg-emerald-50"
                           : "border-slate-200 bg-white hover:border-emerald-200"
@@ -336,10 +336,10 @@ export function JobCreationFormSectionBody({
                         type="checkbox"
                         checked={selected}
                         onChange={() => onToggleBenefit(benefit)}
-                        className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                        className="h-4 w-4 shrink-0 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                       />
                       <span
-                        className={`text-sm font-medium ${selected ? "text-emerald-700" : "text-slate-600"}`}
+                        className={`min-w-0 break-words text-sm font-medium ${selected ? "text-emerald-700" : "text-slate-600"}`}
                       >
                         {benefit}
                       </span>
@@ -361,7 +361,7 @@ export function JobCreationFormSectionBody({
           description=""
           gradient="from-purple-500 to-purple-600"
           icon={<ClipboardList className="h-6 w-6 text-white" />}
-          className="mb-0 pb-24 shadow-md"
+          className="mb-0 pb-20 shadow-md sm:pb-24"
           hideHeader
         >
           <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
@@ -417,7 +417,7 @@ export function JobCreationFormSectionBody({
           description=""
           gradient="from-green-500 to-green-600"
           icon={<HelpCircle className="h-6 w-6 text-white" />}
-          className="mb-0 pb-24 shadow-md"
+          className="mb-0 pb-20 shadow-md sm:pb-24"
           hideHeader
         >
           <p
@@ -481,12 +481,12 @@ export function JobCreationFormSectionBody({
           id="preferred-selection-by-the-employer"
           title={FRAMEWORK_MATCHING_LANGUAGE}
           description=""
-          gradient="from-violet-500 to-violet-600"
+          gradient="from-sky-500 to-blue-600"
           icon={<Grid3X3 className="h-6 w-6 text-white" />}
-          className="mb-0 pb-24 shadow-md"
+          className="mb-0 pb-20 shadow-md sm:pb-24"
           hideHeader
         >
-          <p className="mb-4 text-sm text-slate-600">
+          <p className="mb-5 max-w-3xl text-sm leading-relaxed text-slate-600">
             Required. Answer the same {FRAMEWORK_MATCHING_LANGUAGE} questions candidates complete.
             Matching compares these word choices to rank who fits this role.
           </p>
@@ -500,9 +500,11 @@ export function JobCreationFormSectionBody({
               headerIcon={<Grid3X3 className="h-6 w-6" />}
               hideFooterActions
               wizard={{
-                badgeLabel: FRAMEWORK_MATCHING_LANGUAGE,
+                badgeLabel: `${FRAMEWORK_MATCHING_LANGUAGE} · Role profile`,
+                subtitle:
+                  "Build the ideal profile one factor at a time. You can save and return while drafting the job.",
                 instructionText:
-                  "Only choose one word that best describes the ideal candidate for this role.",
+                  "Choose the one word that best describes the ideal candidate for this factor.",
               }}
             />
           ) : (

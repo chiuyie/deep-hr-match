@@ -212,8 +212,8 @@ export function JobCreationSectionNav({
       <div className="relative hidden lg:block">
         <nav
           className={cn(
-            "rounded-2xl border border-slate-100 bg-white shadow-lg transition-all duration-300",
-            collapsed ? "w-16 overflow-visible" : "w-72 overflow-hidden"
+            "w-full max-w-full rounded-2xl border border-slate-100 bg-white shadow-lg transition-all duration-300",
+            collapsed ? "w-16 overflow-visible" : "overflow-hidden"
           )}
           aria-label="Job form sections"
         >

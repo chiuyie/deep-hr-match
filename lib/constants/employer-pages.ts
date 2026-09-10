@@ -8,7 +8,7 @@ export interface EmployerPageMeta {
 }
 
 const contentClassName = "mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8";
-const wideContentClassName = "mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6";
+const wideContentClassName = "mx-auto w-full max-w-7xl min-w-0 px-4 py-4 sm:px-6 sm:py-6";
 
 export function getEmployerPageMeta(pathname: string): EmployerPageMeta {
   if (pathname === "/employer") {
@@ -87,7 +87,7 @@ export function getEmployerPageMeta(pathname: string): EmployerPageMeta {
   if (/\/employer\/jobs\/[^/]+\/matrix$/.test(pathname)) {
     return {
       title: `Job ${FRAMEWORK} Form`,
-      description: FRAMEWORK_MATCHING_LANGUAGE,
+      description: `Build the ideal role profile with the ${FRAMEWORK_MATCHING_LANGUAGE}`,
       contentClassName,
     };
   }

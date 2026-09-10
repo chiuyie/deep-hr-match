@@ -28,20 +28,22 @@ export function JobFormSection({
     <div
       id={id}
       className={cn(
-        "scroll-mt-24 mb-8 rounded-2xl bg-white p-8 shadow-lg transition-all duration-300 hover:shadow-xl",
+        "scroll-mt-24 mb-8 min-w-0 overflow-hidden rounded-2xl bg-white p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-6 md:p-8",
         className
       )}
     >
       {!hideHeader && (
-        <div className="mb-8 flex items-start gap-4">
-          <div className={cn("rounded-xl bg-gradient-to-br p-3 shadow-lg", gradient)}>{icon}</div>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
+        <div className="mb-6 flex min-w-0 items-start gap-3 sm:mb-8 sm:gap-4">
+          <div className={cn("shrink-0 rounded-xl bg-gradient-to-br p-2.5 shadow-lg sm:p-3", gradient)}>
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-slate-800 sm:text-2xl">{title}</h2>
             {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
           </div>
         </div>
       )}
-      {children}
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
@@ -330,13 +332,13 @@ interface JobYesNoFieldProps {
 
 export function JobYesNoField({ label, name, value, icon, onChange }: JobYesNoFieldProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 transition-all duration-200 hover:shadow-md">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {icon && <div className="text-slate-400">{icon}</div>}
-          <span className="text-sm font-semibold text-slate-700">{label}</span>
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 transition-all duration-200 hover:shadow-md sm:p-4">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex min-w-0 items-start gap-3 sm:items-center">
+          {icon && <div className="shrink-0 text-slate-400">{icon}</div>}
+          <span className="min-w-0 break-words text-sm font-semibold text-slate-700">{label}</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center gap-4">
           {(["true", "false"] as const).map((option) => (
             <label key={option} className="group flex cursor-pointer items-center gap-2">
               <input
@@ -383,16 +385,16 @@ export function JobFaqField({
       id={name}
       data-field={name}
       className={cn(
-        "scroll-mt-48 rounded-xl border bg-white p-4 transition-all duration-200 hover:shadow-md",
+        "scroll-mt-48 min-w-0 rounded-xl border bg-white p-3 transition-all duration-200 hover:shadow-md sm:p-4",
         incomplete
           ? "border-red-300 bg-red-50/40 ring-2 ring-red-200"
           : "border-slate-200"
       )}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          {icon && <div className="text-slate-400">{icon}</div>}
-          <span id={`${name}-label`} className="text-sm font-semibold text-slate-700">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3 sm:items-center">
+          {icon && <div className="shrink-0 text-slate-400">{icon}</div>}
+          <span id={`${name}-label`} className="min-w-0 break-words text-sm font-semibold text-slate-700">
             {label}
             <span className="ml-1 text-red-500">*</span>
             {incomplete ? (

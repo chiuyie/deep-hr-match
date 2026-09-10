@@ -407,8 +407,8 @@ export function JobCreationForm({
         </p>
       )}
 
-      <div className="flex flex-col lg:flex-row lg:gap-x-8">
-        <aside className="mb-6 lg:mb-0 lg:w-80 lg:shrink-0">
+      <div className="flex min-w-0 flex-col overflow-x-clip lg:flex-row lg:gap-x-6 xl:gap-x-8">
+        <aside className="mb-4 w-full min-w-0 lg:mb-0 lg:w-72 lg:shrink-0 xl:w-80">
           <div className="lg:sticky lg:top-24">
             <JobCreationSectionNav
               currentSectionIndex={currentSectionIndex}
@@ -420,8 +420,8 @@ export function JobCreationForm({
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 lg:pl-2">
-          <div className="sticky top-0 z-20 -mx-1 mb-4 space-y-3 bg-gradient-to-b from-muted/95 via-muted/95 to-muted/80 px-1 pb-3 pt-1 backdrop-blur-sm">
+        <main className="min-w-0 flex-1">
+          <div className="sticky top-0 z-20 mb-4 space-y-3 bg-gradient-to-b from-muted/95 via-muted/95 to-muted/80 pb-3 pt-1 backdrop-blur-sm">
             <JobCreationProgressHeader
               sectionIndex={currentSectionIndex}
               sectionFillPercent={sectionStats.percent}
@@ -440,10 +440,10 @@ export function JobCreationForm({
                 id="job-form-section-error"
                 role="alert"
                 aria-live="assertive"
-                className="flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 shadow-md"
+                className="flex min-w-0 items-start gap-3 rounded-xl border border-red-300 bg-red-50 px-3 py-3 text-sm font-semibold text-red-800 shadow-md sm:px-4"
               >
                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-                <div>
+                <div className="min-w-0 break-words">
                   <p>{sectionError}</p>
                   <p className="mt-1 text-xs font-medium text-red-700/80">
                     Unanswered questions are highlighted below — complete them to continue.
@@ -453,10 +453,10 @@ export function JobCreationForm({
             ) : null}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-0">
+          <form onSubmit={handleSubmit} className="min-w-0 space-y-0">
             <div
               key={currentSection.id}
-              className="animate-in fade-in slide-in-from-right-4 duration-300"
+              className="min-w-0 animate-in fade-in slide-in-from-right-4 duration-300"
             >
               <JobCreationFormSectionBody
                 sectionId={currentSection.id}
@@ -477,11 +477,11 @@ export function JobCreationForm({
               />
             </div>
 
-            <div className="sticky bottom-0 z-10 -mx-2 mt-6 border-t border-slate-200 bg-gradient-to-b from-slate-50/95 to-white/95 px-4 py-4 backdrop-blur-sm sm:mx-0">
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="sticky bottom-0 z-10 mt-6 border-t border-slate-200 bg-gradient-to-b from-slate-50/95 to-white/95 px-3 py-3 backdrop-blur-sm sm:px-4 sm:py-4">
+              <div className="flex min-w-0 flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p
                   className={cn(
-                    "pl-1 text-center text-xs sm:pl-0 sm:text-left",
+                    "min-w-0 break-words text-center text-xs sm:flex-1 sm:text-left",
                     sectionError ? "font-medium text-red-700" : "text-slate-500"
                   )}
                 >
@@ -493,13 +493,13 @@ export function JobCreationForm({
                         ? `Required · same ${FRAMEWORK_MATCHING_LANGUAGE} candidates complete.`
                         : "Required fields are marked with * · Other steps are optional."}
                 </p>
-                <div className="flex flex-wrap justify-end gap-2">
+                <div className="flex w-full shrink-0 flex-wrap justify-stretch gap-2 sm:w-auto sm:justify-end">
                   <button
                     type="button"
                     onClick={handleBack}
                     disabled={isFirstSection || pending}
                     className={cn(
-                      "inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+                      "inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-5"
                     )}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -511,7 +511,7 @@ export function JobCreationForm({
                       type="button"
                       onClick={handleNext}
                       disabled={pending}
-                      className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-primary to-primary/80 px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-lg transition hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                      className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-primary to-primary/80 px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-lg transition hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 sm:flex-none sm:px-6"
                     >
                       Continue
                       <ChevronRight className="h-4 w-4" />
@@ -520,7 +520,7 @@ export function JobCreationForm({
                     <button
                       type="submit"
                       disabled={pending}
-                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/80 px-8 py-2.5 text-sm font-bold text-primary-foreground shadow-lg transition hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/80 px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-lg transition hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-8"
                     >
                       {pending ? (
                         <>

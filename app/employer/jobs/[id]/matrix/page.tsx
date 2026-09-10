@@ -5,7 +5,7 @@ import { EmployerJobContext } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { requireEmployer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { FRAMEWORK, FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { saveJobMatrixAnswers } from "@/lib/employer/actions";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 import { loadPrimaryMatrixCategoryTree } from "@/lib/matching/matrix-queries";
@@ -63,7 +63,7 @@ export default async function JobMatrixPage({
       <EmployerJobContext
         jobTitle={job.title}
         jobId={id}
-        description={`Complete the ${FRAMEWORK_MATCHING_LANGUAGE} questionnaire for this role`}
+        description={`Shape the ideal candidate profile with the ${FRAMEWORK_MATCHING_LANGUAGE}`}
       />
       <JobWorkflowNav jobId={id} currentStep="matrix" canEdit={job.status === "draft"} />
       <MatrixForm
@@ -72,6 +72,13 @@ export default async function JobMatrixPage({
         onSave={onSave}
         targetLabel={`Job ${FRAMEWORK_MATCHING_LANGUAGE}`}
         headerIcon={<Grid3X3 className="h-6 w-6" />}
+        wizard={{
+          badgeLabel: `${FRAMEWORK} · Role profile`,
+          subtitle:
+            "Pick one best-fit word per factor. Matching ranks candidates against this role profile.",
+          instructionText:
+            "Choose the one word that best describes the ideal candidate for this factor.",
+        }}
       />
     </>
   );

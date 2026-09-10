@@ -29,19 +29,19 @@ export function JobCreationProgressHeader({
 
   return (
     <div
-      className="mb-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+      className="mb-0 min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4 md:p-5"
       role="status"
       aria-live="polite"
       aria-label={`Job form step ${sectionIndex + 1} of ${sectionCount}, ${sectionsCompleted} steps complete`}
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">
             Step {sectionIndex + 1} of {sectionCount}
           </p>
-          <h1 className="mt-1 text-lg font-bold text-slate-900 sm:text-xl">{section.title}</h1>
+          <h1 className="mt-1 break-words text-lg font-bold text-slate-900 sm:text-xl">{section.title}</h1>
           {preferredPartLabel && (
-            <p className="mt-1 text-sm font-medium text-slate-600">{preferredPartLabel}</p>
+            <p className="mt-1 break-words text-sm font-medium text-slate-600">{preferredPartLabel}</p>
           )}
           <p className="mt-1 text-sm text-slate-500">
             {section.id === "job-identification" ||
@@ -55,7 +55,7 @@ export function JobCreationProgressHeader({
                   }`}
           </p>
         </div>
-        <div className="shrink-0 rounded-xl bg-slate-50 px-4 py-2 text-right">
+        <div className="w-full shrink-0 rounded-xl bg-slate-50 px-4 py-2 text-left sm:w-auto sm:text-right">
           <p className="text-xs font-medium text-slate-500">Steps complete</p>
           <p className="text-2xl font-bold tabular-nums text-slate-900">
             {sectionsCompleted}/{sectionCount}

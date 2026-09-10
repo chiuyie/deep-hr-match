@@ -8,6 +8,7 @@ const steps = [
   {
     id: "profile",
     label: "Employer Profile",
+    shortLabel: "Profile",
     description: "Personalize your employer profile",
     icon: User,
     href: "/employer/profile",
@@ -15,6 +16,7 @@ const steps = [
   {
     id: "job",
     label: "Create Job",
+    shortLabel: "Job",
     description: "Post a new job listing",
     icon: Briefcase,
     href: "/employer/jobs/new",
@@ -46,10 +48,10 @@ export function JobCreationStepNav({
   };
 
   return (
-    <div className="sticky top-0 z-40 -mx-4 mb-6 border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white px-4 backdrop-blur-sm supports-[backdrop-filter]:bg-white/90 sm:-mx-6 sm:px-6">
-      <div className="mx-auto max-w-7xl py-2">
-        <div className="relative">
-          <div className="absolute left-0 right-0 top-[14.5px] px-[75px]" style={{ zIndex: 0 }}>
+    <div className="sticky top-0 z-40 -mx-4 mb-4 border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white px-4 backdrop-blur-sm supports-[backdrop-filter]:bg-white/90 sm:-mx-6 sm:mb-6 sm:px-6">
+      <div className="mx-auto w-full max-w-7xl py-2">
+        <div className="relative min-w-0">
+          <div className="pointer-events-none absolute left-[12%] right-[12%] top-[14px] z-0 sm:left-[18%] sm:right-[18%]">
             <div className="relative h-[3px] w-full rounded-full bg-slate-200">
               <div
                 className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-700 ease-in-out"
@@ -57,7 +59,7 @@ export function JobCreationStepNav({
               />
             </div>
           </div>
-          <div className="relative z-10 flex justify-between">
+          <div className="relative z-10 flex min-w-0 items-start justify-between gap-3 sm:gap-6">
             {steps.map((step, index) => {
               const completed = index < currentIndex;
               const active = index === currentIndex;
@@ -69,8 +71,7 @@ export function JobCreationStepNav({
                   key={step.id}
                   href={step.href}
                   onClick={step.id === "profile" && currentStep === "job" ? confirmLeave : undefined}
-                  className="flex w-[150px] flex-col items-center"
-                  style={{ flex: "0 0 auto" }}
+                  className="flex min-w-0 flex-1 flex-col items-center px-1"
                 >
                   <div className="relative">
                     {active && (
@@ -97,8 +98,11 @@ export function JobCreationStepNav({
                       )}
                     </div>
                   </div>
-                  <p className="mt-3 text-center text-sm font-semibold text-slate-800">{step.label}</p>
-                  <p className="mt-1 text-center text-xs text-slate-500">
+                  <p className="mt-2 max-w-full truncate text-center text-xs font-semibold text-slate-800 sm:mt-3 sm:text-sm">
+                    <span className="sm:hidden">{step.shortLabel}</span>
+                    <span className="hidden sm:inline">{step.label}</span>
+                  </p>
+                  <p className="mt-0.5 line-clamp-2 max-w-[11rem] text-center text-[11px] leading-snug text-slate-500 sm:mt-1 sm:max-w-none sm:text-xs">
                     {active && currentStep === "job" && jobFormProgress !== undefined
                       ? `${jobFormProgress}% of posting steps done`
                       : step.description}

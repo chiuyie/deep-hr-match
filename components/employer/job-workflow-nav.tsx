@@ -46,7 +46,7 @@ const steps: {
     label: `${FRAMEWORK} Form`,
     shortLabel: FRAMEWORK,
     icon: Grid3X3,
-    gradient: "from-purple-500 to-purple-600",
+    gradient: "from-sky-500 to-blue-600",
     path: (jobId) => `/employer/jobs/${jobId}/matrix`,
   },
   {
