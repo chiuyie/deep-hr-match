@@ -152,7 +152,21 @@ function employerJobFields(): DefaultFormFieldInput[] {
     });
   };
 
-  push("job-identification", "job_title", "Job Title", { is_required: true });
+  push("job-identification", "job_title", "Job Hierarchy Title / Function Title / Job Title", {
+    is_required: true,
+  });
+  push("job-identification", "hierarchies_title", "Hierarchies Title", {
+    field_type: "select",
+    placeholder: "Select hierarchies title",
+  });
+  push("job-identification", "function_title", "Function Title", {
+    field_type: "select",
+    placeholder: "Select function title",
+  });
+  push("job-identification", "job_titles", "Job Titles", {
+    field_type: "select",
+    placeholder: "Select job title",
+  });
   push("job-identification", "job_id", "Job ID");
   push("job-identification", "created_by_representative", "Created By Representative");
   push("job-identification", "job_description", "Job Description", { field_type: "textarea", is_required: true });

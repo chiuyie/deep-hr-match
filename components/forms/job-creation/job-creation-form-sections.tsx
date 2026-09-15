@@ -31,7 +31,10 @@ import {
   JOB_BENEFIT_OPTIONS,
   JOB_ELIMINATION_FIELDS,
   JOB_FORM_NO_FILTER_VALUE,
+  JOB_FUNCTION_TITLE_OPTIONS,
+  JOB_HIERARCHIES_TITLE_OPTIONS,
   JOB_IMPORTANCE_LEVEL_OPTIONS,
+  JOB_TITLES_OPTIONS,
   JOB_TRAVEL_NEEDS_OPTIONS,
   JOB_WORKING_HOURS_OPTIONS,
 } from "@/lib/constants/job-form";
@@ -123,16 +126,42 @@ export function JobCreationFormSectionBody({
         >
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
             {isJobFieldVisible(fieldMeta, "job_title") && (
-              <div className="md:col-span-2">
+              <div className="space-y-4 md:col-span-2">
                 <JobTextField
-                  label={jobFieldLabel(fieldMeta, "job_title", "Job title")}
+                  label="Job Hierarchy Title / Function Title / Job Title"
                   name="job_title"
-                  placeholder="e.g. Senior Software Engineer"
+                  placeholder="Enter the job title in your own words"
                   value={String(values.job_title ?? "")}
                   required={jobFieldRequired(fieldMeta, "job_title", true)}
                   icon={<Briefcase className="h-5 w-5 text-slate-400" />}
                   onChange={onChange}
                 />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+                  <JobSelectField
+                    label="Hierarchies Title"
+                    name="hierarchies_title"
+                    placeholder="Select hierarchies title"
+                    options={[...JOB_HIERARCHIES_TITLE_OPTIONS]}
+                    value={String(values.hierarchies_title ?? "")}
+                    onChange={onChange}
+                  />
+                  <JobSelectField
+                    label="Function Title"
+                    name="function_title"
+                    placeholder="Select function title"
+                    options={[...JOB_FUNCTION_TITLE_OPTIONS]}
+                    value={String(values.function_title ?? "")}
+                    onChange={onChange}
+                  />
+                  <JobSelectField
+                    label="Job Titles"
+                    name="job_titles"
+                    placeholder="Select job titles"
+                    options={[...JOB_TITLES_OPTIONS]}
+                    value={String(values.job_titles ?? "")}
+                    onChange={onChange}
+                  />
+                </div>
               </div>
             )}
             {isJobFieldVisible(fieldMeta, "job_id") && (

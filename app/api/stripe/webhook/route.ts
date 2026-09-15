@@ -12,12 +12,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET.trim();
+  if (!webhookSecret.startsWith("whsec_") || webhookSecret.includes("...")) {
+    return NextResponse.json(
+      {
+        error:
+          "STRIPE_WEBHOOK_SECRET must be a Stripe webhook signing secret (whsec_...). Run: npm run stripe:listen",
+      },
+      { status: 500 }
+    );
+  }
+
   let event: Stripe.Event;
   try {
     event = getStripe().webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET
+      webhookSecret
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Webhook error";

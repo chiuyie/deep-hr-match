@@ -41,6 +41,25 @@ export const JOB_TRAVEL_NEEDS_OPTIONS = [
   "Frequent international travel",
 ] as const;
 
+/** Placeholder taxonomy options until real hierarchy / function / job-title lists are loaded. */
+export const JOB_HIERARCHIES_TITLE_OPTIONS = [
+  "[Placeholder] Hierarchy Title 1",
+  "[Placeholder] Hierarchy Title 2",
+  "[Placeholder] Hierarchy Title 3",
+] as const;
+
+export const JOB_FUNCTION_TITLE_OPTIONS = [
+  "[Placeholder] Function Title 1",
+  "[Placeholder] Function Title 2",
+  "[Placeholder] Function Title 3",
+] as const;
+
+export const JOB_TITLES_OPTIONS = [
+  "[Placeholder] Job Title 1",
+  "[Placeholder] Job Title 2",
+  "[Placeholder] Job Title 3",
+] as const;
+
 export const JOB_BENEFIT_OPTIONS = [
   "Home Leave",
   "Travel Benefits",
