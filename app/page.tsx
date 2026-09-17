@@ -306,7 +306,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_10%_0%,rgba(56,189,248,0.18),transparent_55%),radial-gradient(90%_70%_at_90%_20%,rgba(37,99,235,0.16),transparent_50%),linear-gradient(180deg,#EEF5FF_0%,#F5F8FC_55%,#FFFFFF_100%)] dark:bg-[radial-gradient(120%_80%_at_10%_0%,rgba(14,165,233,0.18),transparent_55%),radial-gradient(90%_70%_at_90%_20%,rgba(37,99,235,0.22),transparent_50%),linear-gradient(180deg,#020617_0%,#0B1220_60%,#020617_100%)]" />
         <div
           aria-hidden
-          className="landing-sheen absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(37,99,235,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(37,99,235,0.05)_1px,transparent_1px)] [background-size:48px_48px] dark:[background-image:linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)]"
+          className="landing-sheen pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(37,99,235,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(37,99,235,0.05)_1px,transparent_1px)] [background-size:48px_48px] dark:[background-image:linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)]"
         />
         <LandingHeroMotion />
 
@@ -385,13 +385,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden px-4 py-20 md:py-28">
-        <div className="landing-cta-aurora absolute inset-0 bg-[linear-gradient(135deg,#0B3B8C_0%,#1D4ED8_35%,#0E7490_70%,#2563EB_100%)]" />
+      <section id="cta" className="relative overflow-hidden px-4 py-20 md:py-28">
         <div
           aria-hidden
-          className="landing-cta-glow absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.4),transparent_35%),radial-gradient(circle_at_80%_70%,rgba(45,212,191,0.4),transparent_40%)]"
+          className="landing-cta-aurora pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,#0B3B8C_0%,#1D4ED8_35%,#0E7490_70%,#2563EB_100%)]"
         />
-        <LandingReveal className="relative mx-auto max-w-3xl text-center text-white" variant="scale">
+        <div
+          aria-hidden
+          className="landing-cta-glow pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.4),transparent_35%),radial-gradient(circle_at_80%_70%,rgba(45,212,191,0.4),transparent_40%)]"
+        />
+        <LandingReveal className="relative z-10 mx-auto max-w-3xl text-center text-white" variant="scale">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl md:leading-tight">
             Ready to find your perfect match?
           </h2>

@@ -128,7 +128,7 @@ export function JobCreationFormSectionBody({
             {isJobFieldVisible(fieldMeta, "job_title") && (
               <div className="space-y-4 md:col-span-2">
                 <JobTextField
-                  label="Job Hierarchy Title / Function Title / Job Title"
+                  label="Job Hierarchy Title / Function Title / Job Title (standalone)"
                   name="job_title"
                   placeholder="Enter the job title in your own words"
                   value={String(values.job_title ?? "")}

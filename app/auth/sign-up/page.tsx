@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PublicNav } from "@/components/layout/public-nav";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { SupabaseSetupNotice } from "@/components/auth/supabase-setup-notice";
+import { AuthPortalRoleSwitch } from "@/components/auth/auth-portal-role-switch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -73,6 +74,10 @@ export default async function SignUpPage({
           </CardHeader>
           <CardContent>
             {!supabaseReady && <SupabaseSetupNotice />}
+
+            <div className="mb-4">
+              <AuthPortalRoleSwitch basePath="/auth/sign-up" activeRole={portalRole} />
+            </div>
 
             {error && (
               <Alert variant="destructive" className="mb-4">
@@ -146,6 +151,17 @@ export default async function SignUpPage({
                 <Button type="submit" className="w-full rounded-lg">
                   Get Started
                 </Button>
+                <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                  By creating an account you agree to our{" "}
+                  <Link href="/terms" className="underline underline-offset-2 hover:text-foreground">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
               </fieldset>
             </form>
             <p className="mt-4 text-center text-sm text-muted-foreground">
@@ -157,6 +173,11 @@ export default async function SignUpPage({
                 className="text-primary hover:underline dark:text-primary/80"
               >
                 Log In
+              </Link>
+            </p>
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              <Link href="/cookies" className="underline underline-offset-2 hover:text-foreground">
+                Cookie Policy
               </Link>
             </p>
           </CardContent>

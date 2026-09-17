@@ -18,7 +18,7 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
   },
   {
     id: "experience",
-    title: "Experience & skills",
+    title: "Experience: Work-Life",
     description: "Your background helps us rank you against the right roles.",
     fieldKeys: [
       "current_job_title",
@@ -163,11 +163,20 @@ const LEGACY_PROFILE_SECTIONS = new Set([
   "Employer Information",
 ]);
 
+/** Rename stored section titles without requiring a DB reseed. */
+const RENAMED_PROFILE_SECTIONS: Record<string, string> = {
+  "Experience & skills": "Experience: Work-Life",
+  "Experience & Skills": "Experience: Work-Life",
+};
+
 function resolveSectionTitle(
   field: FormFieldDefinition,
   defaultForKey: (key: string) => string
 ): string {
   const section = field.section?.trim();
+  if (section && RENAMED_PROFILE_SECTIONS[section]) {
+    return RENAMED_PROFILE_SECTIONS[section];
+  }
   if (section && !LEGACY_PROFILE_SECTIONS.has(section)) {
     return section;
   }

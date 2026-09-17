@@ -177,7 +177,7 @@ export function validateJobFormSection(
     ) {
       return {
         ok: false,
-        message: "Job Hierarchy Title / Function Title / Job Title is required before you continue.",
+        message: "Job Hierarchy Title / Function Title / Job Title (standalone) is required before you continue.",
         focusField: "job_title",
       };
     }

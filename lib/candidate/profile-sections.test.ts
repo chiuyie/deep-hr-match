@@ -16,19 +16,19 @@ describe("candidate profile sections", () => {
       makeFormField({ field_key: "full_name", section: "About you", sort_order: 1 }),
       makeFormField({
         field_key: "current_job_title",
-        section: "Experience & skills",
+        section: "Experience: Work-Life",
         sort_order: 2,
       }),
     ];
 
     const grouped = groupCandidateProfileFields(fields);
     expect(grouped.some((section) => section.title === "About you")).toBe(true);
-    expect(grouped.some((section) => section.title === "Experience & skills")).toBe(true);
+    expect(grouped.some((section) => section.title === "Experience: Work-Life")).toBe(true);
   });
 
   it("maps built-in field keys to section titles", () => {
     expect(profileFieldGroupTitle("full_name")).toBe("About you");
-    expect(profileFieldGroupTitle("skills")).toBe("Experience & skills");
+    expect(profileFieldGroupTitle("skills")).toBe("Experience: Work-Life");
     expect(profileFieldGroupTitle("nationality")).toBe("Matching details");
     expect(profileFieldGroupTitle("age_range")).toBe("Matching details");
     expect(profileFieldGroupTitle("willing_overtime")).toBe("Role requirements");

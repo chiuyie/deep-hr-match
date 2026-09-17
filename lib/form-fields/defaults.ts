@@ -152,7 +152,7 @@ function employerJobFields(): DefaultFormFieldInput[] {
     });
   };
 
-  push("job-identification", "job_title", "Job Hierarchy Title / Function Title / Job Title", {
+  push("job-identification", "job_title", "Job Hierarchy Title / Function Title / Job Title (standalone)", {
     is_required: true,
   });
   push("job-identification", "hierarchies_title", "Hierarchies Title", {
