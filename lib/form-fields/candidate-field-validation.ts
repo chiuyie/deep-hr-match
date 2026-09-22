@@ -24,6 +24,18 @@ import {
   validateLanguagesList,
   validateSkillsList,
 } from "@/lib/form-fields/profile-tags";
+import {
+  serializeTimelineForForm,
+  validateDateOfBirth,
+  validateDesiredJobTitlesList,
+  validateEducationHistoryList,
+  validateHomeAddress,
+  validatePostalCode,
+  validatePreferredLocationsList,
+  validateVolunteerExperienceList,
+  validateWorkExperienceList,
+} from "@/lib/form-fields/profile-history";
+import { HOME_ADDRESS_MAX_LENGTH, POSTAL_CODE_MAX_LENGTH } from "@/lib/constants/profile-history";
 
 export type FieldValidationResult =
   | { ok: true; value: string }
@@ -49,6 +61,9 @@ export const FIELD_MAX_LENGTH = {
   languages: 1000,
   current_salary: 40,
   expected_salary: 40,
+  home_address: HOME_ADDRESS_MAX_LENGTH,
+  postal_code: POSTAL_CODE_MAX_LENGTH,
+  date_of_birth: 10,
   employment_type_preference: 60,
   work_arrangement_preference: 60,
   availability: 40,
@@ -409,6 +424,46 @@ export function validateCandidateField(
       });
       if (result.ok === false) return { ok: false, message: result.message };
       return { ok: true, value: serializeLanguagesForForm(result.value) };
+    }
+    case "work_experience": {
+      const result = validateWorkExperienceList(raw, { required, label });
+      if (result.ok === false) return { ok: false, message: result.message };
+      return { ok: true, value: serializeTimelineForForm(result.value) };
+    }
+    case "education_history": {
+      const result = validateEducationHistoryList(raw, { required, label });
+      if (result.ok === false) return { ok: false, message: result.message };
+      return { ok: true, value: serializeTimelineForForm(result.value) };
+    }
+    case "volunteer_experience": {
+      const result = validateVolunteerExperienceList(raw, { required, label });
+      if (result.ok === false) return { ok: false, message: result.message };
+      return { ok: true, value: serializeTimelineForForm(result.value) };
+    }
+    case "desired_job_titles": {
+      const result = validateDesiredJobTitlesList(raw, { required, label });
+      if (result.ok === false) return { ok: false, message: result.message };
+      return { ok: true, value: serializeTagsForForm(result.value) };
+    }
+    case "preferred_locations": {
+      const result = validatePreferredLocationsList(raw, { required, label });
+      if (result.ok === false) return { ok: false, message: result.message };
+      return { ok: true, value: serializeTagsForForm(result.value) };
+    }
+    case "home_address": {
+      const result = validateHomeAddress(raw, { required, label });
+      if (result.ok === false) return { ok: false, message: result.message };
+      return result;
+    }
+    case "postal_code": {
+      const result = validatePostalCode(raw, { required, label });
+      if (result.ok === false) return { ok: false, message: result.message };
+      return result;
+    }
+    case "date_of_birth": {
+      const result = validateDateOfBirth(raw, { required, label });
+      if (result.ok === false) return { ok: false, message: result.message };
+      return result;
     }
     default: {
       if (field.field_type === "email") return validateEmail(asString, label, required);

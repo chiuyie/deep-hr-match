@@ -275,7 +275,12 @@ export const CANDIDATE_ROLE_REQUIREMENT_BY_KEY = Object.fromEntries(
 >;
 
 /** Identity fields candidates can set once, then cannot change on their profile. */
-export const CANDIDATE_LOCKABLE_IDENTITY_FIELD_KEYS = ["full_name", "email", "gender"] as const;
+export const CANDIDATE_LOCKABLE_IDENTITY_FIELD_KEYS = [
+  "full_name",
+  "email",
+  "gender",
+  "date_of_birth",
+] as const;
 export type CandidateLockableIdentityFieldKey =
   (typeof CANDIDATE_LOCKABLE_IDENTITY_FIELD_KEYS)[number];
 

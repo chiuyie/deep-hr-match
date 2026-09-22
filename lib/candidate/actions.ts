@@ -17,6 +17,16 @@ import {
   validateLanguagesList,
   validateSkillsList,
 } from "@/lib/form-fields/profile-tags";
+import {
+  parseEducationHistoryInput,
+  parseVolunteerExperienceInput,
+  parseWorkExperienceInput,
+  validateDesiredJobTitlesList,
+  validateEducationHistoryList,
+  validatePreferredLocationsList,
+  validateVolunteerExperienceList,
+  validateWorkExperienceList,
+} from "@/lib/form-fields/profile-history";
 import { fetchCandidateOnboardingState } from "@/lib/candidate/onboarding";
 import { preserveLockedCandidateIdentityFields } from "@/lib/candidate/lock-identity-fields";
 import { MATRIX_CATEGORY_TREE_SELECT, pickPrimaryMatrixCategory } from "@/lib/matching/matrix-queries";
@@ -44,6 +54,14 @@ function buildProfilePayload(data: Record<string, unknown>, submit: boolean) {
   // Draft saves drop unknown legacy language names so wizard Next isn't blocked;
   // aliases (e.g. Mandarin → Mandarin Chinese) apply on every save.
   const langsResult = validateLanguagesList(data.languages, { dropUnknown: !submit });
+  const workResult = validateWorkExperienceList(data.work_experience);
+  const educationResult = validateEducationHistoryList(data.education_history);
+  const volunteerResult = validateVolunteerExperienceList(data.volunteer_experience);
+  const desiredTitlesResult = validateDesiredJobTitlesList(data.desired_job_titles);
+  const preferredLocationsResult = validatePreferredLocationsList(data.preferred_locations);
+
+  const dobRaw =
+    typeof data.date_of_birth === "string" ? data.date_of_birth.trim() : data.date_of_birth;
 
   return {
     ...data,
@@ -52,6 +70,33 @@ function buildProfilePayload(data: Record<string, unknown>, submit: boolean) {
       certsResult.ok === true ? certsResult.value : parseStringArrayInput(data.certifications),
     languages:
       langsResult.ok === true ? langsResult.value : parseLanguageEntriesInput(data.languages),
+    work_experience:
+      workResult.ok === true ? workResult.value : parseWorkExperienceInput(data.work_experience),
+    education_history:
+      educationResult.ok === true
+        ? educationResult.value
+        : parseEducationHistoryInput(data.education_history),
+    volunteer_experience:
+      volunteerResult.ok === true
+        ? volunteerResult.value
+        : parseVolunteerExperienceInput(data.volunteer_experience),
+    desired_job_titles:
+      desiredTitlesResult.ok === true
+        ? desiredTitlesResult.value
+        : parseStringArrayInput(data.desired_job_titles),
+    preferred_locations:
+      preferredLocationsResult.ok === true
+        ? preferredLocationsResult.value
+        : parseStringArrayInput(data.preferred_locations),
+    date_of_birth: dobRaw === "" || dobRaw == null ? null : dobRaw,
+    home_address:
+      typeof data.home_address === "string" && !data.home_address.trim()
+        ? null
+        : data.home_address,
+    postal_code:
+      typeof data.postal_code === "string" && !data.postal_code.trim()
+        ? null
+        : data.postal_code,
     completion_percentage: completion,
     status,
   };

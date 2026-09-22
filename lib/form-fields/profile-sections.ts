@@ -14,7 +14,16 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
     id: "about",
     title: "About you",
     description: "Contact details employers may see after they unlock your profile.",
-    fieldKeys: ["full_name", "email", "phone", "country", "city"],
+    fieldKeys: [
+      "full_name",
+      "email",
+      "phone",
+      "date_of_birth",
+      "country",
+      "city",
+      "home_address",
+      "postal_code",
+    ],
   },
   {
     id: "experience",
@@ -23,7 +32,9 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
     fieldKeys: [
       "current_job_title",
       "years_of_experience",
+      "work_experience",
       "highest_education",
+      "education_history",
       "skills",
       "certifications",
       "languages",
@@ -40,10 +51,18 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
     title: "Job preferences",
     description: "Tell us how and when you’d like to work.",
     fieldKeys: [
+      "desired_job_titles",
+      "preferred_locations",
       "employment_type_preference",
       "work_arrangement_preference",
       "availability",
     ],
+  },
+  {
+    id: "volunteer",
+    title: "Volunteer & extracurricular",
+    description: "Optional — organisations, clubs, community, or extracurricular roles.",
+    fieldKeys: ["volunteer_experience"],
   },
   {
     id: "matching-details",

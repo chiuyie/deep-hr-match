@@ -18,6 +18,17 @@ export type {
 } from "@/lib/constants/profile-tags";
 
 import type { CandidateLanguageEntry } from "@/lib/constants/profile-tags";
+import type {
+  EducationHistoryEntry,
+  VolunteerExperienceEntry,
+  WorkExperienceEntry,
+} from "@/lib/constants/profile-history";
+
+export type {
+  EducationHistoryEntry,
+  VolunteerExperienceEntry,
+  WorkExperienceEntry,
+} from "@/lib/constants/profile-history";
 
 export interface User {
   id: string;
@@ -35,19 +46,27 @@ export interface CandidateProfile {
   full_name: string | null;
   email: string | null;
   phone: string | null;
+  date_of_birth: string | null;
   country: string | null;
   city: string | null;
+  home_address: string | null;
+  postal_code: string | null;
   current_job_title: string | null;
   years_of_experience: number | null;
+  work_experience: WorkExperienceEntry[] | null;
   highest_education: string | null;
+  education_history: EducationHistoryEntry[] | null;
   skills: string[] | null;
   certifications: string[] | null;
   languages: CandidateLanguageEntry[] | null;
   current_salary: string | null;
   expected_salary: string | null;
+  desired_job_titles: string[] | null;
+  preferred_locations: string[] | null;
   employment_type_preference: string | null;
   work_arrangement_preference: string | null;
   availability: string | null;
+  volunteer_experience: VolunteerExperienceEntry[] | null;
   custom_fields?: Record<string, unknown> | null;
   status: CandidateStatus;
   completion_percentage: number;

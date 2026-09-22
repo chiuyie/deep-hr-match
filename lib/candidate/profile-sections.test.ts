@@ -28,7 +28,14 @@ describe("candidate profile sections", () => {
 
   it("maps built-in field keys to section titles", () => {
     expect(profileFieldGroupTitle("full_name")).toBe("About you");
+    expect(profileFieldGroupTitle("date_of_birth")).toBe("About you");
+    expect(profileFieldGroupTitle("home_address")).toBe("About you");
     expect(profileFieldGroupTitle("skills")).toBe("Experience: Work-Life");
+    expect(profileFieldGroupTitle("work_experience")).toBe("Experience: Work-Life");
+    expect(profileFieldGroupTitle("education_history")).toBe("Experience: Work-Life");
+    expect(profileFieldGroupTitle("desired_job_titles")).toBe("Job preferences");
+    expect(profileFieldGroupTitle("preferred_locations")).toBe("Job preferences");
+    expect(profileFieldGroupTitle("volunteer_experience")).toBe("Volunteer & extracurricular");
     expect(profileFieldGroupTitle("nationality")).toBe("Matching details");
     expect(profileFieldGroupTitle("age_range")).toBe("Matching details");
     expect(profileFieldGroupTitle("willing_overtime")).toBe("Role requirements");

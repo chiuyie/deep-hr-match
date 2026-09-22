@@ -120,6 +120,12 @@ function isWideCandidateField(field: FormFieldDefinition): boolean {
     field.field_key === "skills" ||
     field.field_key === "certifications" ||
     field.field_key === "languages" ||
+    field.field_key === "work_experience" ||
+    field.field_key === "education_history" ||
+    field.field_key === "volunteer_experience" ||
+    field.field_key === "desired_job_titles" ||
+    field.field_key === "preferred_locations" ||
+    field.field_key === "home_address" ||
     field.field_key === "employment_eligibility_visa"
   );
 }

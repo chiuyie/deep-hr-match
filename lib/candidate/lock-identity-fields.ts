@@ -16,13 +16,14 @@ function readCustomField(
 
 /**
  * Full name and email lock once set (usually at signup).
- * Gender locks once the candidate has saved a non-empty value.
+ * Gender and date of birth lock once the candidate has saved a non-empty value.
  */
 export function isCandidateIdentityFieldLocked(
   fieldKey: CandidateLockableIdentityFieldKey | string,
   profile: {
     full_name?: unknown;
     email?: unknown;
+    date_of_birth?: unknown;
     custom_fields?: Record<string, unknown> | null;
   } | null | undefined
 ): boolean {
@@ -36,6 +37,9 @@ export function isCandidateIdentityFieldLocked(
   if (fieldKey === "email") {
     return hasStoredValue(profile.email);
   }
+  if (fieldKey === "date_of_birth") {
+    return hasStoredValue(profile.date_of_birth);
+  }
   if (fieldKey === "gender") {
     return hasStoredValue(readCustomField(profile.custom_fields, "gender"));
   }
@@ -43,7 +47,7 @@ export function isCandidateIdentityFieldLocked(
 }
 
 /**
- * Prevents client-side tampering: keep existing full name / email / gender when locked.
+ * Prevents client-side tampering: keep existing full name / email / gender / DOB when locked.
  * Also merges prior custom_fields so a save does not wipe sibling keys.
  */
 export function preserveLockedCandidateIdentityFields(
@@ -51,6 +55,7 @@ export function preserveLockedCandidateIdentityFields(
   existing: {
     full_name?: unknown;
     email?: unknown;
+    date_of_birth?: unknown;
     custom_fields?: Record<string, unknown> | null;
   } | null | undefined
 ): Record<string, unknown> {
@@ -78,6 +83,9 @@ export function preserveLockedCandidateIdentityFields(
   }
   if (hasStoredValue(existing.email)) {
     next.email = existing.email;
+  }
+  if (hasStoredValue(existing.date_of_birth)) {
+    next.date_of_birth = existing.date_of_birth;
   }
   if (hasStoredValue(existingCustom.gender)) {
     mergedCustom.gender = existingCustom.gender;

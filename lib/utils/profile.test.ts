@@ -10,6 +10,9 @@ import {
   statusLabel,
 } from "@/lib/utils/profile";
 
+/** Built-in profile fields that count toward completion (see PROFILE_FIELDS). */
+const COMPLETION_FIELD_COUNT = 24;
+
 describe("calculateProfileCompletion", () => {
   it("returns 0 for empty profile", () => {
     expect(calculateProfileCompletion({})).toBe(0);
@@ -22,8 +25,7 @@ describe("calculateProfileCompletion", () => {
       skills: ["TypeScript"],
       years_of_experience: 3,
     });
-    // 4 of 16 fields filled = 25%
-    expect(completion).toBe(25);
+    expect(completion).toBe(Math.round((4 / COMPLETION_FIELD_COUNT) * 100));
   });
 
   it("treats empty arrays as unfilled", () => {
@@ -32,7 +34,7 @@ describe("calculateProfileCompletion", () => {
         full_name: "Jane Doe",
         skills: [],
       })
-    ).toBe(6); // 1 of 16
+    ).toBe(Math.round((1 / COMPLETION_FIELD_COUNT) * 100));
   });
 
   it("returns 100 when all fields are filled", () => {
@@ -40,19 +42,54 @@ describe("calculateProfileCompletion", () => {
       full_name: "Jane Doe",
       email: "jane@example.com",
       phone: "+65 1234 5678",
+      date_of_birth: "1995-06-15",
       country: "Singapore",
       city: "Singapore",
+      home_address: "123 Example Street #01-01",
+      postal_code: "123456",
       current_job_title: "Engineer",
       years_of_experience: 5,
+      work_experience: [
+        {
+          company: "Acme",
+          title: "Engineer",
+          start_date: "2020-01",
+          end_date: "",
+          is_current: true,
+          description: "Built things",
+        },
+      ],
       highest_education: "Bachelor's",
+      education_history: [
+        {
+          school: "NUS",
+          degree: "Bachelor's",
+          field_of_study: "CS",
+          start_date: "2014-08",
+          end_date: "2018-05",
+          is_current: false,
+        },
+      ],
       skills: ["TypeScript"],
       certifications: ["AWS"],
       languages: [{ language: "English", proficiency: "Fluent" }],
       current_salary: "SGD 8000",
       expected_salary: "SGD 10000",
+      desired_job_titles: ["Software Engineer"],
+      preferred_locations: ["Singapore"],
       employment_type_preference: "Full-time",
       work_arrangement_preference: "Hybrid",
       availability: "Immediate",
+      volunteer_experience: [
+        {
+          organization: "Red Cross",
+          role: "Volunteer",
+          start_date: "2019-01",
+          end_date: "2019-12",
+          is_current: false,
+          description: "Events",
+        },
+      ],
     });
     expect(completion).toBe(100);
   });
@@ -61,8 +98,8 @@ describe("calculateProfileCompletion", () => {
 describe("getProfileCompletionDetails", () => {
   it("lists missing field labels", () => {
     const details = getProfileCompletionDetails({ full_name: "Jane" });
-    expect(details.percentage).toBe(6);
-    expect(details.missingFields.length).toBe(15);
+    expect(details.percentage).toBe(Math.round((1 / COMPLETION_FIELD_COUNT) * 100));
+    expect(details.missingFields.length).toBe(COMPLETION_FIELD_COUNT - 1);
     expect(details.missingFields.some((f) => f.key === "email")).toBe(true);
   });
 });

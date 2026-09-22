@@ -14,6 +14,11 @@ import { WORLD_COUNTRY_BY_NAME } from "@/lib/constants/geo/world-countries.gener
 import { TagInput } from "@/components/forms/tag-input";
 import { LanguageProficiencyField } from "@/components/forms/language-proficiency-field";
 import {
+  EducationHistoryField,
+  VolunteerExperienceField,
+  WorkExperienceField,
+} from "@/components/forms/profile-timeline-field";
+import {
   CERTIFICATION_MAX_LENGTH,
   CERTIFICATIONS_MAX_COUNT,
   CERTIFICATION_SUGGESTIONS,
@@ -23,10 +28,24 @@ import {
   type CandidateLanguageEntry,
 } from "@/lib/constants/profile-tags";
 import {
+  DESIRED_JOB_TITLE_MAX_LENGTH,
+  DESIRED_JOB_TITLES_MAX_COUNT,
+  PREFERRED_LOCATION_MAX_LENGTH,
+  PREFERRED_LOCATIONS_MAX_COUNT,
+  type EducationHistoryEntry,
+  type VolunteerExperienceEntry,
+  type WorkExperienceEntry,
+} from "@/lib/constants/profile-history";
+import {
   parseLanguageEntriesInput,
   parseStringArrayInput,
   validateLanguagesList,
 } from "@/lib/form-fields/profile-tags";
+import {
+  parseEducationHistoryInput,
+  parseVolunteerExperienceInput,
+  parseWorkExperienceInput,
+} from "@/lib/form-fields/profile-history";
 import { matchListedOption } from "@/lib/form-fields/candidate-field-validation";
 import { resolveSelectOptions } from "@/lib/form-fields/select-options";
 import {
@@ -1027,6 +1046,167 @@ function LanguagesField({ field, defaultValue }: Props) {
   );
 }
 
+function WorkExperienceListField({ field, defaultValue }: Props) {
+  const [entries, setEntries] = useState<WorkExperienceEntry[]>(() =>
+    parseWorkExperienceInput(defaultValue)
+  );
+  const { error, report, invalid } = useFieldTracking(field.field_key);
+
+  useEffect(() => {
+    report(JSON.stringify(entries), { reveal: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="space-y-2" data-field-key={field.field_key}>
+      <FieldLabel field={field} />
+      <WorkExperienceField
+        id={field.field_key}
+        name={field.field_key}
+        label={field.label}
+        values={entries}
+        required={field.is_required}
+        invalid={invalid}
+        onChange={(next) => {
+          setEntries(next);
+          report(JSON.stringify(next), { reveal: true });
+        }}
+      />
+      <FieldInlineError message={error} />
+    </div>
+  );
+}
+
+function EducationHistoryListField({ field, defaultValue }: Props) {
+  const [entries, setEntries] = useState<EducationHistoryEntry[]>(() =>
+    parseEducationHistoryInput(defaultValue)
+  );
+  const { error, report, invalid } = useFieldTracking(field.field_key);
+
+  useEffect(() => {
+    report(JSON.stringify(entries), { reveal: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="space-y-2" data-field-key={field.field_key}>
+      <FieldLabel field={field} />
+      <EducationHistoryField
+        id={field.field_key}
+        name={field.field_key}
+        label={field.label}
+        values={entries}
+        required={field.is_required}
+        invalid={invalid}
+        onChange={(next) => {
+          setEntries(next);
+          report(JSON.stringify(next), { reveal: true });
+        }}
+      />
+      <FieldInlineError message={error} />
+    </div>
+  );
+}
+
+function VolunteerExperienceListField({ field, defaultValue }: Props) {
+  const [entries, setEntries] = useState<VolunteerExperienceEntry[]>(() =>
+    parseVolunteerExperienceInput(defaultValue)
+  );
+  const { error, report, invalid } = useFieldTracking(field.field_key);
+
+  useEffect(() => {
+    report(JSON.stringify(entries), { reveal: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="space-y-2" data-field-key={field.field_key}>
+      <FieldLabel field={field} />
+      <VolunteerExperienceField
+        id={field.field_key}
+        name={field.field_key}
+        label={field.label}
+        values={entries}
+        required={field.is_required}
+        invalid={invalid}
+        onChange={(next) => {
+          setEntries(next);
+          report(JSON.stringify(next), { reveal: true });
+        }}
+      />
+      <FieldInlineError message={error} />
+    </div>
+  );
+}
+
+function DesiredJobTitlesField({ field, defaultValue }: Props) {
+  const [tags, setTags] = useState(() => parseStringArrayInput(defaultValue));
+  const { error, report, invalid } = useFieldTracking(field.field_key);
+
+  useEffect(() => {
+    report(JSON.stringify(tags), { reveal: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="space-y-2" data-field-key={field.field_key}>
+      <FieldLabel field={field} />
+      <TagInput
+        id={field.field_key}
+        name={field.field_key}
+        label={field.label}
+        values={tags}
+        suggestions={[]}
+        allowCustom
+        maxItems={DESIRED_JOB_TITLES_MAX_COUNT}
+        maxItemLength={DESIRED_JOB_TITLE_MAX_LENGTH}
+        required={field.is_required}
+        invalid={invalid}
+        placeholder="Add titles you’re targeting…"
+        onChange={(next) => {
+          setTags(next);
+          report(JSON.stringify(next), { reveal: true });
+        }}
+      />
+      <FieldInlineError message={error} />
+    </div>
+  );
+}
+
+function PreferredLocationsField({ field, defaultValue }: Props) {
+  const [tags, setTags] = useState(() => parseStringArrayInput(defaultValue));
+  const { error, report, invalid } = useFieldTracking(field.field_key);
+
+  useEffect(() => {
+    report(JSON.stringify(tags), { reveal: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="space-y-2" data-field-key={field.field_key}>
+      <FieldLabel field={field} />
+      <TagInput
+        id={field.field_key}
+        name={field.field_key}
+        label={field.label}
+        values={tags}
+        suggestions={[]}
+        allowCustom
+        maxItems={PREFERRED_LOCATIONS_MAX_COUNT}
+        maxItemLength={PREFERRED_LOCATION_MAX_LENGTH}
+        required={field.is_required}
+        invalid={invalid}
+        placeholder="Cities or areas you’d work in…"
+        onChange={(next) => {
+          setTags(next);
+          report(JSON.stringify(next), { reveal: true });
+        }}
+      />
+      <FieldInlineError message={error} />
+    </div>
+  );
+}
+
 function TrackedTextField({
   field,
   defaultValue,
@@ -1110,7 +1290,8 @@ export function CandidateProfileField({ field, defaultValue, locked = false }: P
     locked &&
     (field.field_key === "email" ||
       field.field_key === "gender" ||
-      field.field_key === "full_name")
+      field.field_key === "full_name" ||
+      field.field_key === "date_of_birth")
   ) {
     return <LockedValueField field={field} defaultValue={defaultValue} locked />;
   }
@@ -1132,6 +1313,21 @@ export function CandidateProfileField({ field, defaultValue, locked = false }: P
   }
   if (field.field_key === "languages") {
     return <LanguagesField field={field} defaultValue={defaultValue} />;
+  }
+  if (field.field_key === "work_experience") {
+    return <WorkExperienceListField field={field} defaultValue={defaultValue} />;
+  }
+  if (field.field_key === "education_history") {
+    return <EducationHistoryListField field={field} defaultValue={defaultValue} />;
+  }
+  if (field.field_key === "volunteer_experience") {
+    return <VolunteerExperienceListField field={field} defaultValue={defaultValue} />;
+  }
+  if (field.field_key === "desired_job_titles") {
+    return <DesiredJobTitlesField field={field} defaultValue={defaultValue} />;
+  }
+  if (field.field_key === "preferred_locations") {
+    return <PreferredLocationsField field={field} defaultValue={defaultValue} />;
   }
   if (CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS.has(field.field_key)) {
     return <YesNoField field={field} defaultValue={defaultValue} />;
