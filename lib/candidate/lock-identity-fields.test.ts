@@ -23,6 +23,23 @@ describe("isCandidateIdentityFieldLocked", () => {
     );
   });
 
+  it("locks date of birth only after a real date is saved", () => {
+    expect(
+      isCandidateIdentityFieldLocked("date_of_birth", {
+        full_name: "Ada",
+        email: "a@b.com",
+        date_of_birth: "",
+      })
+    ).toBe(false);
+    expect(
+      isCandidateIdentityFieldLocked("date_of_birth", {
+        full_name: "Ada",
+        email: "a@b.com",
+        date_of_birth: "1990-05-20T00:00:00.000Z",
+      })
+    ).toBe(true);
+  });
+
   it("locks gender only after it is set", () => {
     expect(
       isCandidateIdentityFieldLocked("gender", {
@@ -48,11 +65,13 @@ describe("preserveLockedCandidateIdentityFields", () => {
         full_name: "Hacker Name",
         email: "hacker@evil.com",
         phone: "+6500000000",
+        date_of_birth: "2001-01-01",
         custom_fields: { gender: "Male", willing_overtime: "Yes" },
       },
       {
         full_name: "Ada Lovelace",
         email: "real@example.com",
+        date_of_birth: "1990-05-20T00:00:00.000Z",
         custom_fields: { gender: "Female", race: "Chinese" },
       }
     );
@@ -60,6 +79,7 @@ describe("preserveLockedCandidateIdentityFields", () => {
     expect(result.full_name).toBe("Ada Lovelace");
     expect(result.email).toBe("real@example.com");
     expect(result.phone).toBe("+6500000000");
+    expect(result.date_of_birth).toBe("1990-05-20");
     expect(result.custom_fields).toEqual({
       gender: "Female",
       race: "Chinese",

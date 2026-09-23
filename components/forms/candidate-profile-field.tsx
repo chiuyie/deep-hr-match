@@ -42,11 +42,16 @@ import {
   validateLanguagesList,
 } from "@/lib/form-fields/profile-tags";
 import {
+  dateOfBirthInputBounds,
+  formatDateOfBirthDisplay,
   parseEducationHistoryInput,
   parseVolunteerExperienceInput,
   parseWorkExperienceInput,
 } from "@/lib/form-fields/profile-history";
-import { matchListedOption } from "@/lib/form-fields/candidate-field-validation";
+import {
+  FIELD_MAX_LENGTH,
+  matchListedOption,
+} from "@/lib/form-fields/candidate-field-validation";
 import { resolveSelectOptions } from "@/lib/form-fields/select-options";
 import {
   YEARS_OF_EXPERIENCE_MAX,
@@ -133,7 +138,10 @@ function FieldLabel({
 
 function LockedValueField({ field, defaultValue }: Props) {
   const name = field.is_custom ? `custom_${field.field_key}` : field.field_key;
-  const display = defaultValue.trim() || "—";
+  const display =
+    field.field_key === "date_of_birth"
+      ? formatDateOfBirthDisplay(defaultValue) || "—"
+      : defaultValue.trim() || "—";
   const { report } = useFieldTracking(field.field_key);
 
   useEffect(() => {
@@ -271,8 +279,9 @@ function PhoneField({ field, defaultValue }: Props) {
             autoComplete="tel-national"
             value={national}
             onChange={(e) => {
-              applyResolved(e.target.value, selectedIso);
-              syncValidity(e.target, e.target.value, selectedIso);
+              const next = e.target.value.replace(/[^\d\s+\-()]/g, "").slice(0, 32);
+              applyResolved(next, selectedIso);
+              syncValidity(e.target, next, selectedIso);
             }}
             onPaste={(e) => {
               const pasted = e.clipboardData.getData("text");
@@ -698,6 +707,15 @@ function YearsOfExperienceField({ field, defaultValue }: Props) {
   );
 }
 
+function sanitizeSalaryAmount(raw: string): string {
+  let cleaned = raw.replace(/[^\d.]/g, "");
+  const dot = cleaned.indexOf(".");
+  if (dot === -1) return cleaned.slice(0, 12);
+  const whole = cleaned.slice(0, dot).slice(0, 12);
+  const fraction = cleaned.slice(dot + 1).replace(/\./g, "").slice(0, 2);
+  return `${whole}.${fraction}`;
+}
+
 function SalaryField({ field, defaultValue }: Props) {
   const initial = parseSalaryValue(defaultValue);
   const [currency, setCurrency] = useState(initial.currency);
@@ -732,7 +750,7 @@ function SalaryField({ field, defaultValue }: Props) {
           type="text"
           inputMode="decimal"
           value={amount}
-          onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))}
+          onChange={(e) => setAmount(sanitizeSalaryAmount(e.target.value))}
           onBlur={() => report(combined, { reveal: true })}
           placeholder="e.g. 5500"
           className={cn(inputClassName, "min-w-0", invalid && invalidInputClassName)}
@@ -1221,11 +1239,17 @@ function TrackedTextField({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const textMax =
+    FIELD_MAX_LENGTH[field.field_key as keyof typeof FIELD_MAX_LENGTH] ??
+    (field.is_custom ? FIELD_MAX_LENGTH.custom : FIELD_MAX_LENGTH.default);
+  const dobBounds = field.field_key === "date_of_birth" ? dateOfBirthInputBounds() : null;
+
   const shared = {
     id: field.field_key,
     name,
     value,
     required: field.is_required,
+    maxLength: field.field_type === "date" || field.field_type === "number" ? undefined : textMax,
     "aria-invalid": invalid || undefined,
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setValue(e.target.value);
@@ -1262,7 +1286,8 @@ function TrackedTextField({
                       ? "url"
                       : "text"
           }
-          min={field.field_type === "number" ? 0 : undefined}
+          min={dobBounds?.min ?? (field.field_type === "number" ? 0 : undefined)}
+          max={dobBounds?.max}
           autoComplete={
             field.field_key === "email"
               ? "email"
@@ -1279,6 +1304,11 @@ function TrackedTextField({
       {!error && field.field_key === "email" ? (
         <p className="text-xs leading-relaxed text-slate-500">
           Used if an employer contacts you after unlocking your profile.
+        </p>
+      ) : null}
+      {!error && field.field_key === "date_of_birth" ? (
+        <p className="text-xs leading-relaxed text-slate-500">
+          Required. You need to be at least 16. This date locks after you save it.
         </p>
       ) : null}
     </div>

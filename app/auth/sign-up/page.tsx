@@ -10,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { signUp } from "@/lib/auth/actions";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 
 const errorMessages: Record<string, { title: string; description: string }> = {
   invalid: {
-    title: "Sign up failed",
-    description: "Check your details and try again.",
+    title: "Check your details",
+    description: "Name, a valid email, and a password of at least 8 characters are required.",
   },
   "email-exists": {
     title: "Email already registered",
@@ -22,8 +23,22 @@ const errorMessages: Record<string, { title: string; description: string }> = {
       "This email already has an account. Sign in with that account, or use a different email. Each email can only be linked to one account type (employer or candidate).",
   },
   "weak-password": {
-    title: "Password too weak",
-    description: "Use at least 8 characters with a mix of letters and numbers.",
+    title: "Password not accepted",
+    description: "Use at least 8 characters. If the service asks for more, follow the requirement below.",
+  },
+  "invalid-email": {
+    title: "Email not accepted",
+    description: "That email address is not valid. Check for typos and try again.",
+  },
+  "rate-limit": {
+    title: "Too many sign-up attempts",
+    description:
+      "The sign-up service is limiting new accounts from this address. Wait a few minutes, then try again.",
+  },
+  "email-send-failed": {
+    title: "Could not send the confirmation email",
+    description:
+      "The account may not have been created because the confirmation email failed. Try again shortly, or use a different email address.",
   },
   "signup-disabled": {
     title: "Sign up unavailable",
@@ -32,7 +47,7 @@ const errorMessages: Record<string, { title: string; description: string }> = {
   "database-setup": {
     title: "Sign up is not configured yet",
     description:
-      "Supabase rejected the new account with a database setup error. Apply supabase/migrations/006_fix_signup_trigger.sql in the Supabase SQL Editor, then try signing up again.",
+      "We can’t create accounts right now. Try again later, or contact support if you need help.",
   },
   "setup-failed": {
     title: "Account setup incomplete",
@@ -41,14 +56,15 @@ const errorMessages: Record<string, { title: string; description: string }> = {
   },
   "signup-failed": {
     title: "Could not create account",
-    description: "Something went wrong while creating your account. Please try again.",
+    description:
+      "Sign-up was rejected, but no specific reason was returned. Check the email and password, then try again.",
   },
 };
 
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string; error?: string }>;
+  searchParams: Promise<{ role?: string; error?: string; detail?: string }>;
 }) {
   const params = await searchParams;
   const portalRole =
@@ -56,6 +72,12 @@ export default async function SignUpPage({
   const defaultRole = portalRole ?? "candidate";
   const supabaseReady = isSupabaseConfigured();
   const error = params.error ? errorMessages[params.error] : null;
+  const detail =
+    typeof params.detail === "string" && params.detail.trim().length > 0
+      ? toUserFacingMessage(params.detail.trim().slice(0, 220), {
+          fallback: "Check your details and try again.",
+        })
+      : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-slate-950">
@@ -83,7 +105,7 @@ export default async function SignUpPage({
               <Alert variant="destructive" className="mb-4">
                 <AlertTitle>{error.title}</AlertTitle>
                 <AlertDescription>
-                  {error.description}
+                  {detail ?? error.description}
                   {params.error === "email-exists" && (
                     <>
                       {" "}
@@ -149,7 +171,7 @@ export default async function SignUpPage({
                   </div>
                 )}
                 <Button type="submit" className="w-full rounded-lg">
-                  Get Started
+                  Sign up
                 </Button>
                 <p className="text-center text-xs leading-relaxed text-muted-foreground">
                   By creating an account you agree to our{" "}

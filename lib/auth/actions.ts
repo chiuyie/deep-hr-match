@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { signInSchema, signUpSchema } from "@/lib/validations/schemas";
 import { getDashboardPath } from "@/lib/auth/session";
+import { classifySignUpError, publicAuthErrorDetail } from "@/lib/auth/signup-errors";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 import type { UserRole } from "@/types/database";
 
 type PortalRole = "candidate" | "employer";
@@ -27,43 +29,6 @@ function signUpRedirectPath(
     }
   }
   redirect(`/auth/sign-up?${params.toString()}`);
-}
-
-function classifySignUpError(message: string, code?: string, status?: number): string {
-  const normalized = message.toLowerCase();
-  const normalizedCode = (code ?? "").toLowerCase();
-
-  if (
-    normalized.includes("already registered") ||
-    normalized.includes("already exists") ||
-    normalized.includes("user already") ||
-    normalizedCode === "user_already_exists"
-  ) {
-    return "email-exists";
-  }
-
-  if (
-    normalized.includes("password") ||
-    normalized.includes("weak") ||
-    normalizedCode === "weak_password"
-  ) {
-    return "weak-password";
-  }
-
-  if (normalized.includes("signup") && normalized.includes("disabled")) {
-    return "signup-disabled";
-  }
-
-  if (
-    status === 500 ||
-    normalized.includes("database error") ||
-    normalized.includes("unexpected_failure") ||
-    normalizedCode === "unexpected_failure"
-  ) {
-    return "database-setup";
-  }
-
-  return "signup-failed";
 }
 
 function signInRedirectPath(
@@ -186,7 +151,10 @@ export async function signUp(formData: FormData): Promise<void> {
   });
 
   if (!parsed.success) {
-    signUpRedirectPath(portalRole, "invalid");
+    const detail = toUserFacingMessage(parsed.error.issues[0]?.message, {
+      fallback: "Check your name, email, and password, then try again.",
+    });
+    signUpRedirectPath(portalRole, "invalid", { detail });
   }
 
   const { email, password, name, role } = parsed.data;
@@ -204,9 +172,11 @@ export async function signUp(formData: FormData): Promise<void> {
   });
 
   if (error) {
+    const classified = classifySignUpError(error.message, error.code, error.status);
     signUpRedirectPath(
       portalRole ?? role,
-      classifySignUpError(error.message, error.code, error.status)
+      classified.error,
+      classified.detail ? { detail: classified.detail } : undefined
     );
   }
 
@@ -216,8 +186,14 @@ export async function signUp(formData: FormData): Promise<void> {
 
   try {
     await provisionNewUser(data.user.id, email, name, role);
-  } catch {
-    signUpRedirectPath(portalRole ?? role, "setup-failed");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    const detail = publicAuthErrorDetail(message);
+    signUpRedirectPath(
+      portalRole ?? role,
+      "setup-failed",
+      detail ? { detail } : undefined
+    );
   }
 
   if (!data.session) {

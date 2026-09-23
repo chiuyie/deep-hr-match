@@ -12,6 +12,7 @@ import {
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -82,7 +83,11 @@ export function CandidateCvManager({
     try {
       const result = await uploadCandidateCV(formData);
       if (result.error) {
-        toast.error(result.error);
+        toast.error(
+          toUserFacingMessage(result.error, {
+            fallback: "We couldn’t update your CV. Try again.",
+          })
+        );
         setSelectedName(null);
         return;
       }
@@ -105,7 +110,11 @@ export function CandidateCvManager({
     try {
       const result = await getCandidateCvDownloadUrl(fileId);
       if (result.error || !result.downloadUrl) {
-        toast.error(result.error || "Download failed");
+        toast.error(
+          toUserFacingMessage(result.error, {
+            fallback: "Download failed. Try again.",
+          })
+        );
         return;
       }
       window.open(result.downloadUrl, "_blank", "noopener,noreferrer");
@@ -122,7 +131,11 @@ export function CandidateCvManager({
     try {
       const result = await deleteCandidateCV(fileId);
       if (result.error) {
-        toast.error(result.error);
+        toast.error(
+          toUserFacingMessage(result.error, {
+            fallback: "We couldn’t update your CV. Try again.",
+          })
+        );
         return;
       }
       toast.success("CV deleted");

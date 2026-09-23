@@ -7,6 +7,7 @@ import { requireRole, getCandidateProfile } from "@/lib/auth/session";
 import { extractCustomFields, stripCustomEntries } from "@/lib/form-fields/parse-custom";
 import { buildDynamicProfileSchema, validateRequiredCustomFields, normalizeCandidateProfilePayload } from "@/lib/form-fields/validate-dynamic";
 import { loadFormFields } from "@/lib/form-fields/queries";
+import { readableIssueMessage, toUserFacingMessage } from "@/lib/ui/readable-error";
 import {
   calculateProfileCompletion,
 } from "@/lib/utils/profile";
@@ -15,9 +16,9 @@ import {
   parseStringArrayInput,
   validateCertificationsList,
   validateLanguagesList,
-  validateSkillsList,
 } from "@/lib/form-fields/profile-tags";
 import {
+  deriveProfileFactsFromHistories,
   parseEducationHistoryInput,
   parseVolunteerExperienceInput,
   parseWorkExperienceInput,
@@ -41,6 +42,15 @@ async function getCandidateId(userId: string) {
   return profile?.id;
 }
 
+function readableProfileParseError(
+  issue: { message?: string; path?: PropertyKey[] } | undefined,
+  fields: Awaited<ReturnType<typeof loadFormFields>>
+): string {
+  const key = issue?.path?.[0] != null ? String(issue.path[0]) : "";
+  const label = fields.find((field) => field.field_key === key)?.label;
+  return readableIssueMessage(issue, label);
+}
+
 function buildProfilePayload(data: Record<string, unknown>, submit: boolean) {
   const completion = calculateProfileCompletion(data as never);
   const status = submit
@@ -49,7 +59,6 @@ function buildProfilePayload(data: Record<string, unknown>, submit: boolean) {
       : "draft"
     : "draft";
 
-  const skillsResult = validateSkillsList(data.skills);
   const certsResult = validateCertificationsList(data.certifications);
   // Draft saves drop unknown legacy language names so wizard Next isn't blocked;
   // aliases (e.g. Mandarin → Mandarin Chinese) apply on every save.
@@ -57,6 +66,21 @@ function buildProfilePayload(data: Record<string, unknown>, submit: boolean) {
   const workResult = validateWorkExperienceList(data.work_experience);
   const educationResult = validateEducationHistoryList(data.education_history);
   const volunteerResult = validateVolunteerExperienceList(data.volunteer_experience);
+  const workExperience =
+    workResult.ok === true ? workResult.value : parseWorkExperienceInput(data.work_experience);
+  const educationExperience =
+    educationResult.ok === true
+      ? educationResult.value
+      : parseEducationHistoryInput(data.education_history);
+  const otherExperience =
+    volunteerResult.ok === true
+      ? volunteerResult.value
+      : parseVolunteerExperienceInput(data.volunteer_experience);
+  const derived = deriveProfileFactsFromHistories({
+    work: workExperience,
+    education: educationExperience,
+    volunteer: otherExperience,
+  });
   const desiredTitlesResult = validateDesiredJobTitlesList(data.desired_job_titles);
   const preferredLocationsResult = validatePreferredLocationsList(data.preferred_locations);
 
@@ -65,21 +89,17 @@ function buildProfilePayload(data: Record<string, unknown>, submit: boolean) {
 
   return {
     ...data,
-    skills: skillsResult.ok === true ? skillsResult.value : parseStringArrayInput(data.skills),
+    skills: derived.skills,
+    current_job_title: derived.current_job_title,
+    years_of_experience: derived.years_of_experience,
+    highest_education: derived.highest_education,
     certifications:
       certsResult.ok === true ? certsResult.value : parseStringArrayInput(data.certifications),
     languages:
       langsResult.ok === true ? langsResult.value : parseLanguageEntriesInput(data.languages),
-    work_experience:
-      workResult.ok === true ? workResult.value : parseWorkExperienceInput(data.work_experience),
-    education_history:
-      educationResult.ok === true
-        ? educationResult.value
-        : parseEducationHistoryInput(data.education_history),
-    volunteer_experience:
-      volunteerResult.ok === true
-        ? volunteerResult.value
-        : parseVolunteerExperienceInput(data.volunteer_experience),
+    work_experience: workExperience,
+    education_history: educationExperience,
+    volunteer_experience: otherExperience,
     desired_job_titles:
       desiredTitlesResult.ok === true
         ? desiredTitlesResult.value
@@ -135,12 +155,12 @@ export async function saveCandidateProfileCore(
   const raw = stripCustomEntries(Object.fromEntries(formData.entries()));
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid profile data" };
+    return { error: readableProfileParseError(parsed.error.issues[0], fields) };
   }
 
   const custom_fields = extractCustomFields(formData);
   const customCheck = validateRequiredCustomFields(fields, custom_fields, schemaOptions);
-  if (customCheck.ok === false) return { error: customCheck.message };
+  if (customCheck.ok === false) return { error: toUserFacingMessage(customCheck.message) };
 
   const existingProfile = await getCandidateProfile(user.id);
   const payload = preserveLockedCandidateIdentityFields(
@@ -168,7 +188,13 @@ export async function saveCandidateProfileCore(
     .update(payload)
     .eq("user_id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) {
+    return {
+      error: toUserFacingMessage(error.message, {
+        fallback: "We couldn’t save your profile. Try again.",
+      }),
+    };
+  }
 
   revalidatePath("/candidate");
   revalidatePath("/candidate/profile");
@@ -239,7 +265,13 @@ export async function uploadCandidateCV(
       contentType: file.type || undefined,
     });
 
-  if (uploadError) return { error: uploadError.message };
+  if (uploadError) {
+    return {
+      error: toUserFacingMessage(uploadError.message, {
+        fallback: "We couldn’t upload your CV. Check the file and try again.",
+      }),
+    };
+  }
 
   const { error: insertError } = await supabase.from("candidate_cv_files").insert({
     candidate_id: candidateId,
@@ -252,7 +284,11 @@ export async function uploadCandidateCV(
 
   if (insertError) {
     await supabase.storage.from("candidate-cvs").remove([path]);
-    return { error: insertError.message };
+    return {
+      error: toUserFacingMessage(insertError.message, {
+        fallback: "We couldn’t save your CV. Try again.",
+      }),
+    };
   }
 
   revalidatePath("/candidate/cv");
@@ -282,7 +318,13 @@ export async function deleteCandidateCV(
     .eq("candidate_id", candidateId)
     .maybeSingle();
 
-  if (loadError) return { error: loadError.message };
+  if (loadError) {
+    return {
+      error: toUserFacingMessage(loadError.message, {
+        fallback: "We couldn’t find that CV. Try again.",
+      }),
+    };
+  }
   if (!row) return { error: "CV file not found" };
 
   const { error: storageError } = await supabase.storage
@@ -292,7 +334,11 @@ export async function deleteCandidateCV(
   if (storageError) {
     // Still remove the DB row if the object is already gone.
     if (!/not found|404/i.test(storageError.message)) {
-      return { error: storageError.message };
+      return {
+        error: toUserFacingMessage(storageError.message, {
+          fallback: "We couldn’t remove that CV. Try again.",
+        }),
+      };
     }
   }
 
@@ -302,7 +348,13 @@ export async function deleteCandidateCV(
     .eq("id", row.id)
     .eq("candidate_id", candidateId);
 
-  if (deleteError) return { error: deleteError.message };
+  if (deleteError) {
+    return {
+      error: toUserFacingMessage(deleteError.message, {
+        fallback: "We couldn’t remove that CV. Try again.",
+      }),
+    };
+  }
 
   revalidatePath("/candidate/cv");
   revalidatePath("/candidate");
@@ -327,7 +379,13 @@ export async function getCandidateCvDownloadUrl(
     .eq("candidate_id", candidateId)
     .maybeSingle();
 
-  if (loadError) return { error: loadError.message };
+  if (loadError) {
+    return {
+      error: toUserFacingMessage(loadError.message, {
+        fallback: "We couldn’t open that CV. Try again.",
+      }),
+    };
+  }
   if (!row) return { error: "CV file not found" };
 
   const { data: signed, error: signError } = await supabase.storage
@@ -335,7 +393,11 @@ export async function getCandidateCvDownloadUrl(
     .createSignedUrl(row.file_path, 3600);
 
   if (signError || !signed?.signedUrl) {
-    return { error: signError?.message || "Could not create download link" };
+    return {
+      error: toUserFacingMessage(signError?.message, {
+        fallback: "Could not create a download link. Try again.",
+      }),
+    };
   }
 
   return { success: true, downloadUrl: signed.signedUrl };
@@ -365,7 +427,7 @@ export async function saveCandidateMatrixAnswers(
     const primary = pickPrimaryMatrixCategory(
       filterSharedMatrixCategories(categories ?? [])
     );
-    if (!primary) return { error: "Matrix form is not configured" };
+    if (!primary) return { error: "The matching questionnaire isn’t available yet. Try again later." };
 
     const answerMap = toColumnAnswersMap(
       answers.map((a) => ({
@@ -377,7 +439,7 @@ export async function saveCandidateMatrixAnswers(
     );
 
     const validationError = validateMatrixColumnSubmission(primary, answerMap);
-    if (validationError) return { error: validationError };
+    if (validationError) return { error: toUserFacingMessage(validationError) };
   }
 
   if (answers.length > 0) {
@@ -392,7 +454,13 @@ export async function saveCandidateMatrixAnswers(
     const { error: upsertError } = await supabase
       .from("candidate_matrix_answers")
       .upsert(rows, { onConflict: "candidate_id,question_id,matrix_column" });
-    if (upsertError) return { error: upsertError.message };
+    if (upsertError) {
+      return {
+        error: toUserFacingMessage(upsertError.message, {
+          fallback: "We couldn’t save your answers. Try again.",
+        }),
+      };
+    }
   }
 
   // Drop answers removed in this save (e.g. deselected factor words).
@@ -400,7 +468,13 @@ export async function saveCandidateMatrixAnswers(
     .from("candidate_matrix_answers")
     .select("id, question_id, matrix_column")
     .eq("candidate_id", candidateId);
-  if (existingError) return { error: existingError.message };
+  if (existingError) {
+    return {
+      error: toUserFacingMessage(existingError.message, {
+        fallback: "We couldn’t save your answers. Try again.",
+      }),
+    };
+  }
 
   const keepKeys = new Set(
     answers.map(
@@ -421,7 +495,13 @@ export async function saveCandidateMatrixAnswers(
       .from("candidate_matrix_answers")
       .delete()
       .in("id", orphanIds);
-    if (deleteError) return { error: deleteError.message };
+    if (deleteError) {
+      return {
+        error: toUserFacingMessage(deleteError.message, {
+          fallback: "We couldn’t save your answers. Try again.",
+        }),
+      };
+    }
   }
 
   revalidatePath("/candidate/matrix");

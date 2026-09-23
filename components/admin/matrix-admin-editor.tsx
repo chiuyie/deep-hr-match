@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -135,7 +136,11 @@ export function MatrixAdminEditor({ category }: MatrixAdminEditorProps) {
     startTransition(async () => {
       const result = await action();
       if (result.error) {
-        toast.error(result.error);
+        toast.error(
+          toUserFacingMessage(result.error, {
+            fallback: "We couldn’t save that. Try again.",
+          })
+        );
         return;
       }
       toast.success(successMsg);

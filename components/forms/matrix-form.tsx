@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { MATRIX_WORDS_PER_LEVEL } from "@/lib/matching/matrix-constants";
@@ -352,7 +353,11 @@ export function MatrixForm({
     try {
       const result = await onSave(payload, submit);
       if (result.error) {
-        toast.error(result.error);
+        toast.error(
+          toUserFacingMessage(result.error, {
+            fallback: "We couldn’t save your answers. Try again.",
+          })
+        );
         return;
       }
 

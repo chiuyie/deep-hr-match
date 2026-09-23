@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 import { AdminStatCard } from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -208,7 +209,11 @@ export function FormFieldsComparisonEditor({
     startTransition(async () => {
       const result = await action();
       if (result.error) {
-        toast.error(result.error);
+        toast.error(
+          toUserFacingMessage(result.error, {
+            fallback: "We couldn’t save that. Try again.",
+          })
+        );
         return;
       }
       toast.success(successMsg);

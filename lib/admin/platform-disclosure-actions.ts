@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { EmployerDisclosureMode } from "@/lib/form-fields/types";
 import type { PlatformDisclosureKey } from "@/lib/employer/platform-disclosure";
 import { invalidatePlatformDisclosureCache } from "@/lib/employer/platform-disclosure";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 
 const PATHS = ["/admin/forms", "/employer/jobs"] as const;
 
@@ -31,7 +32,13 @@ export async function updatePlatformDisclosure(
     .eq("disclosure_key", disclosure_key)
     .select("disclosure_key");
 
-  if (error) return { error: error.message };
+  if (error) {
+    return {
+      error: toUserFacingMessage(error.message, {
+        fallback: "We couldn’t save that disclosure setting. Try again.",
+      }),
+    };
+  }
   if (!data?.length) {
     return {
       error:

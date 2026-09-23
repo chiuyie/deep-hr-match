@@ -18,6 +18,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 import { Button } from "@/components/ui/button";
 import {
   DynamicProfileFields,
@@ -140,7 +141,11 @@ function CandidateProfileFormInner({
       const formData = new FormData(form);
       const result = await saveProfileStepDraft(formData);
       if (result.error) {
-        setStepBlockMessage(result.error);
+        setStepBlockMessage(
+          toUserFacingMessage(result.error, {
+            fallback: "We couldn’t save this page. Check the highlighted fields and try again.",
+          })
+        );
         return;
       }
       if (typeof result.completionPercentage === "number") {
@@ -162,8 +167,9 @@ function CandidateProfileFormInner({
       const result = validateSection(current.fields);
       if (!result.ok) {
         setStepBlockMessage(
-          result.errors[result.firstInvalidKey ?? ""] ??
-            "Fix the highlighted fields before continuing."
+          toUserFacingMessage(result.errors[result.firstInvalidKey ?? ""], {
+            fallback: "Fix the highlighted fields before continuing.",
+          })
         );
         if (result.firstInvalidKey) focusField(result.firstInvalidKey);
         return;
@@ -180,8 +186,9 @@ function CandidateProfileFormInner({
     const result = validateSection(current.fields);
     if (!result.ok) {
       setStepBlockMessage(
-        result.errors[result.firstInvalidKey ?? ""] ??
-          "Fix the highlighted fields before continuing."
+        toUserFacingMessage(result.errors[result.firstInvalidKey ?? ""], {
+          fallback: "Fix the highlighted fields before continuing.",
+        })
       );
       if (result.firstInvalidKey) focusField(result.firstInvalidKey);
       return;
@@ -199,8 +206,9 @@ function CandidateProfileFormInner({
         setStep(i);
         setVisited((prev) => new Set(prev).add(i));
         setStepBlockMessage(
-          result.errors[result.firstInvalidKey ?? ""] ??
-            "Fix the highlighted fields before saving."
+          toUserFacingMessage(result.errors[result.firstInvalidKey ?? ""], {
+            fallback: "Fix the highlighted fields before saving.",
+          })
         );
         requestAnimationFrame(() => {
           if (result.firstInvalidKey) focusField(result.firstInvalidKey);
@@ -328,14 +336,18 @@ function CandidateProfileFormInner({
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Could not save</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {toUserFacingMessage(error, {
+              fallback: "We couldn’t save your profile. Check the highlighted fields and try again.",
+            })}
+          </AlertDescription>
         </Alert>
       ) : null}
 
       {stepBlockMessage ? (
         <Alert variant="destructive">
           <CircleAlert />
-          <AlertTitle>Check this page</AlertTitle>
+          <AlertTitle>Couldn’t continue</AlertTitle>
           <AlertDescription>{stepBlockMessage}</AlertDescription>
         </Alert>
       ) : null}

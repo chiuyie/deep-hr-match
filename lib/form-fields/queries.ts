@@ -215,6 +215,7 @@ async function probeNeedsFormFieldMigration(supabase: SupabaseWriteClient): Prom
       "Company Profile",
       "Company details",
       "Employer Information",
+      "Volunteer & extracurricular",
       legacyMatrixTitle,
     ])
     .limit(1);
@@ -229,7 +230,50 @@ async function probeNeedsFormFieldMigration(supabase: SupabaseWriteClient): Prom
     .in("field_key", ["company_name", "company_size"])
     .in("label", ["Company Name", "Company Size"])
     .limit(1);
-  return (legacyLabels?.length ?? 0) > 0;
+  if ((legacyLabels?.length ?? 0) > 0) return true;
+
+  const { data: retiredInputs } = await supabase
+    .from("form_fields")
+    .select("id")
+    .eq("audience", "candidate")
+    .eq("form_group", "profile")
+    .eq("is_custom", false)
+    .eq("is_active", true)
+    .in("field_key", ["current_job_title", "years_of_experience", "highest_education", "skills"])
+    .limit(1);
+  if ((retiredInputs?.length ?? 0) > 0) return true;
+
+  const { data: educationLabel } = await supabase
+    .from("form_fields")
+    .select("id")
+    .eq("audience", "candidate")
+    .eq("form_group", "profile")
+    .eq("field_key", "education_history")
+    .eq("label", "Education history")
+    .limit(1);
+  if ((educationLabel?.length ?? 0) > 0) return true;
+
+  const { data: dobOptional } = await supabase
+    .from("form_fields")
+    .select("id")
+    .eq("audience", "candidate")
+    .eq("form_group", "profile")
+    .eq("field_key", "date_of_birth")
+    .eq("is_custom", false)
+    .eq("is_required", false)
+    .limit(1);
+  if ((dobOptional?.length ?? 0) > 0) return true;
+
+  const { data: languagesSection } = await supabase
+    .from("form_fields")
+    .select("id")
+    .eq("audience", "candidate")
+    .eq("form_group", "profile")
+    .eq("field_key", "languages")
+    .eq("is_custom", false)
+    .neq("section", "About you")
+    .limit(1);
+  return (languagesSection?.length ?? 0) > 0;
 }
 
 async function runFormFieldMigrations(supabase: SupabaseWriteClient) {
@@ -249,10 +293,47 @@ async function runFormFieldMigrations(supabase: SupabaseWriteClient) {
       .eq("field_key", "certifications"),
     supabase
       .from("form_fields")
-      .update({ label: "Languages" })
+      .update({ label: "Languages", section: "About you" })
       .eq("audience", "candidate")
       .eq("form_group", "profile")
-      .eq("field_key", "languages"),
+      .eq("field_key", "languages")
+      .eq("is_custom", false),
+    supabase
+      .from("form_fields")
+      .update({ is_required: true })
+      .eq("audience", "candidate")
+      .eq("form_group", "profile")
+      .eq("field_key", "date_of_birth")
+      .eq("is_custom", false),
+    supabase
+      .from("form_fields")
+      .update({ label: "Education experience" })
+      .eq("audience", "candidate")
+      .eq("form_group", "profile")
+      .eq("field_key", "education_history")
+      .eq("is_custom", false),
+    supabase
+      .from("form_fields")
+      .update({ is_active: false })
+      .eq("audience", "candidate")
+      .eq("form_group", "profile")
+      .eq("is_custom", false)
+      .in("field_key", [
+        "current_job_title",
+        "years_of_experience",
+        "highest_education",
+        "skills",
+      ]),
+    supabase
+      .from("form_fields")
+      .update({
+        label: "Volunteering, projects & other experience",
+        section: "Experience: Work-Life",
+      })
+      .eq("audience", "candidate")
+      .eq("form_group", "profile")
+      .eq("field_key", "volunteer_experience")
+      .eq("is_custom", false),
   ]);
 
   // Sync field_type for built-ins only — do not overwrite admin section renames.

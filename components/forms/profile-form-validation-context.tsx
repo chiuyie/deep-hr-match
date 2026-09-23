@@ -13,6 +13,7 @@ import {
   validateCandidateField,
   validateCandidateSection,
 } from "@/lib/form-fields/candidate-field-validation";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 
 type ProfileFormValidationContextValue = {
   values: Record<string, string>;
@@ -85,7 +86,12 @@ export function ProfileFormValidationProvider({
       setErrors((prev) => {
         const next = { ...prev };
         if (result.ok === true) delete next[fieldKey];
-        else next[fieldKey] = result.message;
+        else {
+          next[fieldKey] = toUserFacingMessage(result.message, {
+            label: field.label,
+            fallback: `${field.label} needs a valid answer.`,
+          });
+        }
         return next;
       });
 
@@ -144,7 +150,10 @@ export function ProfileFormValidationProvider({
         const next = { ...prev };
         for (const field of sectionFields) {
           if (result.errors[field.field_key]) {
-            next[field.field_key] = result.errors[field.field_key]!;
+            next[field.field_key] = toUserFacingMessage(result.errors[field.field_key], {
+              label: field.label,
+              fallback: `${field.label} needs a valid answer.`,
+            });
           } else {
             delete next[field.field_key];
           }

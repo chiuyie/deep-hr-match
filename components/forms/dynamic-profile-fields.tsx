@@ -5,6 +5,7 @@ import {
   CandidateProfileField,
   CandidateRoleRequirementsList,
 } from "@/components/forms/candidate-profile-field";
+import { SgPostalAddressFields } from "@/components/forms/sg-postal-address-fields";
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
 import { resolveSelectOptions } from "@/lib/form-fields/select-options";
 import {
@@ -34,6 +35,10 @@ function getDefaultValue(field: FormFieldDefinition, values: ProfileValues): str
   if (Array.isArray(raw)) return JSON.stringify(raw);
   if (typeof raw === "boolean") return raw ? "Yes" : "No";
   if (raw === null || raw === undefined) return "";
+  if (field.field_key === "date_of_birth") {
+    const match = String(raw).trim().match(/^(\d{4}-\d{2}-\d{2})/);
+    return match?.[1] ?? "";
+  }
   return String(raw);
 }
 
@@ -137,8 +142,11 @@ function CandidateFieldsGrid({
   fields: FormFieldDefinition[];
   values: ProfileValues;
 }) {
-  const sorted = [...fields].sort((a, b) => a.sort_order - b.sort_order);
+  // Keep the section order from field grouping. Sorting by sort_order
+  // pulled older fields such as languages and certifications above the timelines.
+  const ordered = fields;
   const nodes: ReactNode[] = [];
+  const consumed = new Set<string>();
   let index = 0;
 
   const flushNarrowRun = (run: FormFieldDefinition[]) => {
@@ -160,9 +168,36 @@ function CandidateFieldsGrid({
 
   let narrowRun: FormFieldDefinition[] = [];
 
-  while (index < sorted.length) {
-    const field = sorted[index]!;
-    const next = sorted[index + 1];
+  while (index < ordered.length) {
+    const field = ordered[index]!;
+    const next = ordered[index + 1];
+
+    if (consumed.has(field.field_key)) {
+      index += 1;
+      continue;
+    }
+
+    if (field.field_key === "postal_code" || field.field_key === "home_address") {
+      const postalField = ordered.find((item) => item.field_key === "postal_code");
+      const addressField = ordered.find((item) => item.field_key === "home_address");
+      if (postalField && addressField) {
+        flushNarrowRun(narrowRun);
+        narrowRun = [];
+        consumed.add("postal_code");
+        consumed.add("home_address");
+        nodes.push(
+          <SgPostalAddressFields
+            key={`${postalField.id}-${addressField.id}`}
+            postalField={postalField}
+            addressField={addressField}
+            postalDefault={getDefaultValue(postalField, values)}
+            addressDefault={getDefaultValue(addressField, values)}
+          />
+        );
+        index += 1;
+        continue;
+      }
+    }
 
     if (field.field_key === "country" && next?.field_key === "city") {
       flushNarrowRun(narrowRun);
@@ -186,10 +221,10 @@ function CandidateFieldsGrid({
       narrowRun = [];
       const roleFields: FormFieldDefinition[] = [];
       while (
-        index < sorted.length &&
-        CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS.has(sorted[index]!.field_key)
+        index < ordered.length &&
+        CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS.has(ordered[index]!.field_key)
       ) {
-        roleFields.push(sorted[index]!);
+        roleFields.push(ordered[index]!);
         index += 1;
       }
       const roleValues: Record<string, string> = {};

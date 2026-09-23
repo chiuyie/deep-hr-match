@@ -11,7 +11,7 @@ import {
 } from "@/lib/utils/profile";
 
 /** Built-in profile fields that count toward completion (see PROFILE_FIELDS). */
-const COMPLETION_FIELD_COUNT = 24;
+const COMPLETION_FIELD_COUNT = 20;
 
 describe("calculateProfileCompletion", () => {
   it("returns 0 for empty profile", () => {
@@ -22,8 +22,29 @@ describe("calculateProfileCompletion", () => {
     const completion = calculateProfileCompletion({
       full_name: "Jane Doe",
       email: "jane@example.com",
-      skills: ["TypeScript"],
-      years_of_experience: 3,
+      work_experience: [
+        {
+          company: "Acme",
+          title: "Engineer",
+          start_date: "2020-01",
+          end_date: "",
+          is_current: true,
+          description: "",
+          skills: ["TypeScript"],
+        },
+      ],
+      education_history: [
+        {
+          school: "NUS",
+          degree: "Bachelor's degree",
+          degree_other: "",
+          field_of_study: "CS",
+          start_date: "2016-08",
+          end_date: "2020-05",
+          is_current: false,
+          skills: [],
+        },
+      ],
     });
     expect(completion).toBe(Math.round((4 / COMPLETION_FIELD_COUNT) * 100));
   });
@@ -32,7 +53,7 @@ describe("calculateProfileCompletion", () => {
     expect(
       calculateProfileCompletion({
         full_name: "Jane Doe",
-        skills: [],
+        work_experience: [],
       })
     ).toBe(Math.round((1 / COMPLETION_FIELD_COUNT) * 100));
   });
@@ -82,6 +103,7 @@ describe("calculateProfileCompletion", () => {
       availability: "Immediate",
       volunteer_experience: [
         {
+          kind: "volunteer",
           organization: "Red Cross",
           role: "Volunteer",
           start_date: "2019-01",

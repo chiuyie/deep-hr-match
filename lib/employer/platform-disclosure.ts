@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 import type { EmployerDisclosureMode } from "@/lib/form-fields/types";
 
 export type PlatformDisclosureCategory = "scores" | "matrix" | "report";
@@ -112,7 +113,11 @@ export async function ensurePlatformDisclosureSeeded(): Promise<{ error?: string
     .select("disclosure_key", { count: "exact", head: true });
 
   if (countError) {
-    return { error: countError.message };
+    return {
+      error: toUserFacingMessage(countError.message, {
+        fallback: "Platform disclosure settings could not be loaded.",
+      }),
+    };
   }
 
   if (count && count > 0) return {};
@@ -122,7 +127,11 @@ export async function ensurePlatformDisclosureSeeded(): Promise<{ error?: string
     .insert(PLATFORM_DISCLOSURE_DEFAULTS);
 
   if (insertError && !insertError.message.toLowerCase().includes("duplicate")) {
-    return { error: insertError.message };
+    return {
+      error: toUserFacingMessage(insertError.message, {
+        fallback: "Platform disclosure settings could not be saved.",
+      }),
+    };
   }
   return {};
 }

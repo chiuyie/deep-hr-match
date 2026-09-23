@@ -10,6 +10,7 @@ import {
 } from "@/lib/employer/job-rules";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole, getEmployerProfile } from "@/lib/auth/session";
+import { readableIssueMessage, toUserFacingMessage } from "@/lib/ui/readable-error";
 import {
   buildDynamicProfileSchema,
   validateJobStateAgainstFormFields,
@@ -77,7 +78,9 @@ async function getEmployerId(userId: string) {
   return profile?.id;
 }
 
-export async function saveEmployerProfile(formData: FormData): Promise<void> {
+export async function saveEmployerProfile(
+  formData: FormData
+): Promise<{ error?: string }> {
   const [user, supabase, fields] = await Promise.all([
     requireRole("employer"),
     createClient(),
@@ -85,19 +88,31 @@ export async function saveEmployerProfile(formData: FormData): Promise<void> {
   ]);
   const schema = buildDynamicProfileSchema(fields);
   const parsed = schema.safeParse(stripCustomEntries(Object.fromEntries(formData)));
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const key = issue?.path?.[0] != null ? String(issue.path[0]) : "";
+    const label = fields.find((field) => field.field_key === key)?.label;
+    return { error: readableIssueMessage(issue, label) };
+  }
 
   const custom_fields = extractCustomFields(formData);
   const customCheck = validateRequiredCustomFields(fields, custom_fields);
-  if (customCheck.ok === false) throw new Error(customCheck.message);
+  if (customCheck.ok === false) return { error: toUserFacingMessage(customCheck.message) };
 
   const { error } = await supabase
     .from("employer_profiles")
     .update({ ...parsed.data, custom_fields })
     .eq("user_id", user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    return {
+      error: toUserFacingMessage(error.message, {
+        fallback: "We couldn’t save your employer profile. Try again.",
+      }),
+    };
+  }
   revalidatePath("/employer/profile");
+  return {};
 }
 
 export async function saveJob(formData: FormData, jobId?: string): Promise<void> {
@@ -115,7 +130,7 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
   const customFromForm = extractCustomFields(formData);
   const fieldValidation = validateJobStateAgainstFormFields(formState, fields, customFromForm);
   if (fieldValidation.ok === false) {
-    throw new Error(fieldValidation.message);
+    throw new Error(toUserFacingMessage(fieldValidation.message));
   }
 
   const jobPayload = formStateToJobPayload(formState);
@@ -189,11 +204,23 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
 
     previousStatus = existing.status;
     const { error } = await supabase.from("jobs").update(payload).eq("id", jobId);
-    if (error) throw new Error(error.message);
+    if (error) {
+      throw new Error(
+        toUserFacingMessage(error.message, {
+          fallback: "We couldn’t save this job. Try again.",
+        })
+      );
+    }
     revalidatePath(`/employer/jobs/${jobId}`);
   } else {
     const { data, error } = await supabase.from("jobs").insert(payload).select("id").single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      throw new Error(
+        toUserFacingMessage(error.message, {
+          fallback: "We couldn’t save this job. Try again.",
+        })
+      );
+    }
     savedJobId = data.id;
     previousStatus = null;
     revalidatePath("/employer/jobs");
@@ -211,7 +238,13 @@ export async function saveJob(formData: FormData, jobId?: string): Promise<void>
     const { error: matrixError } = await supabase
       .from("job_matrix_answers")
       .upsert(rows, { onConflict: "job_id,question_id,matrix_column" });
-    if (matrixError) throw new Error(matrixError.message);
+    if (matrixError) {
+      throw new Error(
+        toUserFacingMessage(matrixError.message, {
+          fallback: "We couldn’t save the matching answers. Try again.",
+        })
+      );
+    }
     revalidatePath(`/employer/jobs/${savedJobId}/matrix`);
     revalidatePath(`/employer/jobs/${savedJobId}/matching`);
   }
@@ -277,7 +310,13 @@ export async function uploadJobJD(formData: FormData, jobId: string): Promise<vo
     .from("job-jds")
     .upload(path, file, { upsert: true });
 
-  if (uploadError) throw new Error(uploadError.message);
+  if (uploadError) {
+    throw new Error(
+      toUserFacingMessage(uploadError.message, {
+        fallback: "We couldn’t upload that file. Try again.",
+      })
+    );
+  }
 
   await supabase.from("job_jd_files").insert({
     job_id: jobId,
@@ -352,7 +391,13 @@ export async function saveJobMatrixAnswers(
     const { error: upsertError } = await supabase
       .from("job_matrix_answers")
       .upsert(rows, { onConflict: "job_id,question_id,matrix_column" });
-    if (upsertError) return { error: upsertError.message };
+    if (upsertError) {
+      return {
+        error: toUserFacingMessage(upsertError.message, {
+          fallback: "We couldn’t save the matching answers. Try again.",
+        }),
+      };
+    }
   }
 
   revalidatePath(`/employer/jobs/${jobId}/matrix`);
@@ -450,7 +495,11 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
     .single();
 
   if (paymentError || !payment) {
-    return { error: paymentError?.message ?? "Failed to create payment" };
+    return {
+      error: toUserFacingMessage(paymentError?.message, {
+        fallback: "We couldn’t start checkout. Try again.",
+      }),
+    };
   }
 
   // Mock path: no Stripe — mark paid + create unlocks immediately (UAT / local smoke).
@@ -464,7 +513,11 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
       sessionId,
     });
     if (fulfilled.error) {
-      return { error: fulfilled.error };
+      return {
+        error: toUserFacingMessage(fulfilled.error, {
+          fallback: "We couldn’t finish unlocking those profiles. Try again.",
+        }),
+      };
     }
     revalidatePath(`/employer/jobs/${jobId}/matching`);
     revalidatePath(`/employer/jobs/${jobId}/unlocked`);

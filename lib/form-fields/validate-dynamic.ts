@@ -11,7 +11,17 @@ import {
   validateCandidateField,
   type ValidateFieldContext,
 } from "@/lib/form-fields/candidate-field-validation";
+import { RETIRED_CANDIDATE_INPUT_KEYS } from "@/lib/form-fields/profile-sections";
 import { validateYearsOfExperienceValue } from "@/lib/form-fields/years-of-experience";
+
+function candidateFieldIsRequired(
+  field: FormFieldDefinition,
+  enforceRequired: boolean
+): boolean {
+  if (!enforceRequired) return false;
+  if (field.field_key === "date_of_birth") return true;
+  return field.is_required;
+}
 
 export type DynamicProfileSchemaOptions = {
   /** When false (draft saves), empty required fields are allowed; filled values are still validated. */
@@ -30,12 +40,13 @@ function candidateFieldSchema(
 ): z.ZodTypeAny {
   const enforceRequired = options.enforceRequired !== false;
   const softLists = options.softLists === true || options.enforceRequired === false;
-  const required = enforceRequired && field.is_required;
+  const required = candidateFieldIsRequired(field, enforceRequired);
   const key = field.field_key;
 
   if (key === "years_of_experience") {
     return z
       .union([z.string(), z.number(), z.undefined(), z.null()])
+      .optional()
       .transform((value, ctx) => {
         const result = validateYearsOfExperienceValue(value ?? "", {
           required,
@@ -66,12 +77,20 @@ function baseStringField(field: FormFieldDefinition): z.ZodTypeAny {
   switch (field.field_type) {
     case "email":
       return field.is_required
-        ? z.string().min(1).email()
-        : z.string().email().optional().or(z.literal(""));
+        ? z.string().min(1, `${field.label} is required.`).email(`Enter a valid ${field.label.toLowerCase()}.`)
+        : z
+            .string()
+            .email(`Enter a valid ${field.label.toLowerCase()}.`)
+            .optional()
+            .or(z.literal(""));
     case "url":
       return field.is_required
-        ? z.string().url()
-        : z.string().url().optional().or(z.literal(""));
+        ? z.string().url(`Enter a full website address for ${field.label.toLowerCase()}, including https://.`)
+        : z
+            .string()
+            .url(`Enter a full website address for ${field.label.toLowerCase()}, including https://.`)
+            .optional()
+            .or(z.literal(""));
     case "tel":
     case "textarea":
     case "text":
@@ -102,6 +121,7 @@ export function buildDynamicProfileSchema(
   const activeFields = fields.filter((f) => f.is_active && !f.is_custom);
 
   for (const field of activeFields) {
+    if (isCandidate && RETIRED_CANDIDATE_INPUT_KEYS.has(field.field_key)) continue;
     shape[field.field_key] = isCandidate
       ? candidateFieldSchema(field, options)
       : field.field_type === "number"
@@ -118,15 +138,21 @@ export function buildDynamicProfileSchema(
       const context: ValidateFieldContext = { values, softLists };
 
       for (const field of activeFields) {
+        if (RETIRED_CANDIDATE_INPUT_KEYS.has(field.field_key)) continue;
         if (field.field_key === "years_of_experience") continue;
-        const required = enforceRequired && field.is_required;
+        const required = candidateFieldIsRequired(field, enforceRequired);
         const raw = values[field.field_key];
         const result = validateCandidateField(
           { ...field, is_required: required },
           raw,
           context
         );
-        if (result.ok === false && (field.field_key === "city" || field.field_key === "country")) {
+        if (
+          result.ok === false &&
+          (field.field_key === "city" ||
+            field.field_key === "country" ||
+            field.field_key === "date_of_birth")
+        ) {
           const already = ctx.issues.some((i) => i.path[0] === field.field_key);
           if (!already) {
             ctx.addIssue({

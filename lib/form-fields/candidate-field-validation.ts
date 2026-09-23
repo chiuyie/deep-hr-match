@@ -456,7 +456,8 @@ export function validateCandidateField(
       return result;
     }
     case "postal_code": {
-      const result = validatePostalCode(raw, { required, label });
+      const country = typeof context.values?.country === "string" ? context.values.country : "";
+      const result = validatePostalCode(raw, { required, label, country });
       if (result.ok === false) return { ok: false, message: result.message };
       return result;
     }

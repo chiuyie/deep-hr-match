@@ -35,7 +35,7 @@ describe("getDefaultFormFields", () => {
       (f) => f.audience === "employer" && f.form_group === "job"
     );
 
-    expect(candidateProfile).toHaveLength(46);
+    expect(candidateProfile).toHaveLength(42);
     expect(employerProfile).toHaveLength(9);
     expect(employerJob.length).toBeGreaterThan(50);
   });

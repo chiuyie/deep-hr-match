@@ -116,6 +116,56 @@ describe("buildDynamicProfileSchema candidate rules", () => {
     expect(submit.safeParse({ full_name: "", email: "" }).success).toBe(false);
   });
 
+  it("allows a save when retired inputs such as years of experience are absent", () => {
+    const schema = buildDynamicProfileSchema(
+      [
+        makeFormField({
+          audience: "candidate",
+          field_key: "full_name",
+          label: "Full name",
+          is_required: true,
+        }),
+        makeFormField({
+          audience: "candidate",
+          field_key: "years_of_experience",
+          label: "Years of Experience",
+          field_type: "number",
+        }),
+        makeFormField({
+          audience: "candidate",
+          field_key: "skills",
+          label: "Skills",
+        }),
+      ],
+      { enforceRequired: false }
+    );
+
+    expect(schema.safeParse({ full_name: "Ada Lovelace" }).success).toBe(true);
+  });
+
+  it("requires date of birth on submit and explains it in plain language", () => {
+    const fields = [
+      makeFormField({
+        audience: "candidate",
+        field_key: "date_of_birth",
+        label: "Date of birth",
+        field_type: "date",
+        is_required: false,
+      }),
+    ];
+    const draft = buildDynamicProfileSchema(fields, { enforceRequired: false });
+    const submit = buildDynamicProfileSchema(fields, { enforceRequired: true });
+
+    expect(draft.safeParse({}).success).toBe(true);
+    const missing = submit.safeParse({});
+    expect(missing.success).toBe(false);
+    if (!missing.success) {
+      const message = missing.error.issues.map((issue) => issue.message).join(" ");
+      expect(message).toMatch(/date of birth is required/i);
+      expect(message).not.toMatch(/invalid input|nonoptional|received undefined/i);
+    }
+  });
+
   it("does not block draft saves on legacy free-text languages from later pages", () => {
     const schema = buildDynamicProfileSchema(
       [

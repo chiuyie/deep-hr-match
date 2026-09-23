@@ -60,7 +60,7 @@ export async function loadPrimaryMatrixCategoryTree<
     .limit(1);
 
   if (error) {
-    throw new Error(`Could not load matrix form: ${error.message}`);
+    throw new Error("The matching questionnaire couldn’t be loaded. Try again.");
   }
 
   const category = data?.[0];

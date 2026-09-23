@@ -7,6 +7,7 @@ import { invalidateFormFieldCaches } from "@/lib/form-fields/queries";
 import { parseOptionsFromFormValue, normalizeSelectOptions } from "@/lib/form-fields/select-options";
 import { createClient } from "@/lib/supabase/server";
 import { formFieldSchema } from "@/lib/validations/schemas";
+import { readableIssueMessage, toUserFacingMessage } from "@/lib/ui/readable-error";
 import type { EmployerDisclosureMode, FormFieldType } from "@/lib/form-fields/types";
 import {
   defaultFallbackSection,
@@ -52,7 +53,7 @@ export async function saveFormField(formData: FormData, id?: string) {
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid field data" };
+    return { error: readableIssueMessage(parsed.error.issues[0], "Field") };
   }
 
   if (parsed.data.field_type === "select" && (!parsed.data.options || parsed.data.options.length === 0)) {
@@ -73,7 +74,7 @@ export async function saveFormField(formData: FormData, id?: string) {
             "Could not save dropdown options. Apply migration 015_form_field_options.sql, then try again.",
         };
       }
-      return { error: error.message };
+      return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
     }
   } else {
     const { error } = await supabase.from("form_fields").insert(payload);
@@ -84,7 +85,7 @@ export async function saveFormField(formData: FormData, id?: string) {
             "Could not save dropdown options. Apply migration 015_form_field_options.sql, then try again.",
         };
       }
-      return { error: error.message };
+      return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
     }
   }
 
@@ -96,7 +97,7 @@ export async function deleteFormField(id: string) {
   await requireRole("admin");
   const supabase = await createClient();
   const { error } = await supabase.from("form_fields").delete().eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   revalidateFormFieldPages();
   return { success: true };
 }
@@ -105,7 +106,7 @@ export async function toggleFormFieldActive(id: string, is_active: boolean) {
   await requireRole("admin");
   const supabase = await createClient();
   const { error } = await supabase.from("form_fields").update({ is_active }).eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   revalidateFormFieldPages();
   return { success: true };
 }
@@ -128,7 +129,7 @@ export async function updateEmployerDisclosureMode(
           "Could not save after-unlock disclosure. Apply migration 008_form_field_disclosure.sql, then try again.",
       };
     }
-    return { error: error.message };
+    return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   }
   if (!data?.length) return { error: "Field not found." };
   revalidateFormFieldPages();
@@ -142,7 +143,7 @@ export async function updateShowOnAnonymousMatch(id: string, show_on_anonymous_m
     .from("form_fields")
     .update({ show_on_anonymous_match })
     .eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   revalidateFormFieldPages();
   return { success: true };
 }
@@ -223,7 +224,7 @@ export async function createFormField(input: {
           "Could not save dropdown options. Apply migration 015_form_field_options.sql, then try again.",
       };
     }
-    return { error: error.message };
+    return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   }
 
   revalidateFormFieldPages();
@@ -248,7 +249,7 @@ export async function reorderFormFields(
         sort_order: update.sort_order,
       })
       .eq("id", update.id);
-    if (error) return { error: error.message };
+    if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   }
 
   revalidateFormFieldPages();
@@ -294,7 +295,7 @@ export async function createFormSection(input: {
     if (error.code === "23505") {
       return { error: "A section with that name already exists." };
     }
-    return { error: error.message };
+    return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   }
 
   revalidateFormFieldPages();
@@ -339,7 +340,11 @@ export async function renameFormSection(input: {
         error: "Could not rename section. Apply migration 016_form_sections.sql, then try again.",
       };
     }
-    return { error: sectionError.message };
+    return {
+      error: toUserFacingMessage(sectionError.message, {
+        fallback: "We couldn’t rename that section. Try again.",
+      }),
+    };
   }
 
   if (!updatedRows?.length) {
@@ -357,7 +362,11 @@ export async function renameFormSection(input: {
       sort_order: nextSort,
     });
     if (insertError && insertError.code !== "23505") {
-      return { error: insertError.message };
+      return {
+        error: toUserFacingMessage(insertError.message, {
+          fallback: "We couldn’t save that section. Try again.",
+        }),
+      };
     }
   }
 
@@ -368,7 +377,13 @@ export async function renameFormSection(input: {
     .eq("form_group", input.form_group)
     .eq("section", from);
 
-  if (fieldsError) return { error: fieldsError.message };
+  if (fieldsError) {
+    return {
+      error: toUserFacingMessage(fieldsError.message, {
+        fallback: "We couldn’t update those fields. Try again.",
+      }),
+    };
+  }
 
   revalidateFormFieldPages();
   return { success: true };
@@ -456,7 +471,11 @@ export async function deleteFormSection(input: {
               "Could not delete section. Apply migration 016_form_sections.sql, then try again.",
           };
         }
-        return { error: insertDestError.message };
+        return {
+          error: toUserFacingMessage(insertDestError.message, {
+            fallback: "We couldn’t move that section. Try again.",
+          }),
+        };
       }
     }
 
@@ -467,7 +486,13 @@ export async function deleteFormSection(input: {
       .eq("form_group", input.form_group)
       .eq("section", title);
 
-    if (moveError) return { error: moveError.message };
+    if (moveError) {
+      return {
+        error: toUserFacingMessage(moveError.message, {
+          fallback: "We couldn’t move that section. Try again.",
+        }),
+      };
+    }
   }
 
   const { error } = await supabase
@@ -483,7 +508,7 @@ export async function deleteFormSection(input: {
         error: "Could not delete section. Apply migration 016_form_sections.sql, then try again.",
       };
     }
-    return { error: error.message };
+    return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   }
 
   revalidateFormFieldPages();
@@ -518,7 +543,7 @@ export async function reorderFormSections(input: {
             "Could not reorder sections. Apply migration 016_form_sections.sql, then try again.",
         };
       }
-      return { error: error.message };
+      return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
     }
   }
 

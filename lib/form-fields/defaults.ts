@@ -35,17 +35,13 @@ function candidateProfileFields(): DefaultFormFieldInput[] {
     full_name: { label: "Full Name", is_required: true },
     email: { label: "Email", field_type: "email", is_required: true },
     phone: { label: "Phone", field_type: "tel" },
-    date_of_birth: { label: "Date of birth", field_type: "date" },
+    date_of_birth: { label: "Date of birth", field_type: "date", is_required: true },
     country: { label: "Country", field_type: "select" },
     city: { label: "City", field_type: "select" },
     home_address: { label: "Home address", field_type: "textarea" },
     postal_code: { label: "Postal code" },
-    current_job_title: { label: "Current Job Title" },
-    years_of_experience: { label: "Years of Experience", field_type: "number" },
     work_experience: { label: "Work experience", field_type: "textarea" },
-    highest_education: { label: "Highest Education", field_type: "select" },
-    education_history: { label: "Education history", field_type: "textarea" },
-    skills: { label: "Skills", field_type: "textarea" },
+    education_history: { label: "Education experience", field_type: "textarea" },
     certifications: { label: "Certifications", field_type: "textarea" },
     languages: { label: "Languages", field_type: "textarea" },
     current_salary: { label: "Current Salary" },
@@ -55,7 +51,10 @@ function candidateProfileFields(): DefaultFormFieldInput[] {
     employment_type_preference: { label: "Employment Type Preference", field_type: "select" },
     work_arrangement_preference: { label: "Work Arrangement", field_type: "select" },
     availability: { label: "Availability", field_type: "select" },
-    volunteer_experience: { label: "Volunteer / extracurricular experience", field_type: "textarea" },
+    volunteer_experience: {
+      label: "Volunteering, projects & other experience",
+      field_type: "textarea",
+    },
   };
 
   for (const question of CANDIDATE_ROLE_REQUIREMENT_QUESTIONS) {

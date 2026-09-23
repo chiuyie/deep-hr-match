@@ -13,7 +13,8 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
   {
     id: "about",
     title: "About you",
-    description: "Contact details employers may see after they unlock your profile.",
+    description:
+      "Who you are, how to reach you, and the languages you use. Contact details stay hidden until an employer unlocks your profile.",
     fieldKeys: [
       "full_name",
       "email",
@@ -21,23 +22,21 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
       "date_of_birth",
       "country",
       "city",
-      "home_address",
       "postal_code",
+      "home_address",
+      "languages",
     ],
   },
   {
     id: "experience",
     title: "Experience: Work-Life",
-    description: "Your background helps us rank you against the right roles.",
+    description:
+      "Education first, then jobs, then volunteering, projects, and other experience. Add certificates after that.",
     fieldKeys: [
-      "current_job_title",
-      "years_of_experience",
-      "work_experience",
-      "highest_education",
       "education_history",
-      "skills",
+      "work_experience",
+      "volunteer_experience",
       "certifications",
-      "languages",
     ],
   },
   {
@@ -57,12 +56,6 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
       "work_arrangement_preference",
       "availability",
     ],
-  },
-  {
-    id: "volunteer",
-    title: "Volunteer & extracurricular",
-    description: "Optional — organisations, clubs, community, or extracurricular roles.",
-    fieldKeys: ["volunteer_experience"],
   },
   {
     id: "matching-details",
@@ -203,6 +196,33 @@ function resolveSectionTitle(
   return defaultForKey(field.field_key);
 }
 
+/** Built-in keys follow the section list so education, jobs, and other experience stay in order. */
+function sectionTitleForField(
+  field: FormFieldDefinition,
+  defs: ProfileSectionDef[],
+  defaultForKey: (key: string) => string
+): string {
+  for (const def of defs) {
+    if (def.fieldKeys.includes(field.field_key)) return def.title;
+  }
+  return resolveSectionTitle(field, defaultForKey);
+}
+
+function sortSectionFields(
+  fields: FormFieldDefinition[],
+  fieldKeys: string[]
+): FormFieldDefinition[] {
+  const order = new Map(fieldKeys.map((key, index) => [key, index]));
+  return [...fields].sort((a, b) => {
+    const ai = order.get(a.field_key);
+    const bi = order.get(b.field_key);
+    if (ai != null && bi != null) return ai - bi;
+    if (ai != null) return -1;
+    if (bi != null) return 1;
+    return a.sort_order - b.sort_order;
+  });
+}
+
 export function groupProfileFieldsByUiSections(
   fields: FormFieldDefinition[],
   defs: ProfileSectionDef[],
@@ -217,7 +237,7 @@ export function groupProfileFieldsByUiSections(
   );
 
   for (const field of active) {
-    const title = resolveSectionTitle(field, defaultForKey);
+    const title = sectionTitleForField(field, defs, defaultForKey);
     const list = buckets.get(title) ?? [];
     list.push(field);
     buckets.set(title, list);
@@ -233,12 +253,10 @@ export function groupProfileFieldsByUiSections(
 
   for (const title of preferred) {
     seen.add(title);
-    const sectionFields = (buckets.get(title) ?? []).sort(
-      (a, b) => a.sort_order - b.sort_order
-    );
+    const def = defs.find((d) => d.title === title) ?? (title === additional.title ? additional : null);
+    const sectionFields = sortSectionFields(buckets.get(title) ?? [], def?.fieldKeys ?? []);
     buckets.delete(title);
     if (sectionFields.length === 0) continue;
-    const def = defs.find((d) => d.title === title) ?? (title === additional.title ? additional : null);
     ordered.push({
       id: def?.id ?? slugSectionId(title),
       title,
@@ -270,17 +288,30 @@ function slugSectionId(title: string): string {
     .slice(0, 48) || "section";
 }
 
+/** Inputs removed because the timelines already capture them. */
+export const RETIRED_CANDIDATE_INPUT_KEYS = new Set([
+  "current_job_title",
+  "years_of_experience",
+  "highest_education",
+  "skills",
+]);
+
 export function groupCandidateProfileFieldsByUiSections(
   fields: FormFieldDefinition[],
   sectionOrder?: string[]
 ) {
   return groupProfileFieldsByUiSections(
-    fields,
+    fields.filter((field) => !RETIRED_CANDIDATE_INPUT_KEYS.has(field.field_key)),
     CANDIDATE_PROFILE_SECTIONS,
     CANDIDATE_ADDITIONAL_SECTION,
     defaultCandidateSectionForKey,
     sectionOrder
-  );
+  ).map((section) => ({
+    ...section,
+    fields: section.fields.map((field) =>
+      field.field_key === "date_of_birth" ? { ...field, is_required: true } : field
+    ),
+  }));
 }
 
 export function groupEmployerProfileFieldsByUiSections(
@@ -308,7 +339,7 @@ export function buildAdminProfileSectionGroups(
   const buckets = new Map<string, FormFieldDefinition[]>();
 
   for (const field of all) {
-    const title = resolveSectionTitle(field, defaultForKey);
+    const title = sectionTitleForField(field, defs, defaultForKey);
     const list = buckets.get(title) ?? [];
     list.push(field);
     buckets.set(title, list);
@@ -326,7 +357,10 @@ export function buildAdminProfileSectionGroups(
     seen.add(title);
     ordered.push({
       section: title,
-      fields: (buckets.get(title) ?? []).sort((a, b) => a.sort_order - b.sort_order),
+      fields: sortSectionFields(
+        buckets.get(title) ?? [],
+        defs.find((d) => d.title === title)?.fieldKeys ?? []
+      ),
     });
     buckets.delete(title);
   }

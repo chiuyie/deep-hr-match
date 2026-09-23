@@ -5,7 +5,7 @@ export const signUpSchema = z.object({
   email: z.string().email("Valid email required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   name: z.string().min(1, "Name is required"),
-  role: z.enum(["candidate", "employer"]),
+  role: z.enum(["candidate", "employer"], { message: "Choose candidate or employer." }),
 });
 
 export const signInSchema = z.object({
@@ -15,7 +15,7 @@ export const signInSchema = z.object({
 
 export const candidateProfileSchema = z.object({
   full_name: z.string().min(1, "Full name is required"),
-  email: z.string().email(),
+  email: z.string().email("Enter a valid email address."),
   phone: z.string().optional(),
   country: z.string().optional(),
   city: z.string().optional(),
@@ -48,10 +48,18 @@ export const employerProfileSchema = z.object({
   registration_number: z.string().optional(),
   industry: z.string().optional(),
   company_size: z.string().optional(),
-  website: z.string().url().optional().or(z.literal("")),
+  website: z
+    .string()
+    .url("Enter a full website address, including https://.")
+    .optional()
+    .or(z.literal("")),
   company_description: z.string().optional(),
   contact_person_name: z.string().optional(),
-  contact_person_email: z.string().email().optional().or(z.literal("")),
+  contact_person_email: z
+    .string()
+    .email("Enter a valid email address.")
+    .optional()
+    .or(z.literal("")),
   contact_person_phone: z.string().optional(),
 });
 
@@ -61,15 +69,15 @@ export const jobSchema = z.object({
 });
 
 export const matrixCategorySchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1, "Name is required."),
   description: z.string().optional(),
   sort_order: z.coerce.number().default(0),
   is_active: z.boolean().default(true),
 });
 
 export const matrixQuestionSchema = z.object({
-  category_id: z.string().uuid(),
-  question_text: z.string().min(1),
+  category_id: z.string().uuid("Choose a valid category."),
+  question_text: z.string().min(1, "Question text is required."),
   question_type: z.enum(["single_select", "multi_select", "text", "scale"]),
   target_role: z.enum(["candidate", "employer", "both"]),
   sort_order: z.coerce.number().default(0),
@@ -79,9 +87,9 @@ export const matrixQuestionSchema = z.object({
 });
 
 export const matrixOptionSchema = z.object({
-  question_id: z.string().uuid(),
-  option_text: z.string().min(1),
-  option_value: z.string().min(1),
+  question_id: z.string().uuid("Choose a valid question."),
+  option_text: z.string().min(1, "Option text is required."),
+  option_value: z.string().min(1, "Option value is required."),
   sort_order: z.coerce.number().default(0),
   is_active: z.boolean().default(true),
   description: z.string().optional().nullable(),
@@ -90,14 +98,14 @@ export const matrixOptionSchema = z.object({
 export const formFieldSchema = z.object({
   audience: z.enum(["candidate", "employer"]),
   form_group: z.enum(["profile", "job"]),
-  section: z.string().min(1),
-  field_key: z.string().min(1),
-  label: z.string().min(1),
+  section: z.string().min(1, "Section is required."),
+  field_key: z.string().min(1, "Field key is required."),
+  label: z.string().min(1, "Label is required."),
   field_type: z
     .enum(["text", "email", "number", "textarea", "tel", "url", "select", "checkbox", "file", "date"])
     .default("text"),
   placeholder: z.string().optional().nullable(),
-  options: z.array(z.string().min(1)).nullable().optional().default(null),
+  options: z.array(z.string().min(1, "Option text is required.")).nullable().optional().default(null),
   is_required: z.boolean().default(false),
   is_active: z.boolean().default(true),
   is_custom: z.boolean().default(false),

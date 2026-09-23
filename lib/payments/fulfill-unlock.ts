@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 
 export type FulfillUnlockPaymentInput = {
   paymentId: string;
@@ -34,7 +35,11 @@ export async function fulfillUnlockPayment(
     .maybeSingle();
 
   if (loadError) {
-    return { error: loadError.message };
+    return {
+      error: toUserFacingMessage(loadError.message, {
+        fallback: "We couldn’t finish unlocking those profiles. Try again.",
+      }),
+    };
   }
   if (!payment) {
     return { error: "Payment not found" };
@@ -42,14 +47,14 @@ export async function fulfillUnlockPayment(
 
   // Never trust Stripe metadata alone — it must match the pending payment row.
   if (payment.employer_id !== employerId || payment.job_id !== jobId) {
-    return { error: "Payment metadata does not match payment record" };
+    return { error: "This payment does not match the unlock request." };
   }
 
   const storedIds = Array.isArray(payment.selected_candidate_ids)
     ? payment.selected_candidate_ids.map(String)
     : [];
   if (!sameIdSet(storedIds, candidateIds.map(String))) {
-    return { error: "Payment candidate list does not match payment record" };
+    return { error: "The candidate list does not match this payment." };
   }
 
   if (payment.status === "paid") {
@@ -68,7 +73,11 @@ export async function fulfillUnlockPayment(
     .eq("job_id", jobId);
 
   if (paymentError) {
-    return { error: paymentError.message };
+    return {
+      error: toUserFacingMessage(paymentError.message, {
+        fallback: "We couldn’t finish unlocking those profiles. Try again.",
+      }),
+    };
   }
 
   const unlockRecords = storedIds.map((candidateId) => ({
@@ -84,7 +93,11 @@ export async function fulfillUnlockPayment(
   });
 
   if (unlockError) {
-    return { error: unlockError.message };
+    return {
+      error: toUserFacingMessage(unlockError.message, {
+        fallback: "We couldn’t finish unlocking those profiles. Try again.",
+      }),
+    };
   }
 
   return {};

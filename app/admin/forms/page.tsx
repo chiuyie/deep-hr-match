@@ -3,6 +3,7 @@ import { FormFieldsComparisonEditor } from "@/components/admin/form-fields-compa
 import { loadComparisonFormFields } from "@/lib/form-fields/queries";
 import { loadPlatformDisclosureItems } from "@/lib/employer/platform-disclosure";
 import { createClient } from "@/lib/supabase/server";
+import { toUserFacingMessage } from "@/lib/ui/readable-error";
 
 const checkEmployerDisclosureColumn = cache(async function checkEmployerDisclosureColumn() {
   const supabase = await createClient();
@@ -13,7 +14,9 @@ const checkEmployerDisclosureColumn = cache(async function checkEmployerDisclosu
   if (!error) return { ok: true as const };
   return {
     ok: false as const,
-    error: error.message,
+    error: toUserFacingMessage(error.message, {
+      fallback: "Disclosure settings need a database update before they can be saved.",
+    }),
   };
 });
 
@@ -35,7 +38,7 @@ export default async function AdminFormsPage() {
     schemaWarnings.push(
       platformLoad.error?.includes("011") || platformLoad.error?.includes("platform_disclosure")
         ? "Migration 011 is missing: platform disclosure (score, 7^7, CV) is showing temporary defaults and will not persist until you apply supabase/migrations/011_platform_disclosure.sql."
-        : `Platform disclosure is not persisted yet${platformLoad.error ? `: ${platformLoad.error}` : ""}.`
+        : "Platform disclosure is not saved yet. Try again after the database update is applied."
     );
   }
 

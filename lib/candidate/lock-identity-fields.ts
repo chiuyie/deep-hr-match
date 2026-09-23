@@ -1,4 +1,5 @@
 import type { CandidateLockableIdentityFieldKey } from "@/lib/constants/job-form";
+import { normalizeDateOfBirthInput } from "@/lib/form-fields/profile-history";
 
 function hasStoredValue(value: unknown): boolean {
   if (value === null || value === undefined) return false;
@@ -38,7 +39,7 @@ export function isCandidateIdentityFieldLocked(
     return hasStoredValue(profile.email);
   }
   if (fieldKey === "date_of_birth") {
-    return hasStoredValue(profile.date_of_birth);
+    return normalizeDateOfBirthInput(profile.date_of_birth).length > 0;
   }
   if (fieldKey === "gender") {
     return hasStoredValue(readCustomField(profile.custom_fields, "gender"));
@@ -84,8 +85,9 @@ export function preserveLockedCandidateIdentityFields(
   if (hasStoredValue(existing.email)) {
     next.email = existing.email;
   }
-  if (hasStoredValue(existing.date_of_birth)) {
-    next.date_of_birth = existing.date_of_birth;
+  const lockedDob = normalizeDateOfBirthInput(existing.date_of_birth);
+  if (lockedDob) {
+    next.date_of_birth = lockedDob;
   }
   if (hasStoredValue(existingCustom.gender)) {
     mergedCustom.gender = existingCustom.gender;

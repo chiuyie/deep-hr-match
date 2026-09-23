@@ -1,6 +1,6 @@
 import { Building2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { DynamicProfileFields } from "@/components/forms/dynamic-profile-fields";
+import { EmployerProfileForm } from "@/components/employer/employer-profile-form";
 import { EmployerPageSection } from "@/components/employer/employer-ui";
 import { requireEmployer } from "@/lib/auth/session";
 import {
@@ -39,17 +39,14 @@ export default async function EmployerProfilePage() {
         icon={<Building2 className="h-6 w-6" />}
         gradient="from-cyan-500 to-cyan-600"
       >
-        <form action={saveEmployerProfile} className="space-y-5">
+        <EmployerProfileForm action={saveEmployerProfile}>
           <DynamicProfileFields
             fields={fields}
             values={p}
             variant="employer"
             sections={sections}
           />
-          <Button type="submit" className="rounded-xl">
-            Save employer profile
-          </Button>
-        </form>
+        </EmployerProfileForm>
       </EmployerPageSection>
     </div>
   );

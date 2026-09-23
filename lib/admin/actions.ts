@@ -17,6 +17,7 @@ import {
   matrixOptionSchema,
   matrixQuestionSchema,
 } from "@/lib/validations/schemas";
+import { readableIssueMessage, toUserFacingMessage } from "@/lib/ui/readable-error";
 
 const MATRIX_PATHS = [
   "/admin/matrix",
@@ -118,7 +119,7 @@ export async function saveMatrixCategory(formData: FormData, id?: string) {
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid category data" };
+    return { error: readableIssueMessage(parsed.error.issues[0], "Name") };
   }
 
   if (id) {
@@ -126,10 +127,10 @@ export async function saveMatrixCategory(formData: FormData, id?: string) {
       .from("matrix_categories")
       .update(parsed.data)
       .eq("id", id);
-    if (error) return { error: error.message };
+    if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   } else {
     const { error } = await supabase.from("matrix_categories").insert(parsed.data);
-    if (error) return { error: error.message };
+    if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   }
 
   revalidateMatrixPages();
@@ -140,7 +141,7 @@ export async function deleteMatrixCategory(id: string) {
   await requireRole("admin");
   const supabase = await createClient();
   const { error } = await supabase.from("matrix_categories").delete().eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   revalidateMatrixPages();
   return { success: true };
 }
@@ -164,7 +165,7 @@ export async function saveMatrixQuestion(formData: FormData, id?: string) {
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid sub-level data" };
+    return { error: readableIssueMessage(parsed.error.issues[0], "Sub-level") };
   }
 
   if (id) {
@@ -172,10 +173,10 @@ export async function saveMatrixQuestion(formData: FormData, id?: string) {
       .from("matrix_questions")
       .update(parsed.data)
       .eq("id", id);
-    if (error) return { error: error.message };
+    if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   } else {
     const { error } = await supabase.from("matrix_questions").insert(parsed.data);
-    if (error) return { error: error.message };
+    if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   }
 
   revalidateMatrixPages();
@@ -186,7 +187,7 @@ export async function deleteMatrixQuestion(id: string) {
   await requireRole("admin");
   const supabase = await createClient();
   const { error } = await supabase.from("matrix_questions").delete().eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   revalidateMatrixPages();
   return { success: true };
 }
@@ -209,7 +210,7 @@ export async function saveMatrixOption(formData: FormData, id?: string) {
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid word data" };
+    return { error: readableIssueMessage(parsed.error.issues[0], "Word") };
   }
 
   if (id) {
@@ -217,10 +218,10 @@ export async function saveMatrixOption(formData: FormData, id?: string) {
       .from("matrix_options")
       .update(parsed.data)
       .eq("id", id);
-    if (error) return { error: error.message };
+    if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   } else {
     const { error } = await supabase.from("matrix_options").insert(parsed.data);
-    if (error) return { error: error.message };
+    if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   }
 
   revalidateMatrixPages();
@@ -231,7 +232,7 @@ export async function deleteMatrixOption(id: string) {
   await requireRole("admin");
   const supabase = await createClient();
   const { error } = await supabase.from("matrix_options").delete().eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   revalidateMatrixPages();
   return { success: true };
 }
@@ -244,7 +245,7 @@ export async function toggleMatrixItem(
   await requireRole("admin");
   const supabase = await createClient();
   const { error } = await supabase.from(table).update({ is_active }).eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   revalidateMatrixPages();
   return { success: true };
 }
@@ -290,7 +291,11 @@ export async function createMatrixSubLevel(categoryId: string) {
     .single();
 
   if (questionError || !question) {
-    return { error: questionError?.message ?? "Failed to create word level" };
+    return {
+      error: toUserFacingMessage(questionError?.message, {
+        fallback: "We couldn’t create that word level. Try again.",
+      }),
+    };
   }
 
   const options = Array.from({ length: MATRIX_WORDS_PER_LEVEL }, (_, index) => {
@@ -308,7 +313,11 @@ export async function createMatrixSubLevel(categoryId: string) {
   const { error: optionsError } = await supabase.from("matrix_options").insert(options);
   if (optionsError) {
     await supabase.from("matrix_questions").delete().eq("id", question.id);
-    return { error: optionsError.message };
+    return {
+      error: toUserFacingMessage(optionsError.message, {
+        fallback: "We couldn’t save those words. Try again.",
+      }),
+    };
   }
 
   revalidateMatrixPages();
@@ -370,7 +379,7 @@ export async function createMatrixWord(
     is_active: true,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: toUserFacingMessage(error.message, { fallback: "We couldn’t save that. Try again." }) };
   revalidateMatrixPages();
   return { success: true };
 }
@@ -455,7 +464,11 @@ export async function createMatrixSubLevelForWord(parentOptionId: string) {
     .single();
 
   if (questionError || !question) {
-    return { error: questionError?.message ?? "Failed to create sub-level" };
+    return {
+      error: toUserFacingMessage(questionError?.message, {
+        fallback: "We couldn’t create that sub-level. Try again.",
+      }),
+    };
   }
 
   const options = Array.from({ length: MATRIX_WORDS_PER_LEVEL }, (_, index) => {
@@ -477,7 +490,11 @@ export async function createMatrixSubLevelForWord(parentOptionId: string) {
   const { error: optionsError } = await supabase.from("matrix_options").insert(options);
   if (optionsError) {
     await supabase.from("matrix_questions").delete().eq("id", question.id);
-    return { error: optionsError.message };
+    return {
+      error: toUserFacingMessage(optionsError.message, {
+        fallback: "We couldn’t save those words. Try again.",
+      }),
+    };
   }
 
   revalidateMatrixPages();
@@ -508,7 +525,11 @@ export async function createMatrixFactor(name?: string) {
     .single();
 
   if (categoryError || !category) {
-    return { error: categoryError?.message ?? "Failed to create factor" };
+    return {
+      error: toUserFacingMessage(categoryError?.message, {
+        fallback: "We couldn’t create that factor. Try again.",
+      }),
+    };
   }
 
   const result = await createMatrixSubLevel(category.id);
