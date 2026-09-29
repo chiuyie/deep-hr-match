@@ -48,9 +48,38 @@ type CandidateProfileFormProps = {
   continueHref?: string;
   continueLabel?: string;
   initialError?: string;
+  /** 0-based wizard page from the URL (`?step=1` → 0). */
+  initialStepIndex?: number;
   showSavedDraft?: boolean;
   showIncompleteError?: boolean;
 };
+
+function clampStep(index: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.max(0, Math.min(total - 1, index));
+}
+
+function readStepFromLocation(total: number, fallback: number): number {
+  if (typeof window === "undefined") return clampStep(fallback, total);
+  const raw = new URL(window.location.href).searchParams.get("step");
+  const parsed = Number.parseInt(raw ?? "", 10);
+  if (Number.isFinite(parsed) && parsed >= 1) {
+    return clampStep(parsed - 1, total);
+  }
+  return clampStep(fallback, total);
+}
+
+/** Keep the open wizard page in the URL so a soft refresh does not jump back to page 1. */
+function syncWizardStepInUrl(stepIndex: number) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  url.searchParams.set("step", String(stepIndex + 1));
+  url.searchParams.delete("saved");
+  const next = `${url.pathname}${url.search}${url.hash}`;
+  if (`${window.location.pathname}${window.location.search}${window.location.hash}` !== next) {
+    window.history.replaceState(window.history.state, "", next);
+  }
+}
 
 function focusField(fieldKey: string) {
   const el =
@@ -68,6 +97,7 @@ function CandidateProfileFormInner({
   continueHref,
   continueLabel,
   initialError,
+  initialStepIndex = 0,
   showSavedDraft,
   showIncompleteError,
 }: CandidateProfileFormProps) {
@@ -76,8 +106,12 @@ function CandidateProfileFormInner({
     { error: initialError }
   );
   const formRef = useRef<HTMLFormElement>(null);
-  const [step, setStep] = useState(0);
-  const [visited, setVisited] = useState<Set<number>>(() => new Set([0]));
+  const [step, setStep] = useState(() =>
+    readStepFromLocation(sections.length, initialStepIndex)
+  );
+  const [visited, setVisited] = useState<Set<number>>(
+    () => new Set([readStepFromLocation(sections.length, initialStepIndex)])
+  );
   const [stepBlockMessage, setStepBlockMessage] = useState<string | null>(null);
   const [localCompletion, setLocalCompletion] = useState(completionPercentage);
   const [stepSavedFlash, setStepSavedFlash] = useState(false);
@@ -98,11 +132,27 @@ function CandidateProfileFormInner({
   }, [completionPercentage]);
 
   useEffect(() => {
+    // First paint: write the open page into the URL so a later remount can restore it.
+    syncWizardStepInUrl(step);
+  }, []);
+
+  useEffect(() => {
     if (showIncompleteError) {
       setStep(0);
+      setVisited((prev) => new Set(prev).add(0));
+      syncWizardStepInUrl(0);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [showIncompleteError]);
+
+  useEffect(() => {
+    if (!state.saved) return;
+    if (typeof state.completionPercentage === "number") {
+      setLocalCompletion(state.completionPercentage);
+    }
+    setStepSavedFlash(true);
+    setStepBlockMessage(null);
+  }, [state]);
 
   useEffect(() => {
     setStepBlockMessage(null);
@@ -124,14 +174,15 @@ function CandidateProfileFormInner({
   );
 
   function advanceTo(next: number) {
-    const clamped = Math.max(0, Math.min(totalSteps - 1, next));
+    const clamped = clampStep(next, totalSteps);
     setStepBlockMessage(null);
     setStep(clamped);
     setVisited((prev) => new Set(prev).add(clamped));
+    syncWizardStepInUrl(clamped);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function saveDraftThenAdvance(next: number) {
+  async function saveDraft(options?: { advanceTo?: number }) {
     const form = formRef.current;
     if (!form || stepSaving) return;
 
@@ -152,7 +203,12 @@ function CandidateProfileFormInner({
         setLocalCompletion(result.completionPercentage);
       }
       setStepSavedFlash(true);
-      advanceTo(next);
+      if (typeof options?.advanceTo === "number") {
+        advanceTo(options.advanceTo);
+      } else {
+        // Stay on this page — keep the URL in sync if a soft refresh remounts the form.
+        syncWizardStepInUrl(step);
+      }
     } catch {
       setStepBlockMessage("Could not save this page. Check your connection and try again.");
     } finally {
@@ -174,7 +230,7 @@ function CandidateProfileFormInner({
         if (result.firstInvalidKey) focusField(result.firstInvalidKey);
         return;
       }
-      saveDraftThenAdvance(next);
+      void saveDraft({ advanceTo: next });
       return;
     }
 
@@ -193,11 +249,27 @@ function CandidateProfileFormInner({
       if (result.firstInvalidKey) focusField(result.firstInvalidKey);
       return;
     }
-    saveDraftThenAdvance(step + 1);
+    void saveDraft({ advanceTo: step + 1 });
+  }
+
+  function handleSaveDraftClick() {
+    if (busy) return;
+    // Save profile / Save for later: persist this page, then move to the next one.
+    // On the last page, stay put and show the saved confirmation.
+    if (!isLastStep) {
+      void saveDraft({ advanceTo: step + 1 });
+      return;
+    }
+    void saveDraft();
   }
 
   function handleSubmitClick(event: React.MouseEvent<HTMLButtonElement>) {
-    // Validate every section before allowing a full submit.
+    // Only the final "Save & continue to CV" submit must validate every section.
+    if (event.currentTarget.value !== "submit") {
+      event.preventDefault();
+      return;
+    }
+
     for (let i = 0; i < sections.length; i++) {
       const section = sections[i]!;
       const result = validateSection(section.fields);
@@ -205,6 +277,7 @@ function CandidateProfileFormInner({
         event.preventDefault();
         setStep(i);
         setVisited((prev) => new Set(prev).add(i));
+        syncWizardStepInUrl(i);
         setStepBlockMessage(
           toUserFacingMessage(result.errors[result.firstInvalidKey ?? ""], {
             fallback: "Fix the highlighted fields before saving.",
@@ -232,7 +305,9 @@ function CandidateProfileFormInner({
         <div className="relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-sky-50 via-white to-emerald-50/60 px-5 py-5 sm:px-6">
           <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-sky-200/30 blur-2xl" />
           <div className="relative text-sm leading-snug text-slate-600">
-            <span className="tabular-nums">Page {step + 1} of {totalSteps}</span>
+            <span className="tabular-nums">
+              Page {step + 1} of {totalSteps}
+            </span>
             <span className="mx-1.5 text-slate-300">·</span>
             <span className="font-medium text-slate-800">{current.title}</span>
           </div>
@@ -430,15 +505,13 @@ function CandidateProfileFormInner({
               {isOnboardingProfileStep ? (
                 <>
                   <Button
-                    type="submit"
-                    name="intent"
-                    value="draft"
+                    type="button"
                     variant="secondary"
                     disabled={busy}
                     className="h-auto min-h-9 whitespace-normal rounded-xl px-3 py-2"
-                    onClick={handleSubmitClick}
+                    onClick={handleSaveDraftClick}
                   >
-                    {pending ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : null}
+                    {stepSaving ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : null}
                     Save for later
                   </Button>
                   {isLastStep ? (
@@ -459,14 +532,12 @@ function CandidateProfileFormInner({
               ) : (
                 <>
                   <Button
-                    type="submit"
-                    name="intent"
-                    value="draft"
+                    type="button"
                     disabled={busy}
                     className="h-auto min-h-9 whitespace-normal rounded-xl px-3 py-2"
-                    onClick={handleSubmitClick}
+                    onClick={handleSaveDraftClick}
                   >
-                    {pending ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : null}
+                    {stepSaving ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : null}
                     Save profile
                   </Button>
                   {isLastStep && continueHref && continueLabel ? (
@@ -485,8 +556,8 @@ function CandidateProfileFormInner({
           </div>
           {!isLastStep ? (
             <p className="mt-3 text-pretty text-xs leading-relaxed text-slate-500">
-              Next validates this page, saves your progress, then moves on. You can also use Save
-              for later anytime.
+              Save or Next stores this page, then moves you to the next section. You can jump back
+              anytime from the page list above.
             </p>
           ) : (
             <p className="mt-3 text-pretty text-xs leading-relaxed text-slate-500">

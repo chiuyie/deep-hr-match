@@ -196,9 +196,13 @@ export async function saveCandidateProfileCore(
     };
   }
 
+  // Draft saves update completion locally in the wizard. Skip revalidating the
+  // profile page itself so the open step is not wiped by a soft remount.
   revalidatePath("/candidate");
-  revalidatePath("/candidate/profile");
   revalidatePath("/candidate/status");
+  if (submit) {
+    revalidatePath("/candidate/profile");
+  }
 
   return { completionPercentage: payload.completion_percentage };
 }

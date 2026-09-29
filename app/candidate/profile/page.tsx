@@ -22,7 +22,13 @@ import { Button } from "@/components/ui/button";
 export default async function CandidateProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ welcome?: string; error?: string; saved?: string; completion?: string }>;
+  searchParams: Promise<{
+    welcome?: string;
+    error?: string;
+    saved?: string;
+    completion?: string;
+    step?: string;
+  }>;
 }) {
   const user = await requireRole("candidate");
   const supabase = await createClient();
@@ -51,6 +57,12 @@ export default async function CandidateProfilePage({
     description: section.description,
     fields: section.fields,
   }));
+
+  const parsedStep = Number.parseInt(params.step ?? "", 10);
+  const initialStepIndex =
+    Number.isFinite(parsedStep) && parsedStep >= 1
+      ? Math.min(sections.length - 1, parsedStep - 1)
+      : 0;
 
   let continueHref: string | undefined;
   let continueLabel: string | undefined;
@@ -114,6 +126,7 @@ export default async function CandidateProfilePage({
           isOnboardingProfileStep={isOnboardingProfileStep}
           continueHref={continueHref}
           continueLabel={continueLabel}
+          initialStepIndex={initialStepIndex}
           showSavedDraft={params.saved === "draft"}
           showIncompleteError={params.error === "profile-incomplete"}
         />

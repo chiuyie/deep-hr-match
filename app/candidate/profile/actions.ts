@@ -39,11 +39,15 @@ export async function profileFormAction(
   if (submit) {
     if ((result.completionPercentage ?? 0) < PROFILE_COMPLETION_THRESHOLD) {
       redirect(
-        `/candidate/profile?error=profile-incomplete&completion=${result.completionPercentage ?? 0}`
+        `/candidate/profile?error=profile-incomplete&completion=${result.completionPercentage ?? 0}&step=1`
       );
     }
     redirect("/candidate/cv?step=profile-complete");
   }
 
-  redirect("/candidate/profile?saved=draft");
+  // Draft saves stay on the same wizard page — a redirect remounts the form at step 1.
+  return {
+    saved: true,
+    completionPercentage: result.completionPercentage,
+  };
 }

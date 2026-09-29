@@ -58,19 +58,21 @@ describe("candidate profile actions", () => {
 
       await expect(profileFormAction({}, formData)).rejects.toThrow("NEXT_REDIRECT");
       expect(redirect).toHaveBeenCalledWith(
-        "/candidate/profile?error=profile-incomplete&completion=40"
+        "/candidate/profile?error=profile-incomplete&completion=40&step=1"
       );
     });
 
-    it("saves draft intent without requiring threshold", async () => {
+    it("saves a draft and stays on the wizard page without redirecting", async () => {
       saveCandidateProfileCore.mockResolvedValue({ completionPercentage: 20 });
 
       const formData = new FormData();
       formData.set("intent", "draft");
 
-      await expect(profileFormAction({}, formData)).rejects.toThrow("NEXT_REDIRECT");
+      const result = await profileFormAction({}, formData);
+
       expect(saveCandidateProfileCore).toHaveBeenCalledWith(formData, false);
-      expect(redirect).toHaveBeenCalledWith("/candidate/profile?saved=draft");
+      expect(redirect).not.toHaveBeenCalled();
+      expect(result).toEqual({ saved: true, completionPercentage: 20 });
     });
   });
 });
