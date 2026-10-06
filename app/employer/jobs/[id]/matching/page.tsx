@@ -1,11 +1,7 @@
 import { notFound } from "next/navigation";
 import { CheckCircle2, Clock, RefreshCw, Target, Users } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  EmployerJobContext,
-  EmployerStatCard,
-} from "@/components/employer/employer-ui";
+import { EmployerJobContext } from "@/components/employer/employer-ui";
 import { MatchFlowNotice } from "@/components/employer/match-flow-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { MatchingResultsTable } from "@/components/matching/matching-results-table";
@@ -115,76 +111,103 @@ export default async function JobMatchingPage({
       />
       <JobWorkflowNav jobId={id} currentStep="matching" canEdit={canEditJob(lifecycle)} />
 
-      {matrix === "complete" && (
-        <Alert className="mb-6 border-emerald-200 bg-emerald-50 text-emerald-900">
-          <CheckCircle2 />
-          <AlertTitle>{FRAMEWORK_MATCHING_LANGUAGE} saved</AlertTitle>
-          <AlertDescription>
-            {canRun
-              ? "Your matching questionnaire is complete. Generate matches below when you are ready."
-              : "Your matching questionnaire is complete. Post the job as Active before generating matches."}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {results.length > 0 ? (
-        <div className="mb-6 grid gap-3 sm:grid-cols-3">
-          <EmployerStatCard
-            label="In this snapshot"
-            value={results.length}
-            icon={Users}
-            accent="from-emerald-500/15 to-emerald-500/5 text-emerald-700"
-          />
-          <EmployerStatCard
-            label="Already unlocked"
-            value={unlockedIds.length}
-            icon={CheckCircle2}
-            accent="from-teal-500/15 to-teal-500/5 text-teal-700"
-          />
-          <EmployerStatCard
-            label="Unlock price"
-            value={formatCurrency(UNLOCK_PRICE_CENTS, UNLOCK_CURRENCY)}
-            icon={Target}
-            accent="from-slate-500/15 to-slate-500/5 text-slate-700"
-          />
-        </div>
+      {matrix === "complete" ? (
+        <MatchFlowNotice tone="success" title={`${FRAMEWORK_MATCHING_LANGUAGE} saved`}>
+          {canRun
+            ? "Your matching questionnaire is complete. Generate matches below when you are ready."
+            : "Your matching questionnaire is complete. Post the job as Active before generating matches."}
+        </MatchFlowNotice>
       ) : null}
 
-      {lastMatchedAt && (
-        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-              <Clock className="h-4 w-4" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-800">Match snapshot</p>
-              <p className="mt-0.5 text-sm text-slate-500">
-                Last matched <span className="font-medium text-slate-700">{formatDate(lastMatchedAt)}</span>
-                {newCandidatesSince > 0 ? (
-                  <>
-                    {" "}
-                    ·{" "}
-                    <span className="font-medium text-amber-700">
-                      {newCandidatesSince} new candidate{newCandidatesSince === 1 ? "" : "s"} in pool
-                    </span>
-                  </>
-                ) : null}
-              </p>
-              {newCandidatesMessage ? (
-                <p className="mt-1 text-sm text-slate-500">{newCandidatesMessage}</p>
-              ) : null}
+      {results.length > 0 || lastMatchedAt ? (
+        <div className="mb-6 overflow-hidden rounded-[1.35rem] border border-slate-200/70 bg-white shadow-[0_20px_50px_-34px_rgba(15,23,42,0.4)]">
+          <div className="grid gap-0 sm:grid-cols-3">
+            <div className="border-b border-slate-100 px-5 py-4 sm:border-b-0 sm:border-r">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                  <Users className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    In this snapshot
+                  </p>
+                  <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+                    {results.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="border-b border-slate-100 px-5 py-4 sm:border-b-0 sm:border-r">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                  <CheckCircle2 className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Already unlocked
+                  </p>
+                  <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+                    {unlockedIds.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="px-5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-600 ring-1 ring-slate-200/80">
+                  <Target className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Unlock price
+                  </p>
+                  <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+                    {formatCurrency(UNLOCK_PRICE_CENTS, UNLOCK_CURRENCY)}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-          {canRun ? (
-            <form action={generate}>
-              <Button type="submit" className="rounded-xl shadow-sm">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                {runLabel}
-              </Button>
-            </form>
+
+          {lastMatchedAt ? (
+            <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-slate-500 ring-1 ring-slate-200/80">
+                  <Clock className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Match snapshot</p>
+                  <p className="mt-0.5 text-sm text-slate-500">
+                    Last matched{" "}
+                    <span className="font-medium text-slate-700">{formatDate(lastMatchedAt)}</span>
+                    {newCandidatesSince > 0 ? (
+                      <>
+                        {" "}
+                        ·{" "}
+                        <span className="font-medium text-amber-700">
+                          {newCandidatesSince} new candidate
+                          {newCandidatesSince === 1 ? "" : "s"} in pool
+                        </span>
+                      </>
+                    ) : null}
+                  </p>
+                  {newCandidatesMessage ? (
+                    <p className="mt-1 text-sm text-slate-500">{newCandidatesMessage}</p>
+                  ) : null}
+                </div>
+              </div>
+              {canRun ? (
+                <form action={generate}>
+                  <Button type="submit" className="rounded-xl shadow-sm">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    {runLabel}
+                  </Button>
+                </form>
+              ) : null}
+            </div>
           ) : null}
         </div>
-      )}
+      ) : null}
 
       {canRun && refreshWarning ? (
         <MatchFlowNotice tone="warning" title="Refresh recommended" icon={RefreshCw}>
@@ -201,8 +224,14 @@ export default async function JobMatchingPage({
       ) : null}
 
       {canRun && !refreshWarning && !lastMatchedAt ? (
-        <div className="mb-6 flex justify-end">
-          <form action={generate}>
+        <div className="mb-6 overflow-hidden rounded-[1.35rem] border border-emerald-200/70 bg-[linear-gradient(135deg,#ecfdf5,#ffffff)] px-5 py-5 shadow-sm sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Ready to rank candidates</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Generate a free match snapshot, then unlock the profiles that fit.
+            </p>
+          </div>
+          <form action={generate} className="mt-4 sm:mt-0">
             <Button type="submit" size="lg" className="rounded-xl px-6 shadow-md">
               <RefreshCw className="mr-2 h-4 w-4" />
               {runLabel}

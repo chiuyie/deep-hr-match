@@ -830,14 +830,17 @@ export function MatrixForm({
           </div>
           <Progress value={progressValue} aria-label="Matrix form progress" className="h-2.5" />
 
-          <ol className="grid grid-cols-7 gap-1 sm:gap-2" aria-label="Seven matching factors">
+          <ol
+            className="flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:grid sm:grid-cols-7 sm:gap-2 sm:overflow-visible sm:pb-0"
+            aria-label="Seven matching factors"
+          >
             {factorLabels.map((label, index) => {
               const column = index + 1;
               const completed =
                 formComplete || selectionsSoFar.some((row) => row.column === column);
               const active = !formComplete && current?.column === column;
               return (
-                <li key={column} className="min-w-0">
+                <li key={column} className="min-w-[2.75rem] shrink-0 sm:min-w-0">
                   <div
                     className={cn(
                       "flex flex-col items-center gap-1 rounded-xl border px-0.5 py-1.5 text-center transition-colors sm:gap-1.5 sm:rounded-2xl sm:px-2 sm:py-2",
@@ -851,7 +854,7 @@ export function MatrixForm({
                   >
                     <span
                       className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold sm:h-7 sm:w-7 sm:text-xs",
+                        "flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold sm:h-7 sm:w-7 sm:text-xs",
                         active
                           ? "bg-sky-500 text-white"
                           : completed

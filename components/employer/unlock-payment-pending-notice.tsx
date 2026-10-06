@@ -36,16 +36,16 @@ export function UnlockPaymentPendingNotice({
   if (!active) return null;
 
   return (
-    <div className="mb-6 overflow-hidden rounded-2xl border border-sky-200/80 bg-gradient-to-r from-sky-50 to-white shadow-sm">
-      <div className="flex items-start gap-3 px-5 py-4">
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+    <div className="mb-6 overflow-hidden rounded-[1.35rem] border border-sky-200/80 bg-[linear-gradient(135deg,#f0f9ff,#ffffff)] shadow-[0_16px_36px_-28px_rgba(3,105,161,0.35)]">
+      <div className="flex items-start gap-3.5 px-5 py-4">
+        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
           <Loader2 className={`h-4 w-4 ${pending && !exhausted ? "animate-spin" : ""}`} />
         </span>
         <div className="min-w-0">
-          <p className="font-semibold text-sky-950">
+          <p className="font-semibold tracking-tight text-sky-950">
             {exhausted ? "Still finishing unlock" : "Finishing unlock"}
           </p>
-          <p className="mt-0.5 text-sm text-sky-900/80">
+          <p className="mt-1 text-sm leading-relaxed text-sky-900/80">
             {exhausted
               ? "Payment went through, but unlocks are taking longer than expected. Refresh this page, or return to matching and open View unlocked."
               : (message ??
@@ -55,9 +55,9 @@ export function UnlockPaymentPendingNotice({
         </div>
       </div>
       {!exhausted ? (
-        <div className="h-1 bg-sky-100">
+        <div className="h-1.5 bg-sky-100/80">
           <div
-            className="h-full bg-sky-400/80 transition-all duration-500"
+            className="h-full bg-[linear-gradient(90deg,#38bdf8,#0284c7)] transition-all duration-500"
             style={{ width: `${Math.min(100, (ticks / MAX_AUTO_REFRESHES) * 100)}%` }}
           />
         </div>

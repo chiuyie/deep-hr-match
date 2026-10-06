@@ -120,12 +120,12 @@ export function DashboardHeader({
         )}
       </div>
 
-      <div className="flex min-w-0 flex-1 items-center gap-3 px-4 sm:px-6">
-        <BrandLogo href={nav.homeHref} className="shrink-0 lg:hidden" />
+      <div className="flex min-w-0 flex-1 items-center gap-2 px-3 sm:gap-3 sm:px-6">
+        <BrandLogo href={nav.homeHref} compact className="shrink-0 lg:hidden" />
 
         <div className="min-w-0 flex-1">
           <h1
-            className="text-balance text-base font-semibold leading-snug tracking-tight text-foreground sm:text-lg"
+            className="truncate text-base font-semibold leading-snug tracking-tight text-foreground sm:text-balance sm:text-lg"
             title={title}
           >
             {title}
@@ -140,8 +140,8 @@ export function DashboardHeader({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          {actions}
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+          {actions ? <div className="hidden sm:flex sm:items-center sm:gap-2">{actions}</div> : null}
           <ThemeToggle />
           <DashboardUserMenu role={role} userName={userName} />
         </div>

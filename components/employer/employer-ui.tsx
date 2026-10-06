@@ -29,7 +29,7 @@ export function EmployerPageSection({
     <section
       id={id}
       className={cn(
-        "scroll-mt-24 rounded-2xl border border-slate-100 bg-white p-6 shadow-lg transition-shadow duration-300 hover:shadow-xl sm:p-8",
+        "scroll-mt-24 rounded-2xl border border-slate-100 bg-white p-4 shadow-lg transition-shadow duration-300 hover:shadow-xl sm:p-8",
         className
       )}
     >
@@ -179,24 +179,33 @@ interface EmployerJobContextProps {
 
 export function EmployerJobContext({ jobTitle, jobId, description }: EmployerJobContextProps) {
   return (
-    <div className="mb-6 rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4 shadow-sm">
+    <div className="mb-6 overflow-hidden rounded-[1.35rem] border border-slate-200/70 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_55%,#f0fdf4_100%)] px-5 py-4 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.35)] sm:px-6">
       <nav className="text-sm text-slate-500" aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>
-            <Link href="/employer/jobs" className="hover:text-primary">
+            <Link href="/employer/jobs" className="transition-colors hover:text-emerald-700">
               Jobs
             </Link>
           </li>
-          <li aria-hidden>/</li>
+          <li aria-hidden className="text-slate-300">
+            /
+          </li>
           <li>
-            <Link href={`/employer/jobs/${jobId}`} className="hover:text-primary">
+            <Link
+              href={`/employer/jobs/${jobId}`}
+              className="transition-colors hover:text-emerald-700"
+            >
               {jobTitle}
             </Link>
           </li>
         </ol>
       </nav>
-      <h2 className="mt-1 text-lg font-semibold text-slate-800 sm:text-xl">{jobTitle}</h2>
-      {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+      <h2 className="mt-1.5 text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+        {jobTitle}
+      </h2>
+      {description ? (
+        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-500">{description}</p>
+      ) : null}
     </div>
   );
 }

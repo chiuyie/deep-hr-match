@@ -48,19 +48,19 @@ export function UnlockedCandidateCard({
         : `${String(yearsOfExperience).trim()} exp`;
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg">
-      <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+    <article className="group flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-slate-200/80 bg-white shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-200/90 hover:shadow-[0_24px_50px_-28px_rgba(6,78,59,0.35)]">
+      <div className="h-1.5 bg-[linear-gradient(90deg,#10b981,#14b8a6,#06b6d4)]" />
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start gap-3">
           <CandidateAvatar name={displayName} />
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-base font-bold tracking-tight text-slate-800">
+            <h3 className="truncate text-base font-bold tracking-tight text-slate-900">
               {displayName}
             </h3>
             {showJobTitle && jobTitle ? (
               <p className="mt-0.5 truncate text-xs text-slate-500">{jobTitle}</p>
             ) : (
-              <p className="mt-0.5 text-xs font-medium text-emerald-700">Unlocked profile</p>
+              <p className="mt-0.5 text-xs font-medium text-emerald-700">Ready to contact</p>
             )}
           </div>
           {matchScore != null ? (
@@ -75,18 +75,28 @@ export function UnlockedCandidateCard({
           ) : null}
         </div>
 
-        <div className="mt-4 space-y-2 rounded-xl bg-slate-50/80 p-3 ring-1 ring-slate-100">
+        <div className="mt-4 space-y-2.5 rounded-2xl bg-slate-50/90 p-3.5 ring-1 ring-slate-100">
           {email ? (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-              <span className="truncate">{email}</span>
-            </div>
+            <a
+              href={`mailto:${email}`}
+              className="flex items-center gap-2.5 text-sm text-slate-600 transition-colors hover:text-slate-900"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-slate-400 ring-1 ring-slate-200/80">
+                <Mail className="h-3.5 w-3.5" />
+              </span>
+              <span className="truncate font-medium">{email}</span>
+            </a>
           ) : null}
           {phone ? (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-              <span>{phone}</span>
-            </div>
+            <a
+              href={`tel:${phone}`}
+              className="flex items-center gap-2.5 text-sm text-slate-600 transition-colors hover:text-slate-900"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-slate-400 ring-1 ring-slate-200/80">
+                <Phone className="h-3.5 w-3.5" />
+              </span>
+              <span className="font-medium">{phone}</span>
+            </a>
           ) : null}
           {!email && !phone ? (
             <p className="text-sm text-slate-400">Contact details hidden by disclosure settings</p>
@@ -119,12 +129,7 @@ export function UnlockedCandidateCard({
           )}
           <div className="ml-auto flex items-center gap-1.5">
             {cvDownloadUrl ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 rounded-lg p-0"
-                asChild
-              >
+              <Button variant="ghost" size="sm" className="h-8 w-8 rounded-lg p-0" asChild>
                 <a
                   href={cvDownloadUrl}
                   target="_blank"
@@ -137,7 +142,7 @@ export function UnlockedCandidateCard({
               </Button>
             ) : null}
             {hasReportLink ? (
-              <Button size="sm" className="h-8 rounded-xl px-3" asChild>
+              <Button size="sm" className="h-8 rounded-xl px-3 shadow-sm" asChild>
                 <Link href={`/employer/jobs/${jobId}/unlocked/${candidateId}`}>
                   <Eye className="mr-1.5 h-3.5 w-3.5" />
                   Full report

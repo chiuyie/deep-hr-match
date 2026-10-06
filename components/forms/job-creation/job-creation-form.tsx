@@ -477,7 +477,7 @@ export function JobCreationForm({
               />
             </div>
 
-            <div className="sticky bottom-0 z-10 mt-6 border-t border-slate-200 bg-gradient-to-b from-slate-50/95 to-white/95 px-3 py-3 backdrop-blur-sm sm:px-4 sm:py-4">
+            <div className="sticky bottom-0 z-10 mt-6 border-t border-slate-200 bg-gradient-to-b from-slate-50/95 to-white/95 px-3 py-3 pb-safe backdrop-blur-sm sm:px-4 sm:py-4">
               <div className="flex min-w-0 flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p
                   className={cn(

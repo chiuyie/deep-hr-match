@@ -167,7 +167,8 @@ describe("generatePlaceholderMatches", () => {
     expect(results?.map((r) => r.ranking_position)).toEqual([1, 2, 3]);
     expect(results?.every((r) => r.is_placeholder === false)).toBe(true);
     expect(results?.every((r) => r.profile_score === null)).toBe(true);
-    expect(results?.[0]?.match_summary).toContain("equal column weights");
+    expect(results?.[0]?.match_summary).toContain("Strong fit");
+    expect(results?.[0]?.match_summary).not.toContain("equal column weights");
 
     const inserted = getInserted();
     expect(inserted).toHaveLength(3);

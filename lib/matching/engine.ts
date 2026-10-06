@@ -4,6 +4,7 @@ import {
   scoreMatrixMatch,
   type MatrixAnswerPick,
 } from "@/lib/matching/matrix-score";
+import { buildCountBasedMatchSummary } from "@/lib/matching/match-narrative";
 
 export interface MatchingInput {
   jobId: string;
@@ -28,30 +29,7 @@ function buildMatrixSummary(
   totalCount: number,
   columnCount: number
 ): Pick<PlaceholderMatchScore, "match_summary" | "strengths" | "gaps"> {
-  if (totalCount === 0) {
-    return {
-      match_summary:
-        "No comparable 7^7 answers yet — complete the matching language form on the job and candidate profiles.",
-      strengths: [],
-      gaps: ["Matrix form incomplete"],
-    };
-  }
-
-  return {
-    match_summary: `7^7 match (equal column weights): ${matchedCount}/${totalCount} word picks aligned across ${columnCount} factor${columnCount === 1 ? "" : "s"} (${matrixScore}%).`,
-    strengths:
-      matchedCount > 0
-        ? [
-            `${matchedCount} exact word match${matchedCount === 1 ? "" : "es"} at the same factor column and level`,
-          ]
-        : [],
-    gaps:
-      totalCount - matchedCount > 0
-        ? [
-            `${totalCount - matchedCount} word pick${totalCount - matchedCount === 1 ? "" : "s"} differ between job and candidate`,
-          ]
-        : [],
-  };
+  return buildCountBasedMatchSummary(matrixScore, matchedCount, totalCount, columnCount);
 }
 
 function scoreFromMatrix(

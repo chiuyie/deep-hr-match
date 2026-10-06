@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -15,6 +15,12 @@ export const metadata: Metadata = {
   description: `Connecting exceptional talent with forward-thinking companies through our ${FRAMEWORK_MATCHING_LANGUAGE}.`,
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,7 +31,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
         <ThemeProvider>
           {children}
-          <Toaster richColors position="top-right" />
+          <Toaster richColors position="top-center" />
         </ThemeProvider>
       </body>
     </html>

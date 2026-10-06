@@ -321,13 +321,13 @@ function CandidateProfileFormInner({
         </div>
 
         <div className="border-t border-slate-100 px-3 py-3 sm:px-4">
-          <ol className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+          <ol className="flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
             {stepMeta.map((section, index) => {
               const active = index === step;
               const done = visited.has(index) && index < step;
               const Icon = section.Icon;
               return (
-                <li key={section.title} className="min-w-0">
+                <li key={section.title} className="min-w-[9.5rem] shrink-0 sm:min-w-0">
                   <button
                     type="button"
                     onClick={() => goTo(index)}
@@ -469,7 +469,7 @@ function CandidateProfileFormInner({
           ))}
         </div>
 
-        <div className="sticky bottom-0 z-10 rounded-b-2xl border-t border-slate-100 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
+        <div className="sticky bottom-0 z-10 rounded-b-2xl border-t border-slate-100 bg-white/95 px-4 py-3 pb-safe backdrop-blur-sm sm:px-6 sm:py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
               <Button

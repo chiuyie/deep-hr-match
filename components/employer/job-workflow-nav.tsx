@@ -80,23 +80,23 @@ export function JobWorkflowNav({
 
   return (
     <nav
-      className="mb-6 overflow-x-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-lg"
+      className="relative mb-6 overflow-x-auto rounded-[1.35rem] border border-slate-200/70 bg-white p-2 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.35)] [-webkit-overflow-scrolling:touch]"
       aria-label="Job workflow"
     >
-      <ul className="flex min-w-max gap-1 sm:min-w-0 sm:flex-wrap">
+      <ul className="flex min-w-max snap-x snap-mandatory gap-1 sm:min-w-0 sm:flex-wrap sm:snap-none">
         {visibleSteps.map((step) => {
           const active = step.id === currentStep;
           const Icon = step.icon;
 
           return (
-            <li key={step.id} className="flex-1 sm:min-w-[9rem]">
+            <li key={step.id} className="snap-start sm:flex-1 sm:min-w-[9rem]">
               <Link
                 href={step.path(jobId)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
+                  "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
                   active
-                    ? "bg-primary/10 text-primary shadow-sm"
+                    ? "bg-emerald-50 text-emerald-900 shadow-sm ring-1 ring-emerald-100"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
@@ -104,7 +104,7 @@ export function JobWorkflowNav({
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm",
                     step.gradient,
-                    active && "ring-2 ring-primary/20 ring-offset-1"
+                    active && "ring-2 ring-emerald-200/70 ring-offset-1"
                   )}
                 >
                   <Icon className="h-4 w-4" />

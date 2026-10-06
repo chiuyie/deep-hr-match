@@ -48,7 +48,7 @@ describe("UnlockedMatchReportSections", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("renders score and comparison rows when disclosure allows it", () => {
+  it("renders meaningful insight and grouped comparison sections", () => {
     render(
       <UnlockedMatchReportSections
         overallScore={88}
@@ -65,13 +65,18 @@ describe("UnlockedMatchReportSections", () => {
     expect(screen.getByText("7^7 match")).toBeInTheDocument();
     expect(screen.getByText("88%")).toBeInTheDocument();
     expect(screen.getByText("#2")).toBeInTheDocument();
-    expect(screen.getByText("Character - Roles")).toBeInTheDocument();
+    expect(screen.getByText("Strong fit")).toBeInTheDocument();
+    expect(screen.getByText("What this means")).toBeInTheDocument();
+    expect(screen.getByText(/Aligned on 1 of 2 factors/i)).toBeInTheDocument();
+    expect(screen.getAllByText("Where you align").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Where you differ").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Character - Roles").length).toBeGreaterThan(0);
     expect(screen.getByText("Match")).toBeInTheDocument();
     expect(screen.getByText("Different")).toBeInTheDocument();
     expect(screen.getByText(/factors aligned/i)).toBeInTheDocument();
   });
 
-  it("renders match narrative when disclosure allows it", () => {
+  it("renders stored match narrative when disclosure allows and no comparison", () => {
     render(
       <UnlockedMatchReportSections
         overallScore={null}
@@ -93,7 +98,7 @@ describe("UnlockedMatchReportSections", () => {
     expect(screen.getByText("Limited industry tenure")).toBeInTheDocument();
   });
 
-  it("hides match narrative when disclosure disables it", () => {
+  it("hides stored narrative when disclosure disables it", () => {
     render(
       <UnlockedMatchReportSections
         overallScore={88}
@@ -112,5 +117,27 @@ describe("UnlockedMatchReportSections", () => {
     expect(screen.getByText("88%")).toBeInTheDocument();
     expect(screen.queryByText("Should stay hidden")).not.toBeInTheDocument();
     expect(screen.queryByText("Hidden strength")).not.toBeInTheDocument();
+  });
+
+  it("prefers live comparison insight over technical stored summary", () => {
+    render(
+      <UnlockedMatchReportSections
+        overallScore={50}
+        showMatchScore
+        showMatchNarrative
+        matchSummary="7^7 match (equal column weights): should not show"
+        strengths={["Legacy strength"]}
+        gaps={["Legacy gap"]}
+        showMatrixAnswers={false}
+        showMatrixComparison
+        candidateSteps={[]}
+        comparisonRows={comparisonRows}
+      />
+    );
+
+    expect(screen.getByText("What this means")).toBeInTheDocument();
+    expect(screen.queryByText(/equal column weights/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Legacy strength")).not.toBeInTheDocument();
+    expect(screen.getByText("Mixed fit")).toBeInTheDocument();
   });
 });

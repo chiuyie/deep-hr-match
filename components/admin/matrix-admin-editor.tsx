@@ -266,7 +266,10 @@ function FactorSpreadsheet({
       </CardHeader>
 
       <CardContent className="p-3 sm:p-4">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+          <p className="mb-2 text-xs text-slate-500 md:hidden">
+            Swipe sideways to edit all factor columns
+          </p>
           <table className="min-w-[960px] w-full border-collapse border border-slate-500 text-left">
             <thead>
               <tr className="bg-emerald-700 text-white">

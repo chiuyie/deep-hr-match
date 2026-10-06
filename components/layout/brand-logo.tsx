@@ -39,7 +39,7 @@ export function BrandLogo({
     >
       <BrandIcon className={compact ? "h-9 w-9" : "h-9 w-9"} />
       {!compact && (
-        <span className="text-lg font-bold tracking-tight text-foreground dark:text-white">
+        <span className="truncate text-base font-bold tracking-tight text-foreground sm:text-lg dark:text-white">
           Deep HR Match
         </span>
       )}

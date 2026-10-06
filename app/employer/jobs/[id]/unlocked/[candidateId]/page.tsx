@@ -153,48 +153,67 @@ export default async function EmployerUnlockedCandidateDetailPage({
         </MatchFlowNotice>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-lg">
-        <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
-        <div className="p-6 sm:p-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+      <section className="overflow-hidden rounded-[1.35rem] border border-slate-200/80 bg-white shadow-[0_24px_55px_-34px_rgba(15,23,42,0.42)]">
+        <div className="h-1.5 bg-[linear-gradient(90deg,#10b981,#14b8a6,#06b6d4)]" />
+        <div className="bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_42%)] p-6 sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-4">
               <CandidateAvatar name={candidateView.displayName} />
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.7rem]">
                     {candidateView.displayName}
                   </h1>
-                  <span className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 text-xs font-semibold text-white">
+                  <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 text-xs font-semibold text-white shadow-sm">
                     <LockOpen className="h-3.5 w-3.5" />
                     Unlocked
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1.5 text-sm text-slate-500">
                   {candidateView.matchResult?.generated_at
-                    ? `Matched ${formatDate(candidateView.matchResult.generated_at)}`
+                    ? `Matched ${formatDate(candidateView.matchResult.generated_at)} · full profile unlocked for this job`
                     : "Full profile unlocked for this job"}
                 </p>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2.5 ring-1 ring-slate-100">
-                    <Mail className="h-4 w-4 shrink-0 text-slate-400" />
+
+                <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
+                  <div className="flex items-center gap-3 rounded-2xl bg-white px-3.5 py-3 shadow-sm ring-1 ring-slate-100">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
+                      <Mail className="h-4 w-4" />
+                    </span>
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                         Email
                       </p>
-                      <p className="truncate text-sm font-medium text-slate-800">
-                        {candidateView.displayEmail ?? "—"}
-                      </p>
+                      {candidateView.displayEmail ? (
+                        <a
+                          href={`mailto:${candidateView.displayEmail}`}
+                          className="block truncate text-sm font-semibold text-slate-900 hover:text-emerald-700"
+                        >
+                          {candidateView.displayEmail}
+                        </a>
+                      ) : (
+                        <p className="text-sm font-medium text-slate-400">—</p>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2.5 ring-1 ring-slate-100">
-                    <Phone className="h-4 w-4 shrink-0 text-slate-400" />
+                  <div className="flex items-center gap-3 rounded-2xl bg-white px-3.5 py-3 shadow-sm ring-1 ring-slate-100">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
+                      <Phone className="h-4 w-4" />
+                    </span>
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                         Phone
                       </p>
-                      <p className="text-sm font-medium text-slate-800">
-                        {candidateView.displayPhone ?? "—"}
-                      </p>
+                      {candidateView.displayPhone ? (
+                        <a
+                          href={`tel:${candidateView.displayPhone}`}
+                          className="block text-sm font-semibold text-slate-900 hover:text-emerald-700"
+                        >
+                          {candidateView.displayPhone}
+                        </a>
+                      ) : (
+                        <p className="text-sm font-medium text-slate-400">—</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -203,14 +222,14 @@ export default async function EmployerUnlockedCandidateDetailPage({
 
             <div className="flex flex-wrap items-center gap-3 lg:flex-col lg:items-end">
               {overallScore != null ? (
-                <div className="flex items-center gap-3 rounded-2xl bg-emerald-50/80 px-4 py-3 ring-1 ring-emerald-100">
+                <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-[linear-gradient(145deg,#ecfdf5,#ffffff)] px-4 py-3.5 shadow-sm">
                   <MatchScoreRing score={overallScore} size="lg" />
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800/80">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800/80">
                       Match score
                     </p>
                     {rankingPosition != null ? (
-                      <p className="mt-0.5 text-sm font-medium text-emerald-900">
+                      <p className="mt-0.5 text-sm font-semibold text-emerald-900">
                         Rank #{rankingPosition} for this job
                       </p>
                     ) : (
@@ -220,7 +239,7 @@ export default async function EmployerUnlockedCandidateDetailPage({
                 </div>
               ) : null}
               {showCv && candidateView.cvDownloadUrl ? (
-                <Button className="rounded-xl" asChild>
+                <Button className="rounded-xl shadow-sm" asChild>
                   <a href={candidateView.cvDownloadUrl} target="_blank" rel="noopener noreferrer">
                     <Download className="mr-1.5 h-3.5 w-3.5" />
                     Download CV
@@ -278,21 +297,22 @@ export default async function EmployerUnlockedCandidateDetailPage({
             description="Details from the candidate's application"
             icon={<UserRound className="h-6 w-6" />}
             gradient="from-cyan-500 to-cyan-600"
+            className="border-slate-200/70 shadow-[0_22px_50px_-36px_rgba(15,23,42,0.4)]"
           >
             {profileGroups.length ? (
               <div className="space-y-7">
                 {profileGroups.map((group) => (
                   <section key={group.section}>
-                    <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                       {group.section}
                     </h3>
                     <dl className="grid gap-3 sm:grid-cols-2">
                       {group.rows.map((field) => (
                         <div
                           key={field.id}
-                          className="rounded-xl border border-slate-100 bg-slate-50/60 p-4"
+                          className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4"
                         >
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                             {field.label}
                           </dt>
                           <dd className="mt-1.5 break-words text-sm leading-6 text-slate-800">
@@ -319,12 +339,13 @@ export default async function EmployerUnlockedCandidateDetailPage({
               description="Resume on file for this candidate"
               icon={<FileText className="h-6 w-6" />}
               gradient="from-amber-500 to-orange-600"
+              className="border-slate-200/70 shadow-[0_22px_50px_-36px_rgba(15,23,42,0.4)]"
             >
-              <div className="rounded-xl border border-dashed border-amber-200/80 bg-amber-50/40 p-5">
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-800/70">
+              <div className="rounded-2xl border border-amber-100 bg-[linear-gradient(160deg,#fffbeb,#ffffff)] p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800/70">
                   File
                 </p>
-                <p className="mt-1 break-words text-sm font-semibold text-slate-800">
+                <p className="mt-1 break-words text-sm font-semibold text-slate-900">
                   {candidateView.cv?.file_name ?? "No CV uploaded"}
                 </p>
                 {candidateView.cv?.uploaded_at ? (
@@ -335,7 +356,7 @@ export default async function EmployerUnlockedCandidateDetailPage({
               </div>
 
               {candidateView.cvDownloadUrl ? (
-                <Button className="mt-4 w-full rounded-xl" asChild>
+                <Button className="mt-4 w-full rounded-xl shadow-sm" asChild>
                   <a href={candidateView.cvDownloadUrl} target="_blank" rel="noopener noreferrer">
                     <Download className="mr-2 h-4 w-4" />
                     Download CV
@@ -349,7 +370,7 @@ export default async function EmployerUnlockedCandidateDetailPage({
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-8 flex flex-wrap gap-3 border-t border-slate-100 pt-6">
         <Button variant="outline" className="rounded-xl" asChild>
           <Link href={`/employer/jobs/${jobId}/unlocked`}>
             <ArrowLeft className="mr-2 h-4 w-4" />

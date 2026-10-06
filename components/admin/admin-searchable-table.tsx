@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useState } from "react";
 import { AdminEmptyState, AdminTableToolbar } from "@/components/admin/admin-ui";
-import {  Table,
+import {
+  Table,
   TableBody,
   TableHead,
   TableHeader,
@@ -62,18 +63,26 @@ export function AdminSearchableTable({
         searchPlaceholder={searchPlaceholder}
       />
       <div className="overflow-hidden rounded-xl border border-slate-100 bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
-              {columns.map((column) => (
-                <TableHead key={column} className="font-semibold text-slate-600">
-                  {column}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody id={tbodyId}>{children}</TableBody>
-        </Table>
+        <p className="border-b border-slate-100 bg-slate-50/80 px-3 py-2 text-xs text-slate-500 md:hidden">
+          Swipe sideways to see all columns
+        </p>
+        <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+          <Table className="min-w-[40rem]">
+            <TableHeader>
+              <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                {columns.map((column) => (
+                  <TableHead
+                    key={column}
+                    className="whitespace-nowrap font-semibold text-slate-600"
+                  >
+                    {column}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody id={tbodyId}>{children}</TableBody>
+          </Table>
+        </div>
       </div>
       {searchQuery && visibleCount === 0 && (
         <p className="mt-4 text-center text-sm text-slate-500">

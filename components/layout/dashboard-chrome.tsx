@@ -1,6 +1,7 @@
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardLayoutProvider } from "./dashboard-layout-context";
+import { cn } from "@/lib/utils";
 
 import type { UserRole } from "@/types/database";
 
@@ -21,11 +22,11 @@ export function DashboardChrome({
   description,
   children,
   actions,
-  contentClassName = "mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8",
+  contentClassName = "mx-auto w-full max-w-6xl px-3 py-4 sm:px-6 sm:py-8",
 }: DashboardChromeProps) {
   return (
     <DashboardLayoutProvider>
-      <div className="flex h-svh flex-col overflow-hidden bg-muted/30">
+      <div className="flex h-svh flex-col overflow-hidden bg-muted/30 pt-safe">
         <DashboardHeader
           role={role}
           userName={userName}
@@ -42,7 +43,7 @@ export function DashboardChrome({
             className="min-w-0 flex-1 overflow-y-auto overscroll-contain"
             tabIndex={-1}
           >
-            <div className={contentClassName}>{children}</div>
+            <div className={cn(contentClassName, "pb-safe")}>{children}</div>
           </main>
         </div>
       </div>

@@ -109,7 +109,8 @@ export default async function JobUnlockedPage({
 
       {session_id && unlockedDetails.length > 0 ? (
         <MatchFlowNotice tone="success" title="Payment successful">
-          Candidate profiles are unlocked and ready to review below.
+          Candidate profiles are unlocked and ready to review below. Open a full report to contact
+          them and review the 7^7 match.
         </MatchFlowNotice>
       ) : null}
 
@@ -124,6 +125,7 @@ export default async function JobUnlockedPage({
           description="Profiles you purchase for this job appear here"
           icon={<Users className="h-6 w-6" />}
           gradient="from-emerald-500 to-teal-600"
+          className="border-slate-200/70 shadow-[0_22px_50px_-36px_rgba(15,23,42,0.45)]"
         >
           <EmployerEmptyState
             icon={Users}
@@ -144,11 +146,12 @@ export default async function JobUnlockedPage({
           description={`${unlockedDetails.length} profile${unlockedDetails.length === 1 ? "" : "s"} ready to review for this job`}
           icon={<Unlock className="h-6 w-6" />}
           gradient="from-emerald-500 to-teal-600"
+          className="border-slate-200/70 shadow-[0_22px_50px_-36px_rgba(15,23,42,0.45)]"
           action={
             <Button
               variant="outline"
               size="sm"
-              className="rounded-xl border-slate-200"
+              className="rounded-xl border-emerald-200 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100"
               asChild
             >
               <Link href={`/employer/jobs/${jobId}/matching`}>
@@ -158,6 +161,11 @@ export default async function JobUnlockedPage({
             </Button>
           }
         >
+          <div className="mb-5 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+            Contact details and CVs are available on each card. Open{" "}
+            <span className="font-semibold text-slate-800">Full report</span> for the complete 7^7
+            match breakdown.
+          </div>
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {unlockedDetails.map(
               ({ candidateId, profile, cvDownloadUrl, matchResult, unlocked_at }) => {
