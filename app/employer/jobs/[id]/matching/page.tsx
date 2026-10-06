@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
-import { CheckCircle2, Clock, RefreshCw, Target } from "lucide-react";
+import { CheckCircle2, Clock, RefreshCw, Target, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { EmployerJobContext, EmployerPageSection } from "@/components/employer/employer-ui";
+import {
+  EmployerJobContext,
+  EmployerStatCard,
+} from "@/components/employer/employer-ui";
+import { MatchFlowNotice } from "@/components/employer/match-flow-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { MatchingResultsTable } from "@/components/matching/matching-results-table";
 import { requireEmployer } from "@/lib/auth/session";
@@ -20,14 +24,14 @@ import {
 } from "@/lib/employer/job-rules";
 import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
 import { EMPLOYER_MATCH_RESULT_LIST_SELECT } from "@/lib/employer/list-queries";
-import { MATCH_DISPLAY_LIMIT } from "@/lib/matching/engine";
+import { MATCH_DISPLAY_LIMIT, UNLOCK_CURRENCY, UNLOCK_PRICE_CENTS } from "@/lib/matching/engine";
 import { isMockPayments } from "@/lib/payments/mode";
 import {
   countNewReadyCandidatesSince,
   getSnapshotGeneratedAt,
   newCandidatesNotice,
 } from "@/lib/matching/snapshot";
-import { formatDate } from "@/lib/utils/profile";
+import { formatCurrency, formatDate } from "@/lib/utils/profile";
 import { loadFormFields } from "@/lib/form-fields/queries";
 import {
   isShownOnAnonymous,
@@ -107,7 +111,7 @@ export default async function JobMatchingPage({
       <EmployerJobContext
         jobTitle={job.title}
         jobId={id}
-        description="Anonymous ranked snapshot — first run happens when you post the job; refresh anytime for new candidates (S$49 to unlock each profile)"
+        description="Review anonymous rankings, then unlock the candidates you want to contact"
       />
       <JobWorkflowNav jobId={id} currentStep="matching" canEdit={canEditJob(lifecycle)} />
 
@@ -123,71 +127,95 @@ export default async function JobMatchingPage({
         </Alert>
       )}
 
-      {lastMatchedAt && (
-        <EmployerPageSection
-          title="Match snapshot"
-          description={
-            newCandidatesMessage ??
-            "Results reflect the candidate pool at the time of the last run. Refresh to include new candidates."
-          }
-          icon={<Clock className="h-6 w-6" />}
-          gradient="from-slate-500 to-slate-600"
-          className="mb-6 !p-5"
-        >
-          <p className="text-sm text-slate-600">
-            Last matched <span className="font-medium text-slate-800">{formatDate(lastMatchedAt)}</span>
-            {newCandidatesSince > 0 && (
-              <>
-                {" "}
-                ·{" "}
-                <span className="font-medium text-amber-700">
-                  {newCandidatesSince} new candidate{newCandidatesSince === 1 ? "" : "s"} in pool
-                </span>
-              </>
-            )}
-          </p>
-        </EmployerPageSection>
-      )}
+      {results.length > 0 ? (
+        <div className="mb-6 grid gap-3 sm:grid-cols-3">
+          <EmployerStatCard
+            label="In this snapshot"
+            value={results.length}
+            icon={Users}
+            accent="from-emerald-500/15 to-emerald-500/5 text-emerald-700"
+          />
+          <EmployerStatCard
+            label="Already unlocked"
+            value={unlockedIds.length}
+            icon={CheckCircle2}
+            accent="from-teal-500/15 to-teal-500/5 text-teal-700"
+          />
+          <EmployerStatCard
+            label="Unlock price"
+            value={formatCurrency(UNLOCK_PRICE_CENTS, UNLOCK_CURRENCY)}
+            icon={Target}
+            accent="from-slate-500/15 to-slate-500/5 text-slate-700"
+          />
+        </div>
+      ) : null}
 
-      {canRun ? (
-        <div className="mb-6">
-          {refreshWarning && (
-            <EmployerPageSection
-              title="Refresh matches"
-              description={refreshWarning}
-              icon={<RefreshCw className="h-6 w-6" />}
-              gradient="from-amber-500 to-amber-600"
-              className="!p-5"
-              action={
-                <form action={generate}>
-                  <Button type="submit" size="lg" className="rounded-xl px-6 shadow-md">
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    {runLabel}
-                  </Button>
-                </form>
-              }
-            />
-          )}
-          {!refreshWarning && (
-            <form action={generate} className="flex justify-end">
-              <Button type="submit" size="lg" className="rounded-xl px-6 shadow-md">
+      {lastMatchedAt && (
+        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+              <Clock className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Match snapshot</p>
+              <p className="mt-0.5 text-sm text-slate-500">
+                Last matched <span className="font-medium text-slate-700">{formatDate(lastMatchedAt)}</span>
+                {newCandidatesSince > 0 ? (
+                  <>
+                    {" "}
+                    ·{" "}
+                    <span className="font-medium text-amber-700">
+                      {newCandidatesSince} new candidate{newCandidatesSince === 1 ? "" : "s"} in pool
+                    </span>
+                  </>
+                ) : null}
+              </p>
+              {newCandidatesMessage ? (
+                <p className="mt-1 text-sm text-slate-500">{newCandidatesMessage}</p>
+              ) : null}
+            </div>
+          </div>
+          {canRun ? (
+            <form action={generate}>
+              <Button type="submit" className="rounded-xl shadow-sm">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 {runLabel}
               </Button>
             </form>
-          )}
+          ) : null}
         </div>
-      ) : (
-        runBlocked && (
-          <EmployerPageSection
-            title="Matching unavailable"
-            description={runBlocked}
-            icon={<Target className="h-6 w-6" />}
-            gradient="from-slate-500 to-slate-600"
-            className="mb-6 !p-5"
-          />
-        )
       )}
+
+      {canRun && refreshWarning ? (
+        <MatchFlowNotice tone="warning" title="Refresh recommended" icon={RefreshCw}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>{refreshWarning}</p>
+            <form action={generate}>
+              <Button type="submit" size="sm" className="rounded-xl">
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                {runLabel}
+              </Button>
+            </form>
+          </div>
+        </MatchFlowNotice>
+      ) : null}
+
+      {canRun && !refreshWarning && !lastMatchedAt ? (
+        <div className="mb-6 flex justify-end">
+          <form action={generate}>
+            <Button type="submit" size="lg" className="rounded-xl px-6 shadow-md">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              {runLabel}
+            </Button>
+          </form>
+        </div>
+      ) : null}
+
+      {!canRun && runBlocked ? (
+        <MatchFlowNotice tone="info" title="Matching unavailable" icon={Target}>
+          {runBlocked}
+        </MatchFlowNotice>
+      ) : null}
 
       <MatchingResultsTable
         jobId={id}

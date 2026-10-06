@@ -53,6 +53,15 @@ vi.mock("@/lib/auth/unlock", () => ({
   getUnlockedCandidateIds: vi.fn(async () => [] as string[]),
 }));
 
+vi.mock("@/lib/observability/logger", () => ({
+  logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock("@/lib/observability/sentry", () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}));
+
 vi.mock("@/lib/form-fields/queries", () => ({
   ensureFormFieldsReady: () => ensureFormFieldsReady(),
   loadFormFields: (...args: unknown[]) => loadFormFields(...args),

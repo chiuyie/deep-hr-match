@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Download, Eye, Mail, Phone, Trophy } from "lucide-react";
+import { Download, Eye, Mail, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CandidateAvatar, MatchScoreRing } from "@/components/employer/match-flow-ui";
 import { formatDate } from "@/lib/utils/profile";
 
 interface UnlockedCandidateCardProps {
@@ -36,6 +37,7 @@ export function UnlockedCandidateCard({
   jobId,
 }: UnlockedCandidateCardProps) {
   const hasReportLink = Boolean(jobId && candidateId);
+  const displayName = fullName || "Candidate";
   const experienceLabel =
     yearsOfExperience == null || yearsOfExperience === ""
       ? null
@@ -46,86 +48,105 @@ export function UnlockedCandidateCard({
         : `${String(yearsOfExperience).trim()} exp`;
 
   return (
-    <div className="group flex flex-col rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:border-slate-200 hover:shadow-md">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-bold text-slate-800">
-            {fullName || "Candidate"}
-          </h3>
-          {showJobTitle && jobTitle && (
-            <p className="mt-0.5 truncate text-xs text-slate-500">{jobTitle}</p>
-          )}
-        </div>
-        {matchScore != null && (
-          <div className="flex shrink-0 items-center gap-1 rounded-lg bg-primary/10 px-2 py-1">
-            <Trophy className="h-3 w-3 text-primary" />
-            <span className="text-sm font-bold text-primary">{matchScore}%</span>
-            {isPlaceholder && (
-              <Badge variant="outline" className="ml-1 px-1 text-[10px]">DEMO</Badge>
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg">
+      <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-start gap-3">
+          <CandidateAvatar name={displayName} />
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-base font-bold tracking-tight text-slate-800">
+              {displayName}
+            </h3>
+            {showJobTitle && jobTitle ? (
+              <p className="mt-0.5 truncate text-xs text-slate-500">{jobTitle}</p>
+            ) : (
+              <p className="mt-0.5 text-xs font-medium text-emerald-700">Unlocked profile</p>
             )}
           </div>
-        )}
-      </div>
+          {matchScore != null ? (
+            <div className="flex flex-col items-end gap-1">
+              <MatchScoreRing score={matchScore} size="sm" />
+              {isPlaceholder ? (
+                <Badge variant="outline" className="px-1 text-[10px]">
+                  DEMO
+                </Badge>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
 
-      {/* Contact */}
-      <div className="mt-3 space-y-1.5">
-        {email && (
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-            <span className="truncate">{email}</span>
-          </div>
-        )}
-        {phone && (
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-            <span>{phone}</span>
-          </div>
-        )}
-      </div>
+        <div className="mt-4 space-y-2 rounded-xl bg-slate-50/80 p-3 ring-1 ring-slate-100">
+          {email ? (
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <span className="truncate">{email}</span>
+            </div>
+          ) : null}
+          {phone ? (
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <span>{phone}</span>
+            </div>
+          ) : null}
+          {!email && !phone ? (
+            <p className="text-sm text-slate-400">Contact details hidden by disclosure settings</p>
+          ) : null}
+        </div>
 
-      {/* Details */}
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {experienceLabel && (
-          <Badge variant="secondary" className="text-xs">
-            {experienceLabel}
-          </Badge>
-        )}
-        {skills && skills.slice(0, 3).map((skill) => (
-          <Badge key={skill} variant="outline" className="text-xs">
-            {skill}
-          </Badge>
-        ))}
-        {skills && skills.length > 3 && (
-          <Badge variant="outline" className="text-xs text-slate-400">
-            +{skills.length - 3}
-          </Badge>
-        )}
-      </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {experienceLabel ? (
+            <Badge variant="secondary" className="rounded-lg text-xs">
+              {experienceLabel}
+            </Badge>
+          ) : null}
+          {skills?.slice(0, 3).map((skill) => (
+            <Badge key={skill} variant="outline" className="rounded-lg text-xs">
+              {skill}
+            </Badge>
+          ))}
+          {skills && skills.length > 3 ? (
+            <Badge variant="outline" className="rounded-lg text-xs text-slate-400">
+              +{skills.length - 3}
+            </Badge>
+          ) : null}
+        </div>
 
-      {/* Footer */}
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-4" style={{ marginTop: "auto", paddingTop: "1rem" }}>
-        {unlockedAt && (
-          <p className="text-[11px] text-slate-400">{formatDate(unlockedAt)}</p>
-        )}
-        <div className="ml-auto flex items-center gap-1.5">
-          {cvDownloadUrl && (
-            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-lg p-0" asChild>
-              <a href={cvDownloadUrl} target="_blank" rel="noopener noreferrer" download title="Download CV">
-                <Download className="h-4 w-4" />
-              </a>
-            </Button>
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-4">
+          {unlockedAt ? (
+            <p className="text-[11px] text-slate-400">Unlocked {formatDate(unlockedAt)}</p>
+          ) : (
+            <span />
           )}
-          {hasReportLink && (
-            <Button size="sm" className="h-8 rounded-xl px-3" asChild>
-              <Link href={`/employer/jobs/${jobId}/unlocked/${candidateId}`}>
-                <Eye className="mr-1.5 h-3.5 w-3.5" />
-                Report
-              </Link>
-            </Button>
-          )}
+          <div className="ml-auto flex items-center gap-1.5">
+            {cvDownloadUrl ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 rounded-lg p-0"
+                asChild
+              >
+                <a
+                  href={cvDownloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  title="Download CV"
+                >
+                  <Download className="h-4 w-4" />
+                </a>
+              </Button>
+            ) : null}
+            {hasReportLink ? (
+              <Button size="sm" className="h-8 rounded-xl px-3" asChild>
+                <Link href={`/employer/jobs/${jobId}/unlocked/${candidateId}`}>
+                  <Eye className="mr-1.5 h-3.5 w-3.5" />
+                  Full report
+                </Link>
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

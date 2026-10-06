@@ -96,10 +96,15 @@ export function UnlockedMatchReportSections({
   ).length;
 
   return (
-    <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-lg sm:p-8">
+    <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-lg">
+      <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+      <div className="p-6 sm:p-8">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-800">7^7 match</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700/80">
+            Match report
+          </p>
+          <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-800">7^7 match</h2>
           <p className="mt-1 text-sm text-slate-500">
             How this candidate&apos;s matching language aligns with your job
           </p>
@@ -231,6 +236,7 @@ export function UnlockedMatchReportSections({
           </ul>
         </div>
       ) : null}
+      </div>
     </section>
   );
 }

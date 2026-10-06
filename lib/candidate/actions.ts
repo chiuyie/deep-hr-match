@@ -204,7 +204,12 @@ export async function saveCandidateProfileCore(
     revalidatePath("/candidate/profile");
   }
 
-  return { completionPercentage: payload.completion_percentage };
+  return {
+    completionPercentage:
+      typeof payload.completion_percentage === "number"
+        ? payload.completion_percentage
+        : Number(payload.completion_percentage) || 0,
+  };
 }
 
 const CV_MAX_BYTES = 10 * 1024 * 1024;

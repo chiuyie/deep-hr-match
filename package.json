@@ -13,6 +13,10 @@
     "lint": "eslint",
     "test": "vitest run --maxWorkers=1",
     "test:watch": "vitest",
+    "test:unlock": "vitest run --maxWorkers=1 lib/payments lib/employer/actions.test.ts lib/employer/create-unlock-checkout.stripe.test.ts lib/employer/anonymous-match.test.ts lib/auth/unlock.test.ts lib/observability app/api/stripe/webhook components/matching/matching-results-table.test.tsx components/employer/unlocked-match-report.test.tsx",
+    "test:e2e": "playwright test",
+    "test:e2e:unlock": "node scripts/e2e-prepare-unlock-job.mjs && playwright test e2e/unlock-flow.spec.ts",
+    "e2e:prepare": "node scripts/e2e-prepare-unlock-job.mjs",
     "create-admin": "node --env-file=.env.local scripts/create-admin.mjs",
     "seed-employer-jobs": "node scripts/seed-employer-jobs.mjs",
     "cleanup-jobs-without-matrix": "node scripts/cleanup-jobs-without-matrix.mjs",
@@ -51,6 +55,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

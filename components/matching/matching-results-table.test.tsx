@@ -68,7 +68,7 @@ describe("MatchingResultsTable", () => {
     expect(screen.queryByRole("button", { name: /Unlock 1/i })).not.toBeInTheDocument();
   });
 
-  it("does not show unlock button until a candidate is selected", () => {
+  it("does not show unlock checkout button until a candidate is selected", () => {
     render(
       <MatchingResultsTable
         jobId="job-1"
@@ -78,7 +78,9 @@ describe("MatchingResultsTable", () => {
       />
     );
 
-    expect(screen.queryByRole("button", { name: /Unlock/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Unlock \d+ candidate/i })
+    ).not.toBeInTheDocument();
   });
 
   it("submits selected candidates to checkout", async () => {

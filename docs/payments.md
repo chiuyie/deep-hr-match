@@ -171,6 +171,40 @@ Any future expiry, any CVC
 - [ ] `unlocks` rows created
 - [ ] Employer sees full candidate PII on unlocked page
 
+## Observability
+
+Unlock / checkout / webhook paths emit **structured JSON logs** (event + context) to stdout for Vercel/host drains.
+
+Optional **Sentry** reporting: set `SENTRY_DSN` (and optionally `SENTRY_ENVIRONMENT`). Failures in fulfill, checkout, and webhook are captured without blocking the user path. `instrumentation.ts` arms unhandled rejection/exception hooks on Node boot.
+
+Key events to search in logs:
+
+| Event | Meaning |
+|-------|---------|
+| `unlock.checkout.start` | Employer started unlock |
+| `unlock.checkout.stripe_redirect` | Stripe Checkout session created |
+| `unlock.checkout.mock_success` | Mock unlock completed |
+| `unlock.fulfill.success` | Payment marked paid + unlock rows written |
+| `stripe.webhook.checkout_completed` | Webhook received unlock session |
+| `unlock.ensure.timeout` | Post-checkout wait did not see unlock rows |
+
+## Playwright E2E (browser)
+
+Prerequisites:
+
+1. `.env.local` with Supabase keys
+2. Demo employer exists (`npm run seed-dummy-users`)
+3. `PAYMENTS_MODE=mock` (default) for instant unlock without Stripe
+
+```bash
+npm run e2e:prepare          # ensure active job + match row for employer-demo-1
+npm run test:e2e:unlock      # Chromium on :3001 with PAYMENTS_MODE=mock
+```
+
+Playwright boots `next start` on **port 3001** with `PAYMENTS_MODE=mock` (builds once if needed) so it can run beside a local `:3000` Stripe UAT `next dev` session.
+
+Env overrides: `E2E_EMPLOYER_EMAIL`, `E2E_EMPLOYER_PASSWORD`, `E2E_JOB_ID`, `E2E_PORT`, `E2E_BASE_URL`, `E2E_SKIP_WEBSERVER=1` (server must already be mock), `E2E_REUSE_SERVER=1`.
+
 ## Production Setup
 
 1. Create Stripe webhook endpoint: `https://your-domain.com/api/stripe/webhook`

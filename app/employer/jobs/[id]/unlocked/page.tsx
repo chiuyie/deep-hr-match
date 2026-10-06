@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Target, Unlock, Users } from "lucide-react";
+import { Target, Unlock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   EmployerEmptyState,
@@ -8,6 +8,7 @@ import {
   EmployerPageSection,
 } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
+import { MatchFlowNotice } from "@/components/employer/match-flow-ui";
 import { UnlockedCandidateCard } from "@/components/employer/unlocked-candidate-card";
 import { UnlockPaymentPendingNotice } from "@/components/employer/unlock-payment-pending-notice";
 import { requireEmployer } from "@/lib/auth/session";
@@ -102,20 +103,14 @@ export default async function JobUnlockedPage({
       <EmployerJobContext
         jobTitle={job.title}
         jobId={jobId}
-        description="Full candidate profiles unlocked for this job"
+        description="Purchased profiles with contact details, CV, and full match reports"
       />
       <JobWorkflowNav jobId={jobId} currentStep="unlocked" canEdit={job.status === "draft"} />
 
       {session_id && unlockedDetails.length > 0 ? (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-          <div>
-            <p className="font-semibold text-emerald-900">Payment successful</p>
-            <p className="mt-0.5 text-sm text-emerald-700">
-              Candidate profiles are now unlocked and ready to review below.
-            </p>
-          </div>
-        </div>
+        <MatchFlowNotice tone="success" title="Payment successful">
+          Candidate profiles are unlocked and ready to review below.
+        </MatchFlowNotice>
       ) : null}
 
       <UnlockPaymentPendingNotice
@@ -126,9 +121,9 @@ export default async function JobUnlockedPage({
       {!unlockedDetails.length ? (
         <EmployerPageSection
           title="Unlocked Candidates"
-          description="Candidates you have purchased for this job"
+          description="Profiles you purchase for this job appear here"
           icon={<Users className="h-6 w-6" />}
-          gradient="from-amber-500 to-amber-600"
+          gradient="from-emerald-500 to-teal-600"
         >
           <EmployerEmptyState
             icon={Users}
@@ -136,7 +131,7 @@ export default async function JobUnlockedPage({
             description={
               session_id
                 ? "Your payment went through. Profiles appear here as soon as unlock finishes."
-                : "Generate matches and unlock profiles from the matching results page."
+                : "Go to matching results, select candidates that fit, then unlock to reveal full profiles."
             }
             actionLabel="Go to matching results"
             actionHref={`/employer/jobs/${jobId}/matching`}
@@ -146,61 +141,72 @@ export default async function JobUnlockedPage({
       ) : (
         <EmployerPageSection
           title="Unlocked Candidates"
-          description={`${unlockedDetails.length} profile${unlockedDetails.length === 1 ? "" : "s"} unlocked for this job`}
+          description={`${unlockedDetails.length} profile${unlockedDetails.length === 1 ? "" : "s"} ready to review for this job`}
           icon={<Unlock className="h-6 w-6" />}
-          gradient="from-emerald-500 to-emerald-600"
+          gradient="from-emerald-500 to-teal-600"
           action={
-            <Button variant="outline" size="sm" className="rounded-xl" asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl border-slate-200"
+              asChild
+            >
               <Link href={`/employer/jobs/${jobId}/matching`}>
                 <Target className="mr-1.5 h-3.5 w-3.5" />
-                Back to matching
+                Find more matches
               </Link>
             </Button>
           }
         >
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {unlockedDetails.map(({ candidateId, profile, cvDownloadUrl, matchResult, unlocked_at }) => {
-              const profileRecord = (profile as unknown as Record<string, unknown> | null) ?? null;
-              const experienceValue = experienceField
-                ? getCandidateFieldDisplayValue(experienceField, profileRecord)
-                : profile?.years_of_experience != null
-                  ? String(profile.years_of_experience)
-                  : null;
-              const skillsValue = skillsField
-                ? getCandidateFieldDisplayValue(skillsField, profileRecord)
-                : profile?.skills?.join(", ") ?? null;
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {unlockedDetails.map(
+              ({ candidateId, profile, cvDownloadUrl, matchResult, unlocked_at }) => {
+                const profileRecord =
+                  (profile as unknown as Record<string, unknown> | null) ?? null;
+                const experienceValue = experienceField
+                  ? getCandidateFieldDisplayValue(experienceField, profileRecord)
+                  : profile?.years_of_experience != null
+                    ? String(profile.years_of_experience)
+                    : null;
+                const skillsValue = skillsField
+                  ? getCandidateFieldDisplayValue(skillsField, profileRecord)
+                  : (profile?.skills?.join(", ") ?? null);
 
-              return (
-                <UnlockedCandidateCard
-                  key={candidateId}
-                  candidateId={candidateId}
-                  fullName={showName ? profile?.full_name : "Candidate"}
-                  email={showEmail ? profile?.email : null}
-                  phone={showPhone ? profile?.phone : null}
-                  yearsOfExperience={
-                    showExperience && experienceValue?.trim() ? experienceValue : null
-                  }
-                  skills={
-                    showSkills
-                      ? Array.isArray(profile?.skills)
-                        ? profile.skills
-                        : skillsValue
-                          ? skillsValue.split(",").map((item) => item.trim()).filter(Boolean)
-                          : null
-                      : null
-                  }
-                  matchScore={
-                    showMatchScore && matchResult?.overall_score != null
-                      ? Number(matchResult.overall_score)
-                      : null
-                  }
-                  isPlaceholder={matchResult?.is_placeholder}
-                  unlockedAt={unlocked_at}
-                  cvDownloadUrl={showCv ? cvDownloadUrl : null}
-                  jobId={jobId}
-                />
-              );
-            })}
+                return (
+                  <UnlockedCandidateCard
+                    key={candidateId}
+                    candidateId={candidateId}
+                    fullName={showName ? profile?.full_name : "Candidate"}
+                    email={showEmail ? profile?.email : null}
+                    phone={showPhone ? profile?.phone : null}
+                    yearsOfExperience={
+                      showExperience && experienceValue?.trim() ? experienceValue : null
+                    }
+                    skills={
+                      showSkills
+                        ? Array.isArray(profile?.skills)
+                          ? profile.skills
+                          : skillsValue
+                            ? skillsValue
+                                .split(",")
+                                .map((item) => item.trim())
+                                .filter(Boolean)
+                            : null
+                        : null
+                    }
+                    matchScore={
+                      showMatchScore && matchResult?.overall_score != null
+                        ? Number(matchResult.overall_score)
+                        : null
+                    }
+                    isPlaceholder={matchResult?.is_placeholder}
+                    unlockedAt={unlocked_at}
+                    cvDownloadUrl={showCv ? cvDownloadUrl : null}
+                    jobId={jobId}
+                  />
+                );
+              }
+            )}
           </div>
         </EmployerPageSection>
       )}

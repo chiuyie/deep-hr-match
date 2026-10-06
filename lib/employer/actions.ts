@@ -40,6 +40,8 @@ import { fulfillUnlockPayment } from "@/lib/payments/fulfill-unlock";
 import { isMockPayments } from "@/lib/payments/mode";
 import { getStripe, getAppUrl } from "@/lib/stripe/client";
 import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
+import { logger } from "@/lib/observability/logger";
+import { captureException } from "@/lib/observability/sentry";
 
 type MatrixAnswerPayload = {
   question_id: string;
@@ -481,6 +483,14 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
     return { error: "Select at least one candidate" };
   }
 
+  logger.info("unlock.checkout.start", {
+    area: "unlock",
+    employerId,
+    jobId,
+    requestedCount: uniqueIds.length,
+    mode: isMockPayments() ? "mock" : "stripe",
+  });
+
   const { data: job } = await supabase
     .from("jobs")
     .select("id")
@@ -513,6 +523,11 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
         alreadyUnlockedIds.length === 1
           ? `/employer/jobs/${jobId}/unlocked/${alreadyUnlockedIds[0]}`
           : `/employer/jobs/${jobId}/unlocked`;
+      logger.info("unlock.checkout.already_unlocked_redirect", {
+        area: "unlock",
+        jobId,
+        count: alreadyUnlockedIds.length,
+      });
       redirect(path);
     }
     return {
@@ -543,6 +558,12 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
     .single();
 
   if (paymentError || !payment) {
+    await captureException(paymentError ?? new Error("payment insert failed"), {
+      area: "unlock",
+      source: "checkout.insert_payment",
+      jobId,
+      employerId,
+    });
     return {
       error: toUserFacingMessage(paymentError?.message, {
         fallback: "We couldn’t start checkout. Try again.",
@@ -554,7 +575,12 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
   let service;
   try {
     service = await createServiceClient();
-  } catch {
+  } catch (error) {
+    await captureException(error, {
+      area: "unlock",
+      source: "checkout.service_client",
+      paymentId: payment.id,
+    });
     return {
       error:
         "Unlock checkout is not configured (missing service role). Add SUPABASE_SERVICE_ROLE_KEY and try again.",
@@ -572,6 +598,11 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
       sessionId,
     });
     if (fulfilled.error) {
+      await captureException(new Error(fulfilled.error), {
+        area: "unlock",
+        source: "checkout.mock_fulfill",
+        paymentId: payment.id,
+      });
       return {
         error: toUserFacingMessage(fulfilled.error, {
           fallback: "We couldn’t finish unlocking those profiles. Try again.",
@@ -586,51 +617,94 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
     revalidatePath("/employer/unlocked");
     revalidatePath("/admin/payments");
     revalidatePath("/admin/unlocks");
+    logger.info("unlock.checkout.mock_success", {
+      area: "unlock",
+      paymentId: payment.id,
+      jobId,
+      candidateCount: unlockableIds.length,
+    });
     redirect(`${successPath}?session_id=${encodeURIComponent(sessionId)}&mock=1`);
   }
 
-  const stripe = getStripe();
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    payment_method_types: [...UNLOCK_PAYMENT_METHOD_TYPES],
-    line_items: [
-      {
-        price_data: {
-          currency: UNLOCK_CURRENCY,
-          product_data: {
-            name: "Candidate Profile Unlock",
-            description: `Unlock ${unlockableIds.length} candidate profile(s) — Deep HR Match`,
+  try {
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: [...UNLOCK_PAYMENT_METHOD_TYPES],
+      line_items: [
+        {
+          price_data: {
+            currency: UNLOCK_CURRENCY,
+            product_data: {
+              name: "Candidate Profile Unlock",
+              description: `Unlock ${unlockableIds.length} candidate profile(s) — Deep HR Match`,
+            },
+            unit_amount: UNLOCK_PRICE_CENTS,
           },
-          unit_amount: UNLOCK_PRICE_CENTS,
+          quantity: unlockableIds.length,
         },
-        quantity: unlockableIds.length,
+      ],
+      metadata: {
+        payment_id: payment.id,
+        employer_id: employerId,
+        job_id: jobId,
+        candidate_ids: unlockableIds.join(","),
       },
-    ],
-    metadata: {
-      payment_id: payment.id,
-      employer_id: employerId,
-      job_id: jobId,
-      candidate_ids: unlockableIds.join(","),
-    },
-    success_url: `${getAppUrl()}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${getAppUrl()}/employer/jobs/${jobId}/matching`,
-  });
+      success_url: `${getAppUrl()}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${getAppUrl()}/employer/jobs/${jobId}/matching`,
+    });
 
-  const { error: sessionUpdateError } = await service
-    .from("payments")
-    .update({ stripe_session_id: session.id })
-    .eq("id", payment.id)
-    .eq("employer_id", employerId)
-    .eq("job_id", jobId);
+    const { error: sessionUpdateError } = await service
+      .from("payments")
+      .update({ stripe_session_id: session.id })
+      .eq("id", payment.id)
+      .eq("employer_id", employerId)
+      .eq("job_id", jobId);
 
-  if (sessionUpdateError) {
+    if (sessionUpdateError) {
+      await captureException(sessionUpdateError, {
+        area: "unlock",
+        source: "checkout.store_session_id",
+        paymentId: payment.id,
+        sessionId: session.id,
+      });
+      return {
+        error: toUserFacingMessage(sessionUpdateError.message, {
+          fallback: "We couldn’t start checkout. Try again.",
+        }),
+      };
+    }
+
+    if (!session.url) {
+      logger.error("unlock.checkout.missing_session_url", {
+        area: "unlock",
+        paymentId: payment.id,
+      });
+      return { error: "Failed to create checkout session" };
+    }
+
+    logger.info("unlock.checkout.stripe_redirect", {
+      area: "unlock",
+      paymentId: payment.id,
+      sessionId: session.id,
+      candidateCount: unlockableIds.length,
+    });
+    redirect(session.url);
+  } catch (error) {
+    // next/navigation redirect throws — rethrow
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("NEXT_REDIRECT") || message.includes("Redirect")) {
+      throw error;
+    }
+    await captureException(error, {
+      area: "unlock",
+      source: "checkout.stripe_session",
+      paymentId: payment.id,
+    });
     return {
-      error: toUserFacingMessage(sessionUpdateError.message, {
+      error: toUserFacingMessage(message, {
         fallback: "We couldn’t start checkout. Try again.",
       }),
     };
   }
-
-  if (!session.url) return { error: "Failed to create checkout session" };
-  redirect(session.url);
 }

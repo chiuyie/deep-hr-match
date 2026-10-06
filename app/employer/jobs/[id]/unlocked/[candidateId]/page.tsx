@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  CheckCircle2,
   Download,
   FileText,
   LockOpen,
@@ -13,6 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmployerJobContext, EmployerPageSection } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
+import {
+  CandidateAvatar,
+  MatchFlowNotice,
+  MatchScoreRing,
+} from "@/components/employer/match-flow-ui";
 import { UnlockedMatchReportSections } from "@/components/employer/unlocked-match-report";
 import { UnlockPaymentPendingNotice } from "@/components/employer/unlock-payment-pending-notice";
 import { requireEmployer } from "@/lib/auth/session";
@@ -98,7 +102,7 @@ export default async function EmployerUnlockedCandidateDetailPage({
           <EmployerJobContext
             jobTitle={job.title}
             jobId={jobId}
-            description="Unlocked candidate profile"
+            description="Opening unlocked candidate profile"
           />
           <JobWorkflowNav jobId={jobId} currentStep="unlocked" canEdit={job.status === "draft"} />
           <UnlockPaymentPendingNotice
@@ -125,7 +129,6 @@ export default async function EmployerUnlockedCandidateDetailPage({
   const rankingPosition = candidateView.matchResult?.ranking_position ?? null;
   const groupedFields = groupFieldsBySection(candidateView.visibleFields);
 
-  // Skip contact fields already shown in the header
   const profileGroups = groupedFields
     .map((group) => ({
       ...group,
@@ -140,69 +143,94 @@ export default async function EmployerUnlockedCandidateDetailPage({
       <EmployerJobContext
         jobTitle={job.title}
         jobId={jobId}
-        description="Unlocked candidate profile"
+        description="Full unlocked profile, contact details, and match report"
       />
       <JobWorkflowNav jobId={jobId} currentStep="unlocked" canEdit={job.status === "draft"} />
 
-      {session_id && candidateView ? (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-          <div>
-            <p className="font-semibold text-emerald-900">Payment successful</p>
-            <p className="mt-0.5 text-sm text-emerald-700">
-              This candidate profile is unlocked and ready to review.
-            </p>
-          </div>
-        </div>
+      {session_id ? (
+        <MatchFlowNotice tone="success" title="Payment successful">
+          This candidate profile is unlocked and ready to review.
+        </MatchFlowNotice>
       ) : null}
 
-      <EmployerPageSection
-        title={candidateView.displayName}
-        description={
-          candidateView.matchResult?.generated_at
-            ? `Matched ${formatDate(candidateView.matchResult.generated_at)}`
-            : "Full profile unlocked for this job"
-        }
-        icon={<UserRound className="h-6 w-6" />}
-        gradient="from-emerald-500 to-emerald-600"
-        action={
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white">
-              <LockOpen className="h-3.5 w-3.5" />
-              Unlocked
-            </span>
-            {showCv && candidateView.cvDownloadUrl && (
-              <Button size="sm" className="h-8 rounded-lg" asChild>
-                <a href={candidateView.cvDownloadUrl} target="_blank" rel="noopener noreferrer">
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                  Download CV
-                </a>
-              </Button>
-            )}
-          </div>
-        }
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
-              <p className="mt-1 break-all text-sm font-medium text-slate-800">
-                {candidateView.displayEmail ?? "—"}
-              </p>
+      <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-lg">
+        <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+        <div className="p-6 sm:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-4">
+              <CandidateAvatar name={candidateView.displayName} />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+                    {candidateView.displayName}
+                  </h1>
+                  <span className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 text-xs font-semibold text-white">
+                    <LockOpen className="h-3.5 w-3.5" />
+                    Unlocked
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">
+                  {candidateView.matchResult?.generated_at
+                    ? `Matched ${formatDate(candidateView.matchResult.generated_at)}`
+                    : "Full profile unlocked for this job"}
+                </p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2.5 ring-1 ring-slate-100">
+                    <Mail className="h-4 w-4 shrink-0 text-slate-400" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Email
+                      </p>
+                      <p className="truncate text-sm font-medium text-slate-800">
+                        {candidateView.displayEmail ?? "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2.5 ring-1 ring-slate-100">
+                    <Phone className="h-4 w-4 shrink-0 text-slate-400" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Phone
+                      </p>
+                      <p className="text-sm font-medium text-slate-800">
+                        {candidateView.displayPhone ?? "—"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-            <Phone className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</p>
-              <p className="mt-1 text-sm font-medium text-slate-800">
-                {candidateView.displayPhone ?? "—"}
-              </p>
+
+            <div className="flex flex-wrap items-center gap-3 lg:flex-col lg:items-end">
+              {overallScore != null ? (
+                <div className="flex items-center gap-3 rounded-2xl bg-emerald-50/80 px-4 py-3 ring-1 ring-emerald-100">
+                  <MatchScoreRing score={overallScore} size="lg" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800/80">
+                      Match score
+                    </p>
+                    {rankingPosition != null ? (
+                      <p className="mt-0.5 text-sm font-medium text-emerald-900">
+                        Rank #{rankingPosition} for this job
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-sm text-emerald-800/80">Overall fit</p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+              {showCv && candidateView.cvDownloadUrl ? (
+                <Button className="rounded-xl" asChild>
+                  <a href={candidateView.cvDownloadUrl} target="_blank" rel="noopener noreferrer">
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                    Download CV
+                  </a>
+                </Button>
+              ) : null}
             </div>
           </div>
         </div>
-      </EmployerPageSection>
+      </section>
 
       <div className="mt-6 space-y-6">
         <UnlockedMatchReportSections
@@ -252,10 +280,12 @@ export default async function EmployerUnlockedCandidateDetailPage({
             gradient="from-cyan-500 to-cyan-600"
           >
             {profileGroups.length ? (
-              <div className="space-y-6">
+              <div className="space-y-7">
                 {profileGroups.map((group) => (
                   <section key={group.section}>
-                    <h3 className="mb-3 text-sm font-semibold text-slate-800">{group.section}</h3>
+                    <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      {group.section}
+                    </h3>
                     <dl className="grid gap-3 sm:grid-cols-2">
                       {group.rows.map((field) => (
                         <div
@@ -266,7 +296,11 @@ export default async function EmployerUnlockedCandidateDetailPage({
                             {field.label}
                           </dt>
                           <dd className="mt-1.5 break-words text-sm leading-6 text-slate-800">
-                            {field.value?.trim() ? field.value : <span className="text-slate-400">—</span>}
+                            {field.value?.trim() ? (
+                              field.value
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
                           </dd>
                         </div>
                       ))}
@@ -286,16 +320,18 @@ export default async function EmployerUnlockedCandidateDetailPage({
               icon={<FileText className="h-6 w-6" />}
               gradient="from-amber-500 to-orange-600"
             >
-              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">File</p>
-                <p className="mt-1 break-words text-sm font-medium text-slate-800">
+              <div className="rounded-xl border border-dashed border-amber-200/80 bg-amber-50/40 p-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-800/70">
+                  File
+                </p>
+                <p className="mt-1 break-words text-sm font-semibold text-slate-800">
                   {candidateView.cv?.file_name ?? "No CV uploaded"}
                 </p>
-                {candidateView.cv?.uploaded_at && (
+                {candidateView.cv?.uploaded_at ? (
                   <p className="mt-2 text-xs text-slate-500">
                     Uploaded {formatDate(candidateView.cv.uploaded_at)}
                   </p>
-                )}
+                ) : null}
               </div>
 
               {candidateView.cvDownloadUrl ? (

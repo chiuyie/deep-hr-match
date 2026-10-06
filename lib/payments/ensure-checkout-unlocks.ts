@@ -3,6 +3,8 @@ import { fulfillUnlockPayment } from "@/lib/payments/fulfill-unlock";
 import { getStripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/server";
 import { toUserFacingMessage } from "@/lib/ui/readable-error";
+import { logger } from "@/lib/observability/logger";
+import { captureException } from "@/lib/observability/sentry";
 
 export type EnsureCheckoutUnlockResult = {
   ready: boolean;
@@ -51,6 +53,14 @@ export async function ensureUnlocksForCheckoutSession(
   if (!sessionId.trim()) {
     return { ready: false, unlockCount: 0 };
   }
+
+  logger.info("unlock.ensure.start", {
+    area: "unlock",
+    employerId,
+    jobId,
+    sessionId,
+    candidateId: candidateId ?? null,
+  });
 
   const fulfillClient = await getFulfillClient(supabase);
 
@@ -129,6 +139,12 @@ export async function ensureUnlocksForCheckoutSession(
           }
         }
       } catch (error) {
+        await captureException(error, {
+          area: "unlock",
+          source: "ensure.stripe_fallback",
+          sessionId,
+          jobId,
+        });
         return {
           ready: false,
           unlockCount: 0,
@@ -164,6 +180,12 @@ export async function ensureUnlocksForCheckoutSession(
           }
         }
       } catch (error) {
+        await captureException(error, {
+          area: "unlock",
+          source: "ensure.stripe_retrieve",
+          sessionId,
+          jobId,
+        });
         return {
           ready: false,
           unlockCount: 0,
@@ -191,12 +213,27 @@ export async function ensureUnlocksForCheckoutSession(
     const unlockCount = data?.length ?? 0;
     const ready = candidateId ? unlockCount > 0 : unlockCount > 0;
     if (ready) {
+      logger.info("unlock.ensure.ready", {
+        area: "unlock",
+        jobId,
+        sessionId,
+        unlockCount,
+        attempt: attempt + 1,
+      });
       return { ready: true, unlockCount };
     }
     if (attempt < attempts - 1) {
       await sleep(delayMs);
     }
   }
+
+  logger.warn("unlock.ensure.timeout", {
+    area: "unlock",
+    jobId,
+    sessionId,
+    candidateId: candidateId ?? null,
+    attempts,
+  });
 
   return {
     ready: false,

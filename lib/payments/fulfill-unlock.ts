@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { toUserFacingMessage } from "@/lib/ui/readable-error";
+import { logger } from "@/lib/observability/logger";
+import { captureException } from "@/lib/observability/sentry";
 
 export type FulfillUnlockPaymentInput = {
   paymentId: string;
@@ -24,7 +26,17 @@ export async function fulfillUnlockPayment(
 ): Promise<{ error?: string }> {
   const { paymentId, employerId, jobId, candidateIds, sessionId } = input;
 
+  logger.info("unlock.fulfill.start", {
+    area: "unlock",
+    paymentId,
+    employerId,
+    jobId,
+    sessionId,
+    candidateCount: candidateIds.length,
+  });
+
   if (!paymentId || !employerId || !jobId || candidateIds.length === 0) {
+    logger.warn("unlock.fulfill.missing_input", { paymentId, employerId, jobId });
     return { error: "Missing payment or candidate details" };
   }
 
@@ -35,6 +47,11 @@ export async function fulfillUnlockPayment(
     .maybeSingle();
 
   if (loadError) {
+    await captureException(loadError, {
+      area: "unlock",
+      source: "fulfill.load_payment",
+      paymentId,
+    });
     return {
       error: toUserFacingMessage(loadError.message, {
         fallback: "We couldn’t finish unlocking those profiles. Try again.",
@@ -42,11 +59,18 @@ export async function fulfillUnlockPayment(
     };
   }
   if (!payment) {
+    logger.warn("unlock.fulfill.payment_not_found", { paymentId });
     return { error: "Payment not found" };
   }
 
-  // Never trust Stripe metadata alone — it must match the pending payment row.
   if (payment.employer_id !== employerId || payment.job_id !== jobId) {
+    logger.warn("unlock.fulfill.metadata_mismatch", {
+      paymentId,
+      expectedEmployerId: payment.employer_id,
+      gotEmployerId: employerId,
+      expectedJobId: payment.job_id,
+      gotJobId: jobId,
+    });
     return { error: "This payment does not match the unlock request." };
   }
 
@@ -54,11 +78,16 @@ export async function fulfillUnlockPayment(
     ? payment.selected_candidate_ids.map(String)
     : [];
   if (!sameIdSet(storedIds, candidateIds.map(String))) {
+    logger.warn("unlock.fulfill.candidate_mismatch", {
+      paymentId,
+      storedIds,
+      candidateIds,
+    });
     return { error: "The candidate list does not match this payment." };
   }
 
   if (payment.status === "paid") {
-    // Idempotent: still ensure unlock rows exist for this payment.
+    logger.info("unlock.fulfill.idempotent_paid", { paymentId });
   }
 
   const { error: paymentError } = await supabase
@@ -73,6 +102,11 @@ export async function fulfillUnlockPayment(
     .eq("job_id", jobId);
 
   if (paymentError) {
+    await captureException(paymentError, {
+      area: "unlock",
+      source: "fulfill.update_payment",
+      paymentId,
+    });
     return {
       error: toUserFacingMessage(paymentError.message, {
         fallback: "We couldn’t finish unlocking those profiles. Try again.",
@@ -93,12 +127,25 @@ export async function fulfillUnlockPayment(
   });
 
   if (unlockError) {
+    await captureException(unlockError, {
+      area: "unlock",
+      source: "fulfill.upsert_unlocks",
+      paymentId,
+    });
     return {
       error: toUserFacingMessage(unlockError.message, {
         fallback: "We couldn’t finish unlocking those profiles. Try again.",
       }),
     };
   }
+
+  logger.info("unlock.fulfill.success", {
+    area: "unlock",
+    paymentId,
+    jobId,
+    candidateCount: storedIds.length,
+    sessionId,
+  });
 
   return {};
 }

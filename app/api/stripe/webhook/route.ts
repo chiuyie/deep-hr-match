@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
-import Stripe from "stripe";
-import { fulfillUnlockPayment } from "@/lib/payments/fulfill-unlock";
+import { handleVerifiedStripeEvent } from "@/lib/payments/stripe-webhook";
 import { getStripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/observability/logger";
+import { captureException } from "@/lib/observability/sentry";
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
 
   if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
+    logger.warn("stripe.webhook.missing_signature");
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET.trim();
   if (!webhookSecret.startsWith("whsec_") || webhookSecret.includes("...")) {
+    logger.error("stripe.webhook.invalid_secret_config");
     return NextResponse.json(
       {
         error:
@@ -24,53 +26,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let event: Stripe.Event;
+  let event;
   try {
-    event = getStripe().webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    );
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Webhook error";
+    logger.warn("stripe.webhook.signature_invalid", { message });
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const paymentId = session.metadata?.payment_id;
-    const employerId = session.metadata?.employer_id;
-    const jobId = session.metadata?.job_id;
-    const candidateIds = session.metadata?.candidate_ids?.split(",").filter(Boolean) ?? [];
-
-    if (!paymentId || !employerId || !jobId || !candidateIds.length) {
-      return NextResponse.json(
-        { error: "checkout.session.completed missing unlock metadata" },
-        { status: 400 }
-      );
-    }
-
+  try {
     const supabase = await createServiceClient();
-    const result = await fulfillUnlockPayment(supabase, {
-      paymentId,
-      employerId,
-      jobId,
-      candidateIds,
-      sessionId: session.id,
-    });
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 });
+    const result = await handleVerifiedStripeEvent(event, supabase);
+    if (result.ok === false) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
-
-    revalidatePath(`/employer/jobs/${jobId}/matching`);
-    revalidatePath(`/employer/jobs/${jobId}/unlocked`);
-    if (candidateIds.length === 1) {
-      revalidatePath(`/employer/jobs/${jobId}/unlocked/${candidateIds[0]}`);
-    }
-    revalidatePath("/employer/unlocked");
-    revalidatePath("/admin/payments");
-    revalidatePath("/admin/unlocks");
+    return NextResponse.json({ received: true, ignored: result.ignored ?? false });
+  } catch (error) {
+    await captureException(error, { area: "unlock", source: "stripe.webhook.route" });
+    return NextResponse.json(
+      { error: "Webhook handler failed" },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({ received: true });
 }
