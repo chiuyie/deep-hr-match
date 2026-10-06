@@ -70,4 +70,47 @@ describe("UnlockedMatchReportSections", () => {
     expect(screen.getByText("Different")).toBeInTheDocument();
     expect(screen.getByText(/factors aligned/i)).toBeInTheDocument();
   });
+
+  it("renders match narrative when disclosure allows it", () => {
+    render(
+      <UnlockedMatchReportSections
+        overallScore={null}
+        showMatchScore={false}
+        showMatchNarrative
+        matchSummary="Strong overall alignment on leadership."
+        strengths={["Clear communicator"]}
+        gaps={["Limited industry tenure"]}
+        showMatrixAnswers={false}
+        showMatrixComparison={false}
+        candidateSteps={[]}
+        comparisonRows={[]}
+      />
+    );
+
+    expect(screen.getByText("Match summary")).toBeInTheDocument();
+    expect(screen.getByText("Strong overall alignment on leadership.")).toBeInTheDocument();
+    expect(screen.getByText("Clear communicator")).toBeInTheDocument();
+    expect(screen.getByText("Limited industry tenure")).toBeInTheDocument();
+  });
+
+  it("hides match narrative when disclosure disables it", () => {
+    render(
+      <UnlockedMatchReportSections
+        overallScore={88}
+        showMatchScore
+        showMatchNarrative={false}
+        matchSummary="Should stay hidden"
+        strengths={["Hidden strength"]}
+        gaps={["Hidden gap"]}
+        showMatrixAnswers={false}
+        showMatrixComparison={false}
+        candidateSteps={[]}
+        comparisonRows={[]}
+      />
+    );
+
+    expect(screen.getByText("88%")).toBeInTheDocument();
+    expect(screen.queryByText("Should stay hidden")).not.toBeInTheDocument();
+    expect(screen.queryByText("Hidden strength")).not.toBeInTheDocument();
+  });
 });

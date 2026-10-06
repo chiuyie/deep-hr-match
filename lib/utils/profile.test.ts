@@ -168,12 +168,12 @@ describe("formatFileSize", () => {
 });
 
 describe("formatCurrency", () => {
-  it("formats cents as USD by default", () => {
-    expect(formatCurrency(4900)).toBe("$49.00");
+  it("formats cents as SGD by default", () => {
+    expect(formatCurrency(4900)).toBe("S$49.00");
   });
 
   it("supports other currencies", () => {
-    expect(formatCurrency(100000, "sgd")).toMatch(/1,000\.00/);
+    expect(formatCurrency(100000, "usd")).toMatch(/1,000\.00/);
   });
 });
 

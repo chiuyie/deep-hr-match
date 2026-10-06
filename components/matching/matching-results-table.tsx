@@ -14,10 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { createUnlockCheckout } from "@/lib/employer/actions";
 import { formatCurrency } from "@/lib/utils/profile";
-import { UNLOCK_PRICE_CENTS } from "@/lib/matching/engine";
+import { UNLOCK_CURRENCY, UNLOCK_PRICE_CENTS } from "@/lib/matching/engine";
 import type { AnonymousCandidateMatch } from "@/types/database";
 
 interface MatchingResultsTableProps {
@@ -28,6 +29,12 @@ interface MatchingResultsTableProps {
   mockPayments?: boolean;
   showMatchScore?: boolean;
   showMatchRank?: boolean;
+  showMatchNarrative?: boolean;
+}
+
+function candidateLabel(row: AnonymousCandidateMatch) {
+  if (row.is_unlocked && row.display_name) return row.display_name;
+  return row.anonymous_id;
 }
 
 function PreviewFieldsList({
@@ -111,9 +118,11 @@ export function MatchingResultsTable({
   mockPayments = false,
   showMatchScore = true,
   showMatchRank = true,
+  showMatchNarrative = false,
 }: MatchingResultsTableProps) {
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const total = selected.length * UNLOCK_PRICE_CENTS;
   const previewColumns = useMemo(() => {
@@ -127,6 +136,7 @@ export function MatchingResultsTable({
   }, [results]);
 
   function toggle(id: string) {
+    setCheckoutError(null);
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
@@ -134,8 +144,18 @@ export function MatchingResultsTable({
 
   async function handleUnlock() {
     setLoading(true);
+    setCheckoutError(null);
     try {
-      await createUnlockCheckout(jobId, selected);
+      const result = await createUnlockCheckout(jobId, selected);
+      if (result?.error) {
+        setCheckoutError(result.error);
+      }
+    } catch (error) {
+      // Successful mock/Stripe paths redirect and throw NEXT_REDIRECT.
+      const message = error instanceof Error ? error.message : "";
+      if (!message.includes("NEXT_REDIRECT") && !message.includes("Redirect")) {
+        setCheckoutError("We couldn’t start unlock checkout. Try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -160,11 +180,18 @@ export function MatchingResultsTable({
         </div>
       ) : null}
 
+      {checkoutError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Unlock failed</AlertTitle>
+          <AlertDescription>{checkoutError}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <EmployerPageSection
         title="Ranked Candidates"
         description={
           displayLimit
-            ? `Top ${displayLimit} anonymous matches from the last snapshot`
+            ? `Top ${displayLimit} matches from the last snapshot — locked rows stay anonymous until unlock`
             : "Select candidates to unlock their full profiles"
         }
         icon={<Target className="h-6 w-6" />}
@@ -189,7 +216,7 @@ export function MatchingResultsTable({
                 <LockOpen className="mr-2 h-4 w-4" />
                 {mockPayments
                   ? `Unlock ${selected.length} candidate${selected.length === 1 ? "" : "s"} (mock)`
-                  : `Unlock ${selected.length} — ${formatCurrency(total)}`}
+                  : `Unlock ${selected.length} — ${formatCurrency(total, UNLOCK_CURRENCY)}`}
               </Button>
             )}
           </div>
@@ -212,9 +239,18 @@ export function MatchingResultsTable({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-mono text-sm font-semibold text-slate-800">
-                        {row.anonymous_id}
+                      <p
+                        className={
+                          row.is_unlocked && row.display_name
+                            ? "text-sm font-semibold text-slate-800"
+                            : "font-mono text-sm font-semibold text-slate-800"
+                        }
+                      >
+                        {candidateLabel(row)}
                       </p>
+                      {row.is_unlocked && row.display_name ? (
+                        <p className="mt-0.5 font-mono text-xs text-slate-400">{row.anonymous_id}</p>
+                      ) : null}
                       {showMatchScore ? (
                         <p className="mt-1 text-lg font-bold text-primary">{row.overall_score}%</p>
                       ) : null}
@@ -234,7 +270,7 @@ export function MatchingResultsTable({
                       )}
                     </div>
                   </div>
-                  {showMatchScore && <ScoreBreakdown match={row} />}
+                  {showMatchScore && showMatchNarrative ? <ScoreBreakdown match={row} /> : null}
                   <div className="mt-3">
                     <PreviewFieldsList fields={row.preview_fields} />
                   </div>
@@ -251,7 +287,7 @@ export function MatchingResultsTable({
                         checked={selected.includes(row.id)}
                         onCheckedChange={() => toggle(row.id)}
                       />
-                      Select to unlock ({formatCurrency(UNLOCK_PRICE_CENTS)})
+                      Select to unlock ({formatCurrency(UNLOCK_PRICE_CENTS, UNLOCK_CURRENCY)})
                     </label>
                   )}
                 </div>
@@ -264,7 +300,7 @@ export function MatchingResultsTable({
                   <TableRow>
                     <TableHead className="w-12">Select</TableHead>
                     {showMatchRank ? <TableHead>Rank</TableHead> : null}
-                    <TableHead>Candidate ID</TableHead>
+                    <TableHead>Candidate</TableHead>
                     {showMatchScore ? <TableHead>Match Score</TableHead> : null}
                     {previewColumns.map((column) => (
                       <TableHead key={column.key}>{column.label}</TableHead>
@@ -289,7 +325,22 @@ export function MatchingResultsTable({
                           )}
                         </TableCell>
                         {showMatchRank ? <TableCell>#{row.ranking_position}</TableCell> : null}
-                        <TableCell className="font-mono text-sm">{row.anonymous_id}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p
+                              className={
+                                row.is_unlocked && row.display_name
+                                  ? "text-sm font-medium text-slate-800"
+                                  : "font-mono text-sm"
+                              }
+                            >
+                              {candidateLabel(row)}
+                            </p>
+                            {row.is_unlocked && row.display_name ? (
+                              <p className="font-mono text-xs text-slate-400">{row.anonymous_id}</p>
+                            ) : null}
+                          </div>
+                        </TableCell>
                         {showMatchScore ? (
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -300,7 +351,7 @@ export function MatchingResultsTable({
                                 </Badge>
                               )}
                             </div>
-                            <ScoreBreakdown match={row} />
+                            {showMatchNarrative ? <ScoreBreakdown match={row} /> : null}
                           </TableCell>
                         ) : null}
                         {previewColumns.map((column) => (
@@ -350,7 +401,7 @@ export function MatchingResultsTable({
                 {lastMatchedAt ? " from snapshot" : ""}. Matching generation is free
                 {mockPayments
                   ? "; unlocks use mock payments (no Stripe charge)."
-                  : `; unlock profiles for ${formatCurrency(UNLOCK_PRICE_CENTS)} each.`}
+                  : `; unlock profiles for ${formatCurrency(UNLOCK_PRICE_CENTS, UNLOCK_CURRENCY)} each via PayNow or card.`}
               </p>
             )}
           </>

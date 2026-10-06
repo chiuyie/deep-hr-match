@@ -19,6 +19,7 @@ import {
   matchingActionLabel,
 } from "@/lib/employer/job-rules";
 import { buildAnonymousCandidateMatches } from "@/lib/employer/anonymous-match";
+import { loadMatchPreviewProfilesByIds } from "@/lib/employer/match-preview-profiles";
 import {
   countNewReadyCandidatesSince,
   getSnapshotGeneratedAt,
@@ -90,14 +91,9 @@ export default async function JobViewPage({
   const lastMatchedAt = getSnapshotGeneratedAt(matchRows ?? []);
   const previewCandidateIds = (matchRows ?? []).map((row) => row.candidate_id);
 
-  const [newCandidatesSince, previewProfilesResult] = await Promise.all([
+  const [newCandidatesSince, previewProfilesById] = await Promise.all([
     lastMatchedAt ? countNewReadyCandidatesSince(supabase, lastMatchedAt) : Promise.resolve(0),
-    previewCandidateIds.length
-      ? supabase
-          .from("candidate_profiles")
-          .select("id, full_name, years_of_experience, highest_education, skills, form_data")
-          .in("id", previewCandidateIds)
-      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    loadMatchPreviewProfilesByIds(previewCandidateIds),
   ]);
 
   const matchingStatus = !lifecycle.hasMatches
@@ -113,13 +109,6 @@ export default async function JobViewPage({
 
   const editable = canEditJob(lifecycle);
   const lockReason = editBlockedReason(lifecycle);
-
-  const previewProfilesById = Object.fromEntries(
-    (previewProfilesResult.data ?? []).map((profile) => [
-      String((profile as { id: string }).id),
-      profile as Record<string, unknown>,
-    ])
-  );
 
   const previewMatches: AnonymousCandidateMatch[] = buildAnonymousCandidateMatches({
     matchResults: matchRows ?? [],

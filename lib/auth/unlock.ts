@@ -2,7 +2,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { CandidateCvFile, CandidateProfile, MatchResult } from "@/types/database";
 
 const UNLOCKED_PROFILE_LIST_SELECT =
-  "id, full_name, email, phone, years_of_experience, skills, form_data";
+  "id, full_name, email, phone, years_of_experience, skills, custom_fields";
 const UNLOCKED_CV_SELECT =
   "id, candidate_id, file_name, file_path, file_size, uploaded_at";
 const UNLOCKED_MATCH_LIST_SELECT =

@@ -81,8 +81,9 @@ Returns `{ count, results }`.
 
 ```typescript
 export const MATCH_DISPLAY_LIMIT = 25;
-export const UNLOCK_PRICE_CENTS = 4900;  // $49.00 USD
-export const UNLOCK_CURRENCY = "usd";
+export const UNLOCK_PRICE_CENTS = 4900;  // S$49.00 SGD
+export const UNLOCK_CURRENCY = "sgd";
+export const UNLOCK_PAYMENT_METHOD_TYPES = ["paynow", "card"] as const;
 ```
 
 ## Scoring

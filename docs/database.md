@@ -171,7 +171,7 @@ Admin-managed 7^7 framework content. Questions have `target_role` (`candidate`, 
 | `selected_candidate_ids` | UUID[] |
 | `stripe_session_id` | TEXT |
 | `amount` | INTEGER (cents) |
-| `currency` | TEXT (default `usd`) |
+| `currency` | TEXT (default `sgd`) |
 | `status` | `payment_status` |
 | `payment_type` | `candidate_profile_unlock` |
 | `paid_at` | TIMESTAMPTZ |

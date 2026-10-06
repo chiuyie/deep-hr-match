@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
 import { generateMatchingResults } from "@/lib/employer/actions";
 import { buildAnonymousCandidateMatches } from "@/lib/employer/anonymous-match";
+import { loadMatchPreviewProfilesByIds } from "@/lib/employer/match-preview-profiles";
 import {
   canEditJob,
   canRunMatching,
@@ -82,21 +83,12 @@ export default async function JobMatchingPage({
   const lastMatchedAt = getSnapshotGeneratedAt(matchResults ?? []);
   const candidateIds = matchResults?.map((m) => m.candidate_id) ?? [];
 
-  const [newCandidatesSince, candidatesResult] = await Promise.all([
+  const [newCandidatesSince, candidateMap] = await Promise.all([
     lastMatchedAt ? countNewReadyCandidatesSince(supabase, lastMatchedAt) : Promise.resolve(0),
-    candidateIds.length
-      ? supabase
-          .from("candidate_profiles")
-          .select("id, full_name, years_of_experience, highest_education, skills, form_data")
-          .in("id", candidateIds.slice(0, 50))
-      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    loadMatchPreviewProfilesByIds(candidateIds.slice(0, 50)),
   ]);
 
   const newCandidatesMessage = newCandidatesNotice(newCandidatesSince);
-
-  const candidateMap = Object.fromEntries(
-    (candidatesResult.data ?? []).map((c) => [String((c as { id: string }).id), c as Record<string, unknown>])
-  );
 
   const results: AnonymousCandidateMatch[] = buildAnonymousCandidateMatches({
     matchResults: matchResults ?? [],
@@ -115,7 +107,7 @@ export default async function JobMatchingPage({
       <EmployerJobContext
         jobTitle={job.title}
         jobId={id}
-        description="Anonymous ranked snapshot — first run happens when you post the job; refresh anytime for new candidates ($49 to unlock each profile)"
+        description="Anonymous ranked snapshot — first run happens when you post the job; refresh anytime for new candidates (S$49 to unlock each profile)"
       />
       <JobWorkflowNav jobId={id} currentStep="matching" canEdit={canEditJob(lifecycle)} />
 
@@ -205,6 +197,7 @@ export default async function JobMatchingPage({
         mockPayments={isMockPayments()}
         showMatchScore={isShownOnAnonymous(platformDisclosure, "match_score")}
         showMatchRank={isShownOnAnonymous(platformDisclosure, "match_rank")}
+        showMatchNarrative={isShownOnAnonymous(platformDisclosure, "match_narrative")}
       />
     </>
   );

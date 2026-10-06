@@ -41,6 +41,7 @@ describe("buildAnonymousCandidateMatches", () => {
     expect(results[0]).toMatchObject({
       id: "cand-abc12345",
       anonymous_id: anonymizeCandidateId("cand-abc12345"),
+      display_name: null,
       ranking_position: 2,
       overall_score: 91.5,
       is_placeholder: false,
@@ -54,7 +55,7 @@ describe("buildAnonymousCandidateMatches", () => {
     ]);
   });
 
-  it("marks unlocked candidates", () => {
+  it("marks unlocked candidates and exposes display name when allowed", () => {
     const results = buildAnonymousCandidateMatches({
       matchResults: [
         {
@@ -64,11 +65,43 @@ describe("buildAnonymousCandidateMatches", () => {
           is_placeholder: false,
         },
       ],
-      profilesById: { "cand-1": { years_of_experience: 4 } },
+      profilesById: {
+        "cand-1": { full_name: "Alex Candidate", years_of_experience: 4 },
+      },
       candidateFields,
       unlockedIds: ["cand-1"],
     });
 
     expect(results[0].is_unlocked).toBe(true);
+    expect(results[0].display_name).toBe("Alex Candidate");
+  });
+
+  it("keeps display name hidden when full_name disclosure is removed", () => {
+    const fields = [
+      ...candidateFields,
+      makeFormField({
+        field_key: "full_name",
+        label: "Full Name",
+        employer_disclosure_mode: "admin_removed",
+      }),
+    ];
+    const results = buildAnonymousCandidateMatches({
+      matchResults: [
+        {
+          candidate_id: "cand-1",
+          ranking_position: 1,
+          overall_score: 80,
+          is_placeholder: false,
+        },
+      ],
+      profilesById: {
+        "cand-1": { full_name: "Hidden Name", years_of_experience: 4 },
+      },
+      candidateFields: fields,
+      unlockedIds: ["cand-1"],
+    });
+
+    expect(results[0].is_unlocked).toBe(true);
+    expect(results[0].display_name).toBeNull();
   });
 });

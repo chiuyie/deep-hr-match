@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  CheckCircle2,
   Download,
   FileText,
   LockOpen,
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { EmployerJobContext, EmployerPageSection } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { UnlockedMatchReportSections } from "@/components/employer/unlocked-match-report";
+import { UnlockPaymentPendingNotice } from "@/components/employer/unlock-payment-pending-notice";
 import { requireEmployer } from "@/lib/auth/session";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils/profile";
@@ -22,6 +24,7 @@ import {
   shouldShowUnlockedPlatformItem,
 } from "@/lib/employer/platform-disclosure";
 import { loadMatrixComparisonForUnlock } from "@/lib/matching/candidate-matrix-summary";
+import { ensureUnlocksForCheckoutSession } from "@/lib/payments/ensure-checkout-unlocks";
 import type { EmployerVisibleCandidateField } from "@/lib/employer/unlocked-candidate-view";
 
 function groupFieldsBySection(fields: EmployerVisibleCandidateField[]) {
@@ -41,14 +44,26 @@ function groupFieldsBySection(fields: EmployerVisibleCandidateField[]) {
 
 export default async function EmployerUnlockedCandidateDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; candidateId: string }>;
+  searchParams: Promise<{ session_id?: string }>;
 }) {
   const { id: jobId, candidateId } = await params;
+  const { session_id } = await searchParams;
   const { profile: employer } = await requireEmployer();
   if (!employer) notFound();
 
   const supabase = await createClient();
+
+  if (session_id) {
+    await ensureUnlocksForCheckoutSession(supabase, {
+      employerId: employer.id,
+      jobId,
+      sessionId: session_id,
+      candidateId,
+    });
+  }
 
   const [jobResult, matrixClient] = await Promise.all([
     supabase
@@ -76,7 +91,25 @@ export default async function EmployerUnlockedCandidateDetailPage({
   ]);
 
   candidateView = candidateViewResult;
-  if (!candidateView) notFound();
+  if (!candidateView) {
+    if (session_id) {
+      return (
+        <>
+          <EmployerJobContext
+            jobTitle={job.title}
+            jobId={jobId}
+            description="Unlocked candidate profile"
+          />
+          <JobWorkflowNav jobId={jobId} currentStep="unlocked" canEdit={job.status === "draft"} />
+          <UnlockPaymentPendingNotice
+            active
+            message="Payment went through. Opening this profile as soon as unlock finishes."
+          />
+        </>
+      );
+    }
+    notFound();
+  }
 
   const { candidateSteps, comparisonRows } = matrixComparison;
 
@@ -110,6 +143,18 @@ export default async function EmployerUnlockedCandidateDetailPage({
         description="Unlocked candidate profile"
       />
       <JobWorkflowNav jobId={jobId} currentStep="unlocked" canEdit={job.status === "draft"} />
+
+      {session_id && candidateView ? (
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          <div>
+            <p className="font-semibold text-emerald-900">Payment successful</p>
+            <p className="mt-0.5 text-sm text-emerald-700">
+              This candidate profile is unlocked and ready to review.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <EmployerPageSection
         title={candidateView.displayName}
@@ -173,6 +218,18 @@ export default async function EmployerUnlockedCandidateDetailPage({
             "match_rank",
             rankingPosition != null
           )}
+          showMatchNarrative={shouldShowUnlockedPlatformItem(
+            disclosureMap,
+            "match_narrative",
+            Boolean(
+              candidateView.matchResult?.match_summary ||
+                candidateView.matchResult?.strengths?.length ||
+                candidateView.matchResult?.gaps?.length
+            )
+          )}
+          matchSummary={candidateView.matchResult?.match_summary ?? null}
+          strengths={candidateView.matchResult?.strengths ?? null}
+          gaps={candidateView.matchResult?.gaps ?? null}
           showMatrixAnswers={shouldShowUnlockedPlatformItem(
             disclosureMap,
             "matrix_candidate_answers",

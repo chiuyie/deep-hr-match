@@ -117,11 +117,19 @@ export function formatFileSize(bytes: number | null | undefined): string {
   return `${mb >= 10 ? Math.round(mb) : Number(mb.toFixed(1))} MB`;
 }
 
-export function formatCurrency(cents: number, currency = "usd"): string {
-  return new Intl.NumberFormat("en-US", {
+export function formatCurrency(cents: number, currency = "sgd"): string {
+  const code = currency.toLowerCase();
+  const formatted = new Intl.NumberFormat(code === "sgd" ? "en-SG" : "en-US", {
     style: "currency",
-    currency: currency.toUpperCase(),
+    currency: code.toUpperCase(),
+    currencyDisplay: "narrowSymbol",
   }).format(cents / 100);
+
+  // Node/ICU may render SGD as "$" — keep the Singapore S$ convention in UI.
+  if (code === "sgd" && formatted.startsWith("$")) {
+    return `S${formatted}`;
+  }
+  return formatted;
 }
 
 export function statusLabel(status: string): string {

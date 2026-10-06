@@ -190,5 +190,7 @@ export async function generatePlaceholderMatches(
 /** Top-ranked candidates stored and shown per match snapshot. */
 export const MATCH_DISPLAY_LIMIT = 25;
 
-export const UNLOCK_PRICE_CENTS = 4900;
-export const UNLOCK_CURRENCY = "usd";
+export const UNLOCK_PRICE_CENTS = 4900; // S$49.00
+export const UNLOCK_CURRENCY = "sgd";
+/** Stripe Checkout methods for unlocks (PayNow requires SGD). */
+export const UNLOCK_PAYMENT_METHOD_TYPES = ["paynow", "card"] as const;

@@ -24,6 +24,7 @@ export function makeAnonymousCandidateMatch(
   return {
     id: "cand-1",
     anonymous_id: "CAND-CAND0001",
+    display_name: null,
     ranking_position: 1,
     overall_score: 88,
     is_placeholder: false,

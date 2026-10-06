@@ -509,7 +509,7 @@ Posted jobs are **read-only** — create a new job if requirements change. Match
 |--------|------|
 | Job posting | Free |
 | Matching generation / refresh | Free (snapshot of top 25 ready candidates) |
-| Unlock candidate profile | **$49.00 USD** each (test mode; configurable in `lib/matching/engine.ts`) |
+| Unlock candidate profile | **S$49.00 SGD** each (test mode; configurable in `lib/matching/engine.ts`) |
 
 ---
 

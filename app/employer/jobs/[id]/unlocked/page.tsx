@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Target, Unlock, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, Target, Unlock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   EmployerEmptyState,
@@ -10,6 +9,7 @@ import {
 } from "@/components/employer/employer-ui";
 import { JobWorkflowNav } from "@/components/employer/job-workflow-nav";
 import { UnlockedCandidateCard } from "@/components/employer/unlocked-candidate-card";
+import { UnlockPaymentPendingNotice } from "@/components/employer/unlock-payment-pending-notice";
 import { requireEmployer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getUnlockedCandidateDetailsBatch } from "@/lib/auth/unlock";
@@ -22,6 +22,7 @@ import {
   shouldShowUnlockedPlatformItem,
 } from "@/lib/employer/platform-disclosure";
 import { loadFormFields } from "@/lib/form-fields/queries";
+import { ensureUnlocksForCheckoutSession } from "@/lib/payments/ensure-checkout-unlocks";
 
 export default async function JobUnlockedPage({
   params,
@@ -33,19 +34,32 @@ export default async function JobUnlockedPage({
   const { id: jobId } = await params;
   const { session_id } = await searchParams;
   const { profile: employer } = await requireEmployer();
+  if (!employer) notFound();
   const supabase = await createClient();
+
+  let checkoutNotice: string | undefined;
+  let checkoutPending = false;
+  if (session_id) {
+    const ensured = await ensureUnlocksForCheckoutSession(supabase, {
+      employerId: employer.id,
+      jobId,
+      sessionId: session_id,
+    });
+    checkoutPending = !ensured.ready;
+    checkoutNotice = ensured.error;
+  }
 
   const [{ data: job }, { data: unlocks }, candidateFields, platformDisclosure] = await Promise.all([
     supabase
       .from("jobs")
       .select("title, status")
       .eq("id", jobId)
-      .eq("employer_id", employer?.id ?? "")
+      .eq("employer_id", employer.id)
       .single(),
     supabase
       .from("unlocks")
       .select("candidate_id, unlocked_at")
-      .eq("employer_id", employer?.id ?? "")
+      .eq("employer_id", employer.id)
       .eq("job_id", jobId)
       .order("unlocked_at", { ascending: false }),
     loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
@@ -56,7 +70,7 @@ export default async function JobUnlockedPage({
 
   const unlockOrder = unlocks ?? [];
   const details = await getUnlockedCandidateDetailsBatch(
-    employer!.id,
+    employer.id,
     jobId,
     unlockOrder.map((unlock) => unlock.candidate_id)
   );
@@ -92,7 +106,7 @@ export default async function JobUnlockedPage({
       />
       <JobWorkflowNav jobId={jobId} currentStep="unlocked" canEdit={job.status === "draft"} />
 
-      {session_id && (
+      {session_id && unlockedDetails.length > 0 ? (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
           <div>
@@ -102,7 +116,12 @@ export default async function JobUnlockedPage({
             </p>
           </div>
         </div>
-      )}
+      ) : null}
+
+      <UnlockPaymentPendingNotice
+        active={Boolean(session_id) && (checkoutPending || unlockedDetails.length === 0)}
+        message={checkoutNotice}
+      />
 
       {!unlockedDetails.length ? (
         <EmployerPageSection
@@ -113,8 +132,12 @@ export default async function JobUnlockedPage({
         >
           <EmployerEmptyState
             icon={Users}
-            title="No unlocked candidates yet"
-            description="Generate matches and unlock profiles from the matching results page."
+            title={session_id ? "Unlocking profiles…" : "No unlocked candidates yet"}
+            description={
+              session_id
+                ? "Your payment went through. Profiles appear here as soon as unlock finishes."
+                : "Generate matches and unlock profiles from the matching results page."
+            }
             actionLabel="Go to matching results"
             actionHref={`/employer/jobs/${jobId}/matching`}
             gradient="from-emerald-500 to-emerald-600"
@@ -155,9 +178,7 @@ export default async function JobUnlockedPage({
                   email={showEmail ? profile?.email : null}
                   phone={showPhone ? profile?.phone : null}
                   yearsOfExperience={
-                    showExperience && experienceValue != null && experienceValue !== ""
-                      ? Number(experienceValue) || null
-                      : null
+                    showExperience && experienceValue?.trim() ? experienceValue : null
                   }
                   skills={
                     showSkills

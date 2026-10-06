@@ -202,6 +202,8 @@ export interface CandidateCvFile {
 export interface AnonymousCandidateMatch {
   id: string;
   anonymous_id: string;
+  /** Real name when unlocked and disclosure allows; otherwise null. */
+  display_name: string | null;
   ranking_position: number;
   overall_score: number;
   is_placeholder: boolean;

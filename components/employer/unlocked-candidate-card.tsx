@@ -10,7 +10,7 @@ interface UnlockedCandidateCardProps {
   email?: string | null;
   phone?: string | null;
   jobTitle?: string | null;
-  yearsOfExperience?: number | null;
+  yearsOfExperience?: number | string | null;
   skills?: string[] | null;
   matchScore?: number | null;
   isPlaceholder?: boolean;
@@ -36,6 +36,14 @@ export function UnlockedCandidateCard({
   jobId,
 }: UnlockedCandidateCardProps) {
   const hasReportLink = Boolean(jobId && candidateId);
+  const experienceLabel =
+    yearsOfExperience == null || yearsOfExperience === ""
+      ? null
+      : typeof yearsOfExperience === "number"
+        ? Number.isFinite(yearsOfExperience)
+          ? `${yearsOfExperience} yr${yearsOfExperience === 1 ? "" : "s"} exp`
+          : null
+        : `${String(yearsOfExperience).trim()} exp`;
 
   return (
     <div className="group flex flex-col rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:border-slate-200 hover:shadow-md">
@@ -78,9 +86,9 @@ export function UnlockedCandidateCard({
 
       {/* Details */}
       <div className="mt-3 flex flex-wrap gap-1.5">
-        {yearsOfExperience != null && (
+        {experienceLabel && (
           <Badge variant="secondary" className="text-xs">
-            {yearsOfExperience} yr{yearsOfExperience === 1 ? "" : "s"} exp
+            {experienceLabel}
           </Badge>
         )}
         {skills && skills.slice(0, 3).map((skill) => (

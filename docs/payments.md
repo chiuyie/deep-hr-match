@@ -20,14 +20,17 @@ PAYMENTS_MODE=mock    # default if unset
 |--------|------|
 | Job posting | Free |
 | Matching generation / refresh | Free (top-25 snapshot) |
-| Unlock candidate profile | **$49.00 USD** per candidate (recorded even in mock mode) |
+| Unlock candidate profile | **S$49.00 SGD** per candidate (recorded even in mock mode) |
 
 Constants in `lib/matching/engine.ts`:
 
 ```typescript
 UNLOCK_PRICE_CENTS = 4900
-UNLOCK_CURRENCY = "usd"
+UNLOCK_CURRENCY = "sgd"
+UNLOCK_PAYMENT_METHOD_TYPES = ["paynow", "card"]
 ```
+
+Stripe Checkout presents **PayNow** (QR) and **card**. PayNow requires SGD and a Stripe account that has PayNow enabled (Singapore).
 
 ## Mock unlock flow
 
@@ -80,6 +83,8 @@ Redirect to /employer/jobs/{jobId}/unlocked?session_id=...
    - `payment_type: candidate_profile_unlock`
 5. Create Stripe Checkout Session:
    - `mode: "payment"`
+   - `payment_method_types: ["paynow", "card"]`
+   - `currency` / `unit_amount`: SGD S$49.00 per candidate
    - `success_url`: `/employer/jobs/{jobId}/unlocked?session_id={CHECKOUT_SESSION_ID}`
    - `cancel_url`: `/employer/jobs/{jobId}/matching`
    - `metadata`: `payment_id`, `employer_id`, `job_id`, `candidate_ids` (comma-separated)
@@ -141,16 +146,23 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 
 Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET` in `.env.local`.
 
-### 2. Test card
+### 2. Enable PayNow in Stripe Dashboard (test mode)
 
-Use [Stripe test cards](https://docs.stripe.com/testing#cards):
+Dashboard → Settings → Payment methods → enable **PayNow**.
+Requires a Stripe account that can accept SGD (typically Singapore).
+
+### 3. Test payments
+
+**Card:** [Stripe test cards](https://docs.stripe.com/testing#cards)
 
 ```
 4242 4242 4242 4242
 Any future expiry, any CVC
 ```
 
-### 3. Verify
+**PayNow:** use Stripe’s PayNow test flow in Checkout (scan/simulate QR in test mode).
+
+### 4. Verify
 
 - [ ] Checkout session opens from matching results table
 - [ ] Payment completes

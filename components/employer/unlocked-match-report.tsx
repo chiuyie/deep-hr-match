@@ -9,6 +9,10 @@ interface UnlockedMatchReportSectionsProps {
   rankingPosition?: number | null;
   showMatchScore: boolean;
   showMatchRank?: boolean;
+  showMatchNarrative?: boolean;
+  matchSummary?: string | null;
+  strengths?: string[] | null;
+  gaps?: string[] | null;
   showMatrixAnswers: boolean;
   showMatrixComparison: boolean;
   candidateSteps: MatrixAnswerStep[];
@@ -63,6 +67,10 @@ export function UnlockedMatchReportSections({
   rankingPosition = null,
   showMatchScore,
   showMatchRank = false,
+  showMatchNarrative = false,
+  matchSummary = null,
+  strengths = null,
+  gaps = null,
   showMatrixAnswers,
   showMatrixComparison,
   candidateSteps,
@@ -73,8 +81,12 @@ export function UnlockedMatchReportSections({
     !showComparison && showMatrixAnswers && candidateSteps.length > 0;
   const showScoreBlock =
     (showMatchScore && overallScore != null) || (showMatchRank && rankingPosition != null);
+  const hasNarrativeContent = Boolean(
+    matchSummary?.trim() || strengths?.length || gaps?.length
+  );
+  const showNarrative = showMatchNarrative && hasNarrativeContent;
 
-  if (!showScoreBlock && !showComparison && !showCandidateOnly) {
+  if (!showScoreBlock && !showComparison && !showCandidateOnly && !showNarrative) {
     return null;
   }
 
@@ -120,6 +132,37 @@ export function UnlockedMatchReportSections({
               <p className="mt-1 text-3xl font-bold tabular-nums text-slate-800">
                 #{rankingPosition}
               </p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {showNarrative ? (
+        <div className="mt-5 space-y-3 rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+          <h3 className="text-sm font-semibold text-slate-800">Match summary</h3>
+          {matchSummary?.trim() ? (
+            <p className="text-sm leading-relaxed text-slate-700">{matchSummary}</p>
+          ) : null}
+          {strengths && strengths.length > 0 ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                Strengths
+              </p>
+              <ul className="mt-1 list-inside list-disc space-y-0.5 text-sm text-emerald-800">
+                {strengths.map((item, index) => (
+                  <li key={`strength-${index}`}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {gaps && gaps.length > 0 ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Gaps</p>
+              <ul className="mt-1 list-inside list-disc space-y-0.5 text-sm text-amber-800">
+                {gaps.map((item, index) => (
+                  <li key={`gap-${index}`}>{item}</li>
+                ))}
+              </ul>
             </div>
           ) : null}
         </div>

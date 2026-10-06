@@ -4,7 +4,9 @@ import { Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmployerEmptyState, EmployerPageSection } from "@/components/employer/employer-ui";
 import { requireEmployer } from "@/lib/auth/session";
+import { isUnlockedContactFieldVisible } from "@/lib/employer/match-disclosure";
 import { loadEmployerUnlockedList } from "@/lib/employer/list-queries";
+import { loadFormFields } from "@/lib/form-fields/queries";
 
 function UnlockedSkeleton() {
   return (
@@ -17,7 +19,12 @@ function UnlockedSkeleton() {
 }
 
 async function UnlockedContent({ employerId }: { employerId: string }) {
-  const items = await loadEmployerUnlockedList(employerId);
+  const [items, candidateFields] = await Promise.all([
+    loadEmployerUnlockedList(employerId),
+    loadFormFields({ audience: "candidate", formGroup: "profile", includeInactive: false }),
+  ]);
+  const showName = isUnlockedContactFieldVisible(candidateFields, "full_name");
+
   if (!items.length) {
     return (
       <EmployerEmptyState
@@ -39,7 +46,9 @@ async function UnlockedContent({ employerId }: { employerId: string }) {
           className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50/50 px-5 py-4 transition-all hover:border-slate-200 hover:bg-white hover:shadow-md"
         >
           <div>
-            <p className="font-semibold text-slate-800">{item.name}</p>
+            <p className="font-semibold text-slate-800">
+              {showName ? item.name : "Candidate"}
+            </p>
             <p className="mt-1 text-sm text-slate-500">{item.jobTitle}</p>
           </div>
           <span className="text-sm font-medium text-primary">View details →</span>

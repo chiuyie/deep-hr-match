@@ -8,7 +8,7 @@ import {
   runMatchingBlockedReason,
   shouldAutoGenerateInitialMatches,
 } from "@/lib/employer/job-rules";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireRole, getEmployerProfile } from "@/lib/auth/session";
 import { readableIssueMessage, toUserFacingMessage } from "@/lib/ui/readable-error";
 import {
@@ -32,12 +32,14 @@ import {
 } from "@/lib/matching/matrix-column-flow";
 import {
   UNLOCK_CURRENCY,
+  UNLOCK_PAYMENT_METHOD_TYPES,
   UNLOCK_PRICE_CENTS,
 } from "@/lib/matching/engine";
 import { triggerMatchRun } from "@/lib/matching/trigger";
 import { fulfillUnlockPayment } from "@/lib/payments/fulfill-unlock";
 import { isMockPayments } from "@/lib/payments/mode";
 import { getStripe, getAppUrl } from "@/lib/stripe/client";
+import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
 
 type MatrixAnswerPayload = {
   question_id: string;
@@ -474,10 +476,56 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
     return { error: "Select at least one candidate" };
   }
 
-  const amount = UNLOCK_PRICE_CENTS * candidateIds.length;
+  const uniqueIds = Array.from(new Set(candidateIds.map(String).filter(Boolean)));
+  if (!uniqueIds.length) {
+    return { error: "Select at least one candidate" };
+  }
+
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("id", jobId)
+    .eq("employer_id", employerId)
+    .maybeSingle();
+  if (!job) {
+    return { error: "Job not found" };
+  }
+
+  const [{ data: matchRows }, unlockedIds] = await Promise.all([
+    supabase
+      .from("match_results")
+      .select("candidate_id")
+      .eq("job_id", jobId)
+      .in("candidate_id", uniqueIds),
+    getUnlockedCandidateIds(employerId, jobId),
+  ]);
+
+  const matchedIds = new Set((matchRows ?? []).map((row) => String(row.candidate_id)));
+  const unlockedSet = new Set(unlockedIds.map(String));
+  const alreadyUnlockedIds = uniqueIds.filter((candidateId) => unlockedSet.has(candidateId));
+  const unlockableIds = uniqueIds.filter(
+    (candidateId) => matchedIds.has(candidateId) && !unlockedSet.has(candidateId)
+  );
+
+  if (!unlockableIds.length) {
+    if (alreadyUnlockedIds.length && alreadyUnlockedIds.length === uniqueIds.length) {
+      const path =
+        alreadyUnlockedIds.length === 1
+          ? `/employer/jobs/${jobId}/unlocked/${alreadyUnlockedIds[0]}`
+          : `/employer/jobs/${jobId}/unlocked`;
+      redirect(path);
+    }
+    return {
+      error: alreadyUnlockedIds.length
+        ? "Those candidates are already unlocked or are not in this match snapshot."
+        : "Select candidates from this job’s current match results.",
+    };
+  }
+
+  const amount = UNLOCK_PRICE_CENTS * unlockableIds.length;
   const successPath =
-    candidateIds.length === 1
-      ? `/employer/jobs/${jobId}/unlocked/${candidateIds[0]}`
+    unlockableIds.length === 1
+      ? `/employer/jobs/${jobId}/unlocked/${unlockableIds[0]}`
       : `/employer/jobs/${jobId}/unlocked`;
 
   const { data: payment, error: paymentError } = await supabase
@@ -485,7 +533,7 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
     .insert({
       employer_id: employerId,
       job_id: jobId,
-      selected_candidate_ids: candidateIds,
+      selected_candidate_ids: unlockableIds,
       amount,
       currency: UNLOCK_CURRENCY,
       status: "pending",
@@ -502,14 +550,25 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
     };
   }
 
+  // Fulfill / session updates require service role after paywall RLS hardening.
+  let service;
+  try {
+    service = await createServiceClient();
+  } catch {
+    return {
+      error:
+        "Unlock checkout is not configured (missing service role). Add SUPABASE_SERVICE_ROLE_KEY and try again.",
+    };
+  }
+
   // Mock path: no Stripe — mark paid + create unlocks immediately (UAT / local smoke).
   if (isMockPayments()) {
     const sessionId = `mock_${payment.id}`;
-    const fulfilled = await fulfillUnlockPayment(supabase, {
+    const fulfilled = await fulfillUnlockPayment(service, {
       paymentId: payment.id,
       employerId,
       jobId,
-      candidateIds,
+      candidateIds: unlockableIds,
       sessionId,
     });
     if (fulfilled.error) {
@@ -521,6 +580,9 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
     }
     revalidatePath(`/employer/jobs/${jobId}/matching`);
     revalidatePath(`/employer/jobs/${jobId}/unlocked`);
+    if (unlockableIds.length === 1) {
+      revalidatePath(`/employer/jobs/${jobId}/unlocked/${unlockableIds[0]}`);
+    }
     revalidatePath("/employer/unlocked");
     revalidatePath("/admin/payments");
     revalidatePath("/admin/unlocks");
@@ -530,34 +592,44 @@ export async function createUnlockCheckout(jobId: string, candidateIds: string[]
   const stripe = getStripe();
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    payment_method_types: ["card"],
+    payment_method_types: [...UNLOCK_PAYMENT_METHOD_TYPES],
     line_items: [
       {
         price_data: {
           currency: UNLOCK_CURRENCY,
           product_data: {
             name: "Candidate Profile Unlock",
-            description: `Unlock ${candidateIds.length} candidate profile(s) — Deep HR Match`,
+            description: `Unlock ${unlockableIds.length} candidate profile(s) — Deep HR Match`,
           },
           unit_amount: UNLOCK_PRICE_CENTS,
         },
-        quantity: candidateIds.length,
+        quantity: unlockableIds.length,
       },
     ],
     metadata: {
       payment_id: payment.id,
       employer_id: employerId,
       job_id: jobId,
-      candidate_ids: candidateIds.join(","),
+      candidate_ids: unlockableIds.join(","),
     },
     success_url: `${getAppUrl()}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${getAppUrl()}/employer/jobs/${jobId}/matching`,
   });
 
-  await supabase
+  const { error: sessionUpdateError } = await service
     .from("payments")
     .update({ stripe_session_id: session.id })
-    .eq("id", payment.id);
+    .eq("id", payment.id)
+    .eq("employer_id", employerId)
+    .eq("job_id", jobId);
+
+  if (sessionUpdateError) {
+    return {
+      error: toUserFacingMessage(sessionUpdateError.message, {
+        fallback: "We couldn’t start checkout. Try again.",
+      }),
+    };
+  }
 
   if (!session.url) return { error: "Failed to create checkout session" };
   redirect(session.url);

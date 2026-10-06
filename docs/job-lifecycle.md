@@ -15,7 +15,7 @@ Create job (draft) → Post job (active) → Auto first match snapshot → Unloc
 | **Job posting** | Free, unlimited |
 | **Job edit** | Draft only — posted jobs are read-only |
 | **First match generation** | Free — auto-runs when a job becomes `active` |
-| **Profile unlock** | Paid ($49/candidate) — reveals full PII + CV |
+| **Profile unlock** | Paid (S$49/candidate) — reveals full PII + CV |
 | **Refresh matches** | Free, **manual** — replaces snapshot with a new run against the current pool |
 
 ## Job States
@@ -92,7 +92,7 @@ Unlocks are stored separately in `unlocks` and are **permanent per `(employer, j
 |--------|------|
 | Post job | Free |
 | Generate / refresh matches | Free |
-| Unlock candidate profile | $49 USD each |
+| Unlock candidate profile | S$49 SGD each |
 
 Generation is free to maximise funnel conversion; revenue is collected at unlock time when the employer has seen anonymous value.
 

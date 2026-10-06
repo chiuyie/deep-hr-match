@@ -4,6 +4,7 @@ import {
   generateMatchingResults,
   saveJob,
 } from "@/lib/employer/actions";
+import { getUnlockedCandidateIds } from "@/lib/auth/unlock";
 
 const requireRole = vi.fn();
 const revalidatePath = vi.fn();
@@ -25,6 +26,7 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: () => mockCreateClient(),
+  createServiceClient: () => mockCreateClient(),
 }));
 
 vi.mock("next/cache", () => ({
@@ -47,6 +49,10 @@ vi.mock("@/lib/payments/mode", () => ({
   isMockPayments: () => true,
 }));
 
+vi.mock("@/lib/auth/unlock", () => ({
+  getUnlockedCandidateIds: vi.fn(async () => [] as string[]),
+}));
+
 vi.mock("@/lib/form-fields/queries", () => ({
   ensureFormFieldsReady: () => ensureFormFieldsReady(),
   loadFormFields: (...args: unknown[]) => loadFormFields(...args),
@@ -57,9 +63,11 @@ function createAwaitableChain<T>(result: T) {
   const self = () => chain;
   chain.select = vi.fn(self);
   chain.eq = vi.fn(self);
+  chain.in = vi.fn(self);
   chain.gte = vi.fn(self);
   chain.not = vi.fn(self);
   chain.single = vi.fn(async () => result);
+  chain.maybeSingle = vi.fn(async () => result);
   chain.insert = vi.fn(() => ({
     select: vi.fn(() => ({
       single: vi.fn(async () => result),
@@ -122,6 +130,72 @@ describe("employer actions", () => {
       expect(result).toEqual({ error: "Select at least one candidate" });
     });
 
+    it("rejects candidates that are not matched to the job", async () => {
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "employer_profiles") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(async () => ({ data: { id: "emp-1" }, error: null })),
+              })),
+            })),
+          };
+        }
+        if (table === "jobs") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  maybeSingle: vi.fn(async () => ({ data: { id: "job-1" }, error: null })),
+                })),
+              })),
+            })),
+          };
+        }
+        if (table === "match_results") {
+          return createAwaitableChain({ data: [], error: null });
+        }
+        return createAwaitableChain({ data: null, error: null });
+      });
+
+      const result = await createUnlockCheckout("job-1", ["cand-1"]);
+      expect(result).toEqual({
+        error: expect.stringMatching(/Select candidates from this job/),
+      });
+    });
+
+    it("redirects when every selected candidate is already unlocked", async () => {
+      vi.mocked(getUnlockedCandidateIds).mockResolvedValueOnce(["cand-1"]);
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "jobs") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  maybeSingle: vi.fn(async () => ({ data: { id: "job-1" }, error: null })),
+                })),
+              })),
+            })),
+          };
+        }
+        if (table === "match_results") {
+          return createAwaitableChain({
+            data: [{ candidate_id: "cand-1" }],
+            error: null,
+          });
+        }
+        return createAwaitableChain({ data: null, error: null });
+      });
+      redirect.mockImplementation(() => {
+        throw new Error("NEXT_REDIRECT");
+      });
+
+      await expect(createUnlockCheckout("job-1", ["cand-1"])).rejects.toThrow("NEXT_REDIRECT");
+      expect(redirect).toHaveBeenCalledWith("/employer/jobs/job-1/unlocked/cand-1");
+      expect(fulfillUnlockPayment).not.toHaveBeenCalled();
+    });
+
     it("fulfills mock payments and redirects to unlocked profile", async () => {
       mockFrom.mockImplementation((table: string) => {
         if (table === "employer_profiles") {
@@ -132,6 +206,23 @@ describe("employer actions", () => {
               })),
             })),
           };
+        }
+        if (table === "jobs") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  maybeSingle: vi.fn(async () => ({ data: { id: "job-1" }, error: null })),
+                })),
+              })),
+            })),
+          };
+        }
+        if (table === "match_results") {
+          return createAwaitableChain({
+            data: [{ candidate_id: "cand-1" }],
+            error: null,
+          });
         }
         if (table === "payments") {
           return {
@@ -145,6 +236,9 @@ describe("employer actions", () => {
         return createAwaitableChain({ data: null, error: null });
       });
       fulfillUnlockPayment.mockResolvedValue({ error: null });
+      redirect.mockImplementation(() => {
+        throw new Error("NEXT_REDIRECT");
+      });
 
       await expect(createUnlockCheckout("job-1", ["cand-1"])).rejects.toThrow("NEXT_REDIRECT");
       expect(fulfillUnlockPayment).toHaveBeenCalled();

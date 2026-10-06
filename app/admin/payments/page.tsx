@@ -10,7 +10,7 @@ import { formatCurrency, formatDate } from "@/lib/utils/profile";
 export default async function AdminPaymentsPage() {
   const rows = await loadAdminPaymentsList();
   const totalCents = rows.reduce((sum, payment) => sum + (payment.amount ?? 0), 0);
-  const currency = rows[0]?.currency ?? "usd";
+  const currency = rows[0]?.currency ?? "sgd";
 
   return (
     <AdminPageSection

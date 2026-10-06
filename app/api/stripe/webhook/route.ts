@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import Stripe from "stripe";
 import { fulfillUnlockPayment } from "@/lib/payments/fulfill-unlock";
 import { getStripe } from "@/lib/stripe/client";
@@ -42,19 +43,33 @@ export async function POST(request: NextRequest) {
     const jobId = session.metadata?.job_id;
     const candidateIds = session.metadata?.candidate_ids?.split(",").filter(Boolean) ?? [];
 
-    if (paymentId && employerId && jobId && candidateIds.length) {
-      const supabase = await createServiceClient();
-      const result = await fulfillUnlockPayment(supabase, {
-        paymentId,
-        employerId,
-        jobId,
-        candidateIds,
-        sessionId: session.id,
-      });
-      if (result.error) {
-        return NextResponse.json({ error: result.error }, { status: 500 });
-      }
+    if (!paymentId || !employerId || !jobId || !candidateIds.length) {
+      return NextResponse.json(
+        { error: "checkout.session.completed missing unlock metadata" },
+        { status: 400 }
+      );
     }
+
+    const supabase = await createServiceClient();
+    const result = await fulfillUnlockPayment(supabase, {
+      paymentId,
+      employerId,
+      jobId,
+      candidateIds,
+      sessionId: session.id,
+    });
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    revalidatePath(`/employer/jobs/${jobId}/matching`);
+    revalidatePath(`/employer/jobs/${jobId}/unlocked`);
+    if (candidateIds.length === 1) {
+      revalidatePath(`/employer/jobs/${jobId}/unlocked/${candidateIds[0]}`);
+    }
+    revalidatePath("/employer/unlocked");
+    revalidatePath("/admin/payments");
+    revalidatePath("/admin/unlocks");
   }
 
   return NextResponse.json({ received: true });
