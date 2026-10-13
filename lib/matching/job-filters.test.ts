@@ -119,6 +119,100 @@ describe("job matching filters", () => {
     ).toBe(true);
   });
 
+  it("derives age from date of birth and still drops a blank age", () => {
+    const today = new Date();
+    const dobForAge = (age: number) => `${today.getFullYear() - age}-01-01`;
+    const job = { form_data: { required_age: "26-30" } };
+    expect(
+      candidatePassesJobFilters(job, {
+        date_of_birth: dobForAge(28),
+        custom_fields: { age_range: "18-25" },
+      })
+    ).toBe(true);
+    expect(
+      candidateFailsJobFilter(job, {
+        date_of_birth: dobForAge(40),
+      })
+    ).toBe("required_age");
+    expect(
+      candidateFailsJobFilter(job, {
+        custom_fields: { nationality: "Singaporean" },
+      })
+    ).toBe("required_age");
+  });
+
+  it("derives time in the current country from the start date", () => {
+    const today = new Date();
+    const yearsAgo = (years: number) => {
+      const date = new Date(today.getFullYear() - years, today.getMonth(), today.getDate());
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${date.getFullYear()}-${month}-${day}`;
+    };
+    const job = { form_data: { required_months_in_current_country: "3-5 years" } };
+    expect(
+      candidatePassesJobFilters(job, {
+        custom_fields: {
+          current_country_since: yearsAgo(4),
+          months_in_current_country: "1-2 years",
+        },
+      })
+    ).toBe(true);
+    expect(
+      candidateFailsJobFilter(job, {
+        custom_fields: { current_country_since: yearsAgo(1) },
+      })
+    ).toBe("required_months_in_current_country");
+    expect(
+      candidatePassesJobFilters(job, {
+        custom_fields: { months_in_current_country: "5-10 years" },
+      })
+    ).toBe(true);
+  });
+
+  it("buckets country and city onto the shared location list", () => {
+    expect(
+      candidatePassesJobFilters(
+        { form_data: { required_current_country: "Others" } },
+        { country: "Japan" }
+      )
+    ).toBe(true);
+    expect(
+      candidatePassesJobFilters(
+        { form_data: { required_current_country: "Others" } },
+        { country: "Other" }
+      )
+    ).toBe(true);
+    expect(
+      candidateFailsJobFilter(
+        { form_data: { required_current_country: "Singapore" } },
+        { country: "Japan" }
+      )
+    ).toBe("required_current_country");
+    expect(
+      candidatePassesJobFilters(
+        { form_data: { required_current_city: "Ho Chi Minh" } },
+        { city: "Ho Chi Minh City" }
+      )
+    ).toBe(true);
+    expect(
+      candidateFailsJobFilter(
+        { form_data: { required_current_country: "Singapore" } },
+        { country: "" }
+      )
+    ).toBe("required_current_country");
+  });
+
+  it("records accessibility on the role without removing candidates", () => {
+    const job = { form_data: { faq_accessibility_arrangements_required: true } };
+    expect(
+      candidatePassesJobFilters(job, {
+        custom_fields: { accessibility_arrangements_required: "No" },
+      })
+    ).toBe(true);
+    expect(candidatePassesJobFilters(job, { custom_fields: {} })).toBe(true);
+  });
+
   it("filters matching attributes from candidate custom_fields", () => {
     const job = {
       form_data: {

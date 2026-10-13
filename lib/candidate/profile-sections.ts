@@ -17,7 +17,20 @@ export function groupCandidateProfileFields(
   fields: FormFieldDefinition[],
   sectionOrder?: string[]
 ): Array<CandidateProfileSectionDef & { fields: FormFieldDefinition[] }> {
-  return groupCandidateProfileFieldsByUiSections(fields, sectionOrder);
+  return groupCandidateProfileFieldsByUiSections(fields, builtinCandidateSectionOrder(sectionOrder));
+}
+
+/** Keep built-in sections in product order even when an older saved order omits new ones. */
+function builtinCandidateSectionOrder(sectionOrder?: string[]): string[] | undefined {
+  if (!sectionOrder?.length) return undefined;
+  const builtin = [
+    ...CANDIDATE_PROFILE_SECTIONS.map((section) => section.title),
+    CANDIDATE_ADDITIONAL_SECTION.title,
+  ];
+  const extras = sectionOrder.filter((title) => !builtin.includes(title));
+  const additionalAt = builtin.indexOf(CANDIDATE_ADDITIONAL_SECTION.title);
+  builtin.splice(additionalAt, 0, ...extras);
+  return builtin;
 }
 
 export function profileFieldGroupTitle(fieldKey: string): string | undefined {

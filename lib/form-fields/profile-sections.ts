@@ -6,6 +6,8 @@ export type ProfileSectionDef = {
   description: string;
   /** Built-in field keys that belong in this section by default. */
   fieldKeys: string[];
+  /** Start closed. The candidate can open it when a role needs these answers. */
+  collapsed?: boolean;
 };
 
 /** Candidate profile sections — must match the candidate profile UI. */
@@ -20,6 +22,7 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
       "email",
       "phone",
       "date_of_birth",
+      "gender",
       "country",
       "city",
       "postal_code",
@@ -42,41 +45,45 @@ export const CANDIDATE_PROFILE_SECTIONS: ProfileSectionDef[] = [
   {
     id: "compensation",
     title: "Compensation",
-    description: "Optional — improves salary fit. You can leave blanks if you prefer.",
+    description:
+      "Shown after an employer unlocks your profile. Not used in the match score.",
     fieldKeys: ["current_salary", "expected_salary"],
   },
   {
     id: "preferences",
     title: "Job preferences",
-    description: "Tell us how and when you’d like to work.",
-    fieldKeys: [
-      "desired_job_titles",
-      "preferred_locations",
-      "employment_type_preference",
-      "work_arrangement_preference",
-      "availability",
-    ],
+    description:
+      "Work arrangement and availability are used when an employer filters on them. Leave one blank and you will not match jobs that filter on it.",
+    fieldKeys: ["work_arrangement_preference", "availability"],
+  },
+  {
+    id: "nice-to-have",
+    title: "Nice to have",
+    description:
+      "Shown on your profile after an employer unlocks you. These do not decide whether you appear in match results, and they do not change your match score.",
+    fieldKeys: ["desired_job_titles", "preferred_locations", "employment_type_preference"],
   },
   {
     id: "matching-details",
     title: "Matching details",
     description:
-      "Optional — fill these in so employers’ matching filters can include you. Leave blank if you prefer not to share.",
+      "Employers can require these before you are scored. Leave a field blank and you will not match jobs that filter on it.",
     fieldKeys: [
-      "age_range",
       "employment_eligibility_visa",
       "nationality",
       "ethnicity",
-      "gender",
-      "race",
-      "religion",
       "birth_country",
-      "months_in_current_country",
+      "current_country_since",
       "dialect",
-      "height",
-      "weight",
-      "fitness_level",
     ],
+  },
+  {
+    id: "role-specific",
+    title: "Only if the role needs it",
+    description:
+      "Religion, height, weight, and fitness. Employers rarely filter on these. If they do and you leave one blank, you will not match that job.",
+    collapsed: true,
+    fieldKeys: ["religion", "height", "weight", "fitness_level"],
   },
   {
     id: "role-requirements",
@@ -262,6 +269,7 @@ export function groupProfileFieldsByUiSections(
       title,
       description: descriptionByTitle.get(title) ?? def?.description ?? "Extra details for this profile.",
       fieldKeys: def?.fieldKeys ?? [],
+      collapsed: def?.collapsed,
       fields: sectionFields,
     });
   }
@@ -294,6 +302,9 @@ export const RETIRED_CANDIDATE_INPUT_KEYS = new Set([
   "years_of_experience",
   "highest_education",
   "skills",
+  "age_range",
+  "race",
+  "months_in_current_country",
 ]);
 
 export function groupCandidateProfileFieldsByUiSections(

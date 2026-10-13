@@ -69,7 +69,7 @@ export async function generatePlaceholderMatches(
       supabase
         .from("candidate_profiles")
         .select(
-          "id, years_of_experience, highest_education, skills, languages, country, city, availability, work_arrangement_preference, custom_fields"
+          "id, years_of_experience, highest_education, skills, languages, country, city, availability, work_arrangement_preference, date_of_birth, custom_fields"
         )
         .eq("status", "ready_for_matching"),
     ]);

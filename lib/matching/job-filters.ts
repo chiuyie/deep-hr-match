@@ -3,7 +3,14 @@ import {
   JOB_ELIMINATION_FIELDS,
   JOB_FORM_NO_FILTER_VALUE,
 } from "@/lib/constants/job-form";
+import {
+  MATCH_CITY_OPTIONS,
+  MATCH_COUNTRY_OPTIONS,
+  canonicalizeMatchLocation,
+} from "@/lib/constants/match-locations";
 import type { CandidateLanguageEntry } from "@/lib/constants/profile-tags";
+import { ageRangeFromDateOfBirth } from "@/lib/matching/age-range";
+import { timeInCountryBand } from "@/lib/matching/time-in-country";
 
 export type JobFilterSource = {
   form_data?: Record<string, unknown> | null;
@@ -19,6 +26,7 @@ export type CandidateFilterSource = {
   city?: string | null;
   availability?: string | null;
   work_arrangement_preference?: string | null;
+  date_of_birth?: string | null;
   custom_fields?: Record<string, unknown> | null;
 };
 
@@ -28,8 +36,11 @@ const INACTIVE_FILTER_VALUES = new Set(
   )
 );
 
-/** Role FAQs that describe the job, not a candidate hard requirement. */
-const JOB_DESCRIPTION_FAQS = new Set<string>();
+/**
+ * Role FAQs that describe the job, not a candidate hard requirement.
+ * Accessibility is about what the workplace needs to provide, not a Yes the candidate must match.
+ */
+const JOB_DESCRIPTION_FAQS = new Set<string>(["faq_accessibility_arrangements_required"]);
 
 const FILTER_FIELD_ALIASES: Record<string, string[]> = {
   required_availability: ["availability"],
@@ -106,8 +117,25 @@ export function isInactiveJobFilter(value: unknown): boolean {
   return !text || INACTIVE_FILTER_VALUES.has(text);
 }
 
+function hasReadableFilterValue(value: unknown, keepUnlisted: boolean): boolean {
+  if (value === false) return true;
+  if (!keepUnlisted) return !isInactiveJobFilter(value);
+  if (value == null) return false;
+  return normalize(value).length > 0;
+}
+
 function valuesEqual(jobValue: unknown, candidateValue: unknown): boolean {
   return normalize(jobValue) === normalize(candidateValue);
+}
+
+function locationsMatch(
+  jobValue: unknown,
+  candidateValue: unknown,
+  options: readonly string[]
+): boolean {
+  const jobLocation = canonicalizeMatchLocation(jobValue, options);
+  const candidateLocation = canonicalizeMatchLocation(candidateValue, options);
+  return jobLocation != null && jobLocation === candidateLocation;
 }
 
 function readProfileColumn(
@@ -125,14 +153,29 @@ export function readCandidateFilterValue(
   candidate: CandidateFilterSource,
   jobFieldKey: string
 ): unknown {
+  if (jobFieldKey === "required_age") {
+    const fromDob = ageRangeFromDateOfBirth(candidate.date_of_birth);
+    if (fromDob) return fromDob;
+  }
+
+  if (jobFieldKey === "required_months_in_current_country") {
+    const since = readCustomField(candidate, "current_country_since");
+    const fromSince = timeInCountryBand(since);
+    if (fromSince) return fromSince;
+  }
+
   const aliases = FILTER_FIELD_ALIASES[jobFieldKey] ?? [];
   const keys = [jobFieldKey, ...aliases];
+  const keepUnlisted =
+    jobFieldKey === "required_current_country" ||
+    jobFieldKey === "required_birth_country" ||
+    jobFieldKey === "required_current_city";
 
   for (const key of keys) {
     const fromColumn = readProfileColumn(candidate, key);
-    if (!isInactiveJobFilter(fromColumn) || fromColumn === false) return fromColumn;
+    if (hasReadableFilterValue(fromColumn, keepUnlisted)) return fromColumn;
     const fromCustom = readCustomField(candidate, key);
-    if (!isInactiveJobFilter(fromCustom) || fromCustom === false) return fromCustom;
+    if (hasReadableFilterValue(fromCustom, keepUnlisted)) return fromCustom;
   }
 
   return null;
@@ -234,6 +277,16 @@ export function candidateFailsJobFilter(
       if (!isInactiveJobFilter(candidateValue) && valuesEqual(jobValue, candidateValue)) {
         return field.name;
       }
+      continue;
+    }
+
+    if (field.name === "required_current_country" || field.name === "required_birth_country") {
+      if (!locationsMatch(jobValue, candidateValue, MATCH_COUNTRY_OPTIONS)) return field.name;
+      continue;
+    }
+
+    if (field.name === "required_current_city") {
+      if (!locationsMatch(jobValue, candidateValue, MATCH_CITY_OPTIONS)) return field.name;
       continue;
     }
 

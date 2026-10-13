@@ -54,7 +54,7 @@ This excludes draft/incomplete candidates. The pool is **global** (not employer-
 1. **First snapshot:** when `saveJob()` posts a job as `active` (new create or draft → active), the app auto-calls `triggerMatchRun()` once if no `match_results` exist yet (`shouldAutoGenerateInitialMatches`).
 2. **Later snapshots:** employer clicks **Refresh Matches** (or **Generate Matches** if the auto-run failed). New candidates do **not** auto-trigger a re-run.
 3. This app calls `triggerMatchRun()` — inline engine locally, or HTTP to **external matching service** when configured (see [integration doc](./matching-engine-integration.md)).
-4. The engine scores ready candidates and writes to `match_results`.
+4. The engine removes candidates who fail the job's filters, scores the rest on 7^7 only, and writes to `match_results`. See [Matching logic](./matching-engine.md).
 5. Previous `match_results` rows for that job are **deleted** before insert.
 6. Top **25** candidates are stored (`MATCH_DISPLAY_LIMIT`).
 7. All rows share the same `generated_at` timestamp.
@@ -114,7 +114,7 @@ Rules implemented in `components/employer/job-row-actions.tsx` via `lib/employer
 | `lib/employer/job-rules.ts` | `canEditJob`, `canRunMatching`, `canViewMatching`, UI labels, warnings |
 | `lib/employer/job-rules.test.ts` | Unit tests for lifecycle rules |
 | `lib/matching/trigger.ts` | Inline vs external engine dispatch |
-| `lib/matching/engine.ts` | Phase 1 placeholder (dev when no external URL) |
+| `lib/matching/engine.ts` | Filter, then 7^7 score, then top 25 |
 | `lib/matching/snapshot.ts` | Snapshot time, new-candidate count, UI notices |
 | `lib/matching/snapshot.test.ts` | Unit tests for snapshot helpers |
 | `lib/employer/actions.ts` | `generateMatchingResults()`, `saveJob()` guards |
@@ -130,11 +130,11 @@ Rules implemented in `components/employer/job-row-actions.tsx` via `lib/employer
 | Incremental refresh | Add new candidates without full re-rank |
 | Email/badge notification | "New matches available for [Job Title]" |
 | Minimum score threshold | Hide poor fits even if within top N |
-| Real matching algorithm | Replace placeholder scoring |
+| Score salary, skills, or experience | Those signals are collected but not part of the match number |
 
 ## Related Docs
 
 - [Matching Engine Integration](./matching-engine-integration.md) — external service contract
-- [Matching Engine](./matching-engine.md) — placeholder + trigger details
+- [Matching Engine](./matching-engine.md) — filters, then 7^7 score
 - [Payments](./payments.md) — Stripe unlock flow
 - [Server Actions](./server-actions.md) — `generateMatchingResults`, `saveJob`

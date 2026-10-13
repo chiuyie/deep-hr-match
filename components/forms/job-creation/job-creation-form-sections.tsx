@@ -470,8 +470,17 @@ export function JobCreationFormSectionBody({
               isJobFieldVisible(fieldMeta, question.name) ? (
                 <JobFaqField
                   key={question.name}
-                  label={jobFieldLabel(fieldMeta, question.name, question.label)}
+                  label={
+                    question.name === "faq_accessibility_arrangements_required"
+                      ? question.label
+                      : jobFieldLabel(fieldMeta, question.name, question.label)
+                  }
                   name={question.name}
+                  hint={
+                    question.name === "faq_accessibility_arrangements_required"
+                      ? "Recorded for the role only. It does not remove candidates from matching."
+                      : undefined
+                  }
                   value={
                     typeof values[question.name] === "boolean"
                       ? (values[question.name] as boolean)

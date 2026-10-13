@@ -10,7 +10,6 @@ import {
   useProfileFormValidationOptional,
 } from "@/components/forms/profile-form-validation-context";
 import type { FormFieldDefinition } from "@/lib/form-fields/types";
-import { WORLD_COUNTRY_BY_NAME } from "@/lib/constants/geo/world-countries.generated";
 import { TagInput } from "@/components/forms/tag-input";
 import { LanguageProficiencyField } from "@/components/forms/language-proficiency-field";
 import {
@@ -62,11 +61,15 @@ import {
 } from "@/lib/form-fields/years-of-experience";
 import { cn } from "@/lib/utils";
 import {
-  CANDIDATE_COUNTRIES,
+  MATCH_CITY_OPTIONS,
+  MATCH_COUNTRY_OPTIONS,
+  MATCH_OTHERS,
+  citiesForMatchCountry,
+  splitStoredMatchLocation,
+} from "@/lib/constants/match-locations";
+import {
   SALARY_CURRENCY_OPTIONS,
-  countrySelectOptions,
   dialCodeForCountry,
-  fetchCitiesForCountry,
   formatPhoneValue,
   formatSalaryValue,
   parsePhoneOptionValue,
@@ -83,8 +86,18 @@ import {
 } from "@/lib/constants/job-form";
 import { Lock } from "lucide-react";
 
-const countrySearchOptions = countrySelectOptions();
+const matchCountrySearchOptions = MATCH_COUNTRY_OPTIONS.map((name) => ({
+  value: name,
+  label: name,
+}));
 const phoneDialSearchOptions = phoneDialSelectOptions();
+
+function localTodayIso(): string {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${today.getFullYear()}-${month}-${day}`;
+}
 
 const selectClassName =
   "h-11 w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50";
@@ -338,38 +351,49 @@ function CountryCityFields({
   const countryTrack = useFieldTracking(countryField.field_key);
   const cityTrack = useFieldTracking(cityField.field_key);
 
-  const countryIsListed = WORLD_COUNTRY_BY_NAME.has(countryDefault);
-  const [country, setCountry] = useState(
-    countryIsListed ? countryDefault : countryDefault ? "Other" : ""
-  );
-  const [countryOther, setCountryOther] = useState(countryIsListed ? "" : countryDefault);
-  const countrySubmitValue = country === "Other" ? countryOther.trim() : country;
+  const initialCountry = splitStoredMatchLocation(countryDefault, MATCH_COUNTRY_OPTIONS);
+  const initialCities = citiesForMatchCountry(initialCountry.choice);
+  const recognizedCity = splitStoredMatchLocation(cityDefault, MATCH_CITY_OPTIONS);
+  const cityInScope =
+    recognizedCity.choice !== "" &&
+    recognizedCity.choice !== MATCH_OTHERS &&
+    initialCities.includes(recognizedCity.choice);
 
-  const [cityOptions, setCityOptions] = useState<string[]>(["Other"]);
-  const [citiesLoading, setCitiesLoading] = useState(false);
-  const [city, setCity] = useState("");
-  const [cityOther, setCityOther] = useState("");
-  const [cityHydrated, setCityHydrated] = useState(false);
-  const citySubmitValue = city === "Other" ? cityOther.trim() : city;
+  const [country, setCountry] = useState(initialCountry.choice);
+  const [countryOther, setCountryOther] = useState(initialCountry.specify);
+  const countrySubmitValue =
+    country === MATCH_OTHERS ? countryOther.trim() || MATCH_OTHERS : country;
+
+  const [cityOptions, setCityOptions] = useState<readonly string[]>(initialCities);
+  const [city, setCity] = useState(
+    cityInScope ? recognizedCity.choice : recognizedCity.choice ? MATCH_OTHERS : ""
+  );
+  const [cityOther, setCityOther] = useState(
+    cityInScope
+      ? ""
+      : recognizedCity.specify ||
+          (recognizedCity.choice && recognizedCity.choice !== MATCH_OTHERS ? cityDefault.trim() : "")
+  );
+  const citySubmitValue = city === MATCH_OTHERS ? cityOther.trim() || MATCH_OTHERS : city;
 
   function applyCountrySelection(nextCountry: string) {
     setCountry(nextCountry);
-    if (nextCountry !== "Other") setCountryOther("");
-    setCityHydrated(false);
+    if (nextCountry !== MATCH_OTHERS) setCountryOther("");
 
-    // Singapore city is always Singapore — set immediately (don't wait for the cities API).
-    if (nextCountry === "Singapore") {
-      setCityOptions(["Singapore"]);
-      setCity("Singapore");
+    const nextCities = citiesForMatchCountry(nextCountry);
+    setCityOptions(nextCities);
+    const named = nextCities.filter((option) => option !== MATCH_OTHERS);
+    if (named.length === 1 && named[0]) {
+      setCity(named[0]);
       setCityOther("");
-      cityTrack.report("Singapore", { reveal: true });
+      cityTrack.report(named[0], { reveal: true });
     } else {
       setCity("");
       setCityOther("");
       cityTrack.report("", { reveal: false });
     }
 
-    countryTrack.report(nextCountry === "Other" ? "" : nextCountry, { reveal: true });
+    countryTrack.report(nextCountry === MATCH_OTHERS ? "" : nextCountry, { reveal: true });
   }
 
   useEffect(() => {
@@ -381,58 +405,6 @@ function CountryCityFields({
     cityTrack.report(citySubmitValue, { reveal: Boolean(citySubmitValue) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [citySubmitValue]);
-
-  useEffect(() => {
-    const name = countrySubmitValue;
-    if (!name) {
-      setCityOptions(["Other"]);
-      return;
-    }
-    // Already handled synchronously for Singapore.
-    if (name === "Singapore") {
-      setCityOptions(["Singapore"]);
-      setCity((prev) => (prev === "Singapore" ? prev : "Singapore"));
-      setCityOther("");
-      setCitiesLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setCitiesLoading(true);
-    fetchCitiesForCountry(name)
-      .then((cities) => {
-        if (cancelled) return;
-        setCityOptions(cities);
-        if (cities.length === 1 && cities[0]) {
-          setCity(cities[0]);
-          setCityOther("");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setCitiesLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [countrySubmitValue]);
-
-  useEffect(() => {
-    if (cityHydrated || citiesLoading) return;
-    if (countrySubmitValue === "Singapore") {
-      setCity("Singapore");
-      setCityOther("");
-      setCityHydrated(true);
-      return;
-    }
-    if (cityDefault && cityOptions.includes(cityDefault)) {
-      setCity(cityDefault);
-      setCityOther("");
-    } else if (cityDefault) {
-      setCity("Other");
-      setCityOther(cityDefault);
-    }
-    setCityHydrated(true);
-  }, [cityDefault, cityHydrated, cityOptions, citiesLoading, countrySubmitValue]);
 
   const citySearchOptions = useMemo(
     () => cityOptions.map((name) => ({ value: name, label: name })),
@@ -448,12 +420,12 @@ function CountryCityFields({
           id={countryField.field_key}
           value={country}
           onChange={(next) => applyCountrySelection(next)}
-          options={countrySearchOptions}
+          options={matchCountrySearchOptions}
           placeholder="Search country"
           required={countryField.is_required}
           maxVisibleOptions={8}
         />
-        {country === "Other" ? (
+        {country === MATCH_OTHERS ? (
           <Input
             value={countryOther}
             onChange={(e) => {
@@ -461,8 +433,8 @@ function CountryCityFields({
               countryTrack.report(e.target.value, { reveal: true });
             }}
             onBlur={() => {
-              const listed = matchListedOption(countryOther, CANDIDATE_COUNTRIES);
-              if (listed) {
+              const listed = matchListedOption(countryOther, MATCH_COUNTRY_OPTIONS);
+              if (listed && listed !== MATCH_OTHERS) {
                 applyCountrySelection(listed);
                 return;
               }
@@ -470,11 +442,15 @@ function CountryCityFields({
             }}
             placeholder="Type your country"
             className={cn(inputClassName, "mt-2", countryTrack.invalid && invalidInputClassName)}
-            required={countryField.is_required}
             aria-invalid={countryTrack.invalid || undefined}
           />
         ) : null}
         <FieldInlineError message={countryTrack.error} />
+        {!countryTrack.error ? (
+          <p className="text-xs leading-relaxed text-slate-500">
+            Matching uses this list. A place that is not listed counts as Others.
+          </p>
+        ) : null}
       </div>
       <div className="min-w-0 space-y-2" data-field-key={cityField.field_key}>
         <FieldLabel field={cityField} />
@@ -484,23 +460,17 @@ function CountryCityFields({
           value={city}
           onChange={(next) => {
             setCity(next);
-            if (next !== "Other") setCityOther("");
-            cityTrack.report(next === "Other" ? "" : next, { reveal: true });
+            if (next !== MATCH_OTHERS) setCityOther("");
+            cityTrack.report(next === MATCH_OTHERS ? "" : next, { reveal: true });
           }}
           options={citySearchOptions}
-          placeholder={
-            citiesLoading
-              ? "Loading cities…"
-              : countrySubmitValue
-                ? "Search city"
-                : "Select country first"
-          }
+          placeholder={country ? "Search city" : "Select country first"}
           required={cityField.is_required}
-          disabled={!countrySubmitValue || citiesLoading}
-          emptyMessage={citiesLoading ? "Loading…" : "No matches — choose Other"}
+          disabled={!country}
+          emptyMessage="No matches — choose Others"
           maxVisibleOptions={8}
         />
-        {city === "Other" ? (
+        {city === MATCH_OTHERS ? (
           <Input
             value={cityOther}
             onChange={(e) => {
@@ -509,7 +479,7 @@ function CountryCityFields({
             }}
             onBlur={() => {
               const listed = matchListedOption(cityOther, cityOptions);
-              if (listed) {
+              if (listed && listed !== MATCH_OTHERS) {
                 setCity(listed);
                 setCityOther("");
                 cityTrack.report(listed, { reveal: true });
@@ -519,29 +489,20 @@ function CountryCityFields({
             }}
             placeholder="Type your city"
             className={cn(inputClassName, "mt-2", cityTrack.invalid && invalidInputClassName)}
-            required={cityField.is_required}
             aria-invalid={cityTrack.invalid || undefined}
           />
         ) : null}
         <FieldInlineError message={cityTrack.error} />
-        {!cityTrack.error && countrySubmitValue && !citiesLoading && cityOptions.length > 1 ? (
-          <p className="text-xs leading-relaxed text-slate-500">
-            {cityOptions.includes("Other") ? cityOptions.length - 1 : cityOptions.length} locations
-            — search or pick Other to type your own.
-          </p>
-        ) : null}
       </div>
     </>
   );
 }
 
 function CountrySearchField({ field, defaultValue }: Props) {
-  const countryIsListed = WORLD_COUNTRY_BY_NAME.has(defaultValue);
-  const [country, setCountry] = useState(
-    countryIsListed ? defaultValue : defaultValue ? "Other" : ""
-  );
-  const [countryOther, setCountryOther] = useState(countryIsListed ? "" : defaultValue);
-  const submitValue = country === "Other" ? countryOther.trim() : country;
+  const initial = splitStoredMatchLocation(defaultValue, MATCH_COUNTRY_OPTIONS);
+  const [country, setCountry] = useState(initial.choice);
+  const [countryOther, setCountryOther] = useState(initial.specify);
+  const submitValue = country === MATCH_OTHERS ? countryOther.trim() || MATCH_OTHERS : country;
   const { error, report, invalid } = useFieldTracking(field.field_key);
 
   useEffect(() => {
@@ -558,15 +519,15 @@ function CountrySearchField({ field, defaultValue }: Props) {
         value={country}
         onChange={(next) => {
           setCountry(next);
-          if (next !== "Other") setCountryOther("");
-          report(next === "Other" ? "" : next, { reveal: true });
+          if (next !== MATCH_OTHERS) setCountryOther("");
+          report(next === MATCH_OTHERS ? "" : next, { reveal: true });
         }}
-        options={countrySearchOptions}
+        options={matchCountrySearchOptions}
         placeholder="Search country"
         required={field.is_required}
         maxVisibleOptions={8}
       />
-      {country === "Other" ? (
+      {country === MATCH_OTHERS ? (
         <Input
           value={countryOther}
           onChange={(e) => {
@@ -574,8 +535,8 @@ function CountrySearchField({ field, defaultValue }: Props) {
             report(e.target.value, { reveal: true });
           }}
           onBlur={() => {
-            const listed = matchListedOption(countryOther, CANDIDATE_COUNTRIES);
-            if (listed) {
+            const listed = matchListedOption(countryOther, MATCH_COUNTRY_OPTIONS);
+            if (listed && listed !== MATCH_OTHERS) {
               setCountry(listed);
               setCountryOther("");
               report(listed, { reveal: true });
@@ -585,11 +546,15 @@ function CountrySearchField({ field, defaultValue }: Props) {
           }}
           placeholder="Type your country"
           className={cn(inputClassName, "mt-2", invalid && invalidInputClassName)}
-          required={field.is_required}
           aria-invalid={invalid || undefined}
         />
       ) : null}
       <FieldInlineError message={error} />
+      {!error ? (
+        <p className="text-xs leading-relaxed text-slate-500">
+          Matching uses this list. A place that is not listed counts as Others.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -1242,7 +1207,12 @@ function TrackedTextField({
   const textMax =
     FIELD_MAX_LENGTH[field.field_key as keyof typeof FIELD_MAX_LENGTH] ??
     (field.is_custom ? FIELD_MAX_LENGTH.custom : FIELD_MAX_LENGTH.default);
-  const dobBounds = field.field_key === "date_of_birth" ? dateOfBirthInputBounds() : null;
+  const dobBounds =
+    field.field_key === "date_of_birth"
+      ? dateOfBirthInputBounds()
+      : field.field_key === "current_country_since"
+        ? { min: "1900-01-01", max: localTodayIso() }
+        : null;
 
   const shared = {
     id: field.field_key,
@@ -1308,7 +1278,14 @@ function TrackedTextField({
       ) : null}
       {!error && field.field_key === "date_of_birth" ? (
         <p className="text-xs leading-relaxed text-slate-500">
-          Required. You need to be at least 16. This date locks after you save it.
+          Required. You need to be at least 16. This date locks after you save it, and matching
+          uses it for the age band.
+        </p>
+      ) : null}
+      {!error && field.field_key === "current_country_since" ? (
+        <p className="text-xs leading-relaxed text-slate-500">
+          Matching uses this date. The time band moves forward on its own, so you do not need to
+          update it each year.
         </p>
       ) : null}
     </div>
@@ -1372,6 +1349,7 @@ export function CandidateProfileField({ field, defaultValue, locked = false }: P
         defaultValue={defaultValue}
         options={genderOptions}
         placeholder="Select gender"
+        helper="Asked once, then locked. If an employer filters on gender and this is blank, you are left out of that job."
       />
     );
   }

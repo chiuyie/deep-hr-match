@@ -36,6 +36,10 @@ function candidateProfileFields(): DefaultFormFieldInput[] {
     email: { label: "Email", field_type: "email", is_required: true },
     phone: { label: "Phone", field_type: "tel" },
     date_of_birth: { label: "Date of birth", field_type: "date", is_required: true },
+    current_country_since: {
+      label: "When did you start living in your current country?",
+      field_type: "date",
+    },
     country: { label: "Country", field_type: "select" },
     city: { label: "City", field_type: "select" },
     home_address: { label: "Home address", field_type: "textarea" },

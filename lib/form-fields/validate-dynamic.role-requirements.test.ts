@@ -8,7 +8,7 @@ describe("foldCandidateCustomStoredFields", () => {
       willing_overtime: "Yes",
       driving_licence: "No",
       nationality: "Singaporean",
-      age_range: "26-30",
+      ethnicity: "Chinese",
       custom_fields: { portfolio: "https://example.com" },
     });
 
@@ -16,13 +16,13 @@ describe("foldCandidateCustomStoredFields", () => {
     expect(result.willing_overtime).toBeUndefined();
     expect(result.driving_licence).toBeUndefined();
     expect(result.nationality).toBeUndefined();
-    expect(result.age_range).toBeUndefined();
+    expect(result.ethnicity).toBeUndefined();
     expect(result.custom_fields).toEqual({
       portfolio: "https://example.com",
       willing_overtime: "Yes",
       driving_licence: "No",
       nationality: "Singaporean",
-      age_range: "26-30",
+      ethnicity: "Chinese",
     });
   });
 

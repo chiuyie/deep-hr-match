@@ -34,11 +34,15 @@ describe("candidate profile sections", () => {
     expect(profileFieldGroupTitle("certifications")).toBe("Experience: Work-Life");
     expect(profileFieldGroupTitle("work_experience")).toBe("Experience: Work-Life");
     expect(profileFieldGroupTitle("education_history")).toBe("Experience: Work-Life");
-    expect(profileFieldGroupTitle("desired_job_titles")).toBe("Job preferences");
-    expect(profileFieldGroupTitle("preferred_locations")).toBe("Job preferences");
     expect(profileFieldGroupTitle("volunteer_experience")).toBe("Experience: Work-Life");
+    expect(profileFieldGroupTitle("desired_job_titles")).toBe("Nice to have");
+    expect(profileFieldGroupTitle("work_arrangement_preference")).toBe("Job preferences");
     expect(profileFieldGroupTitle("nationality")).toBe("Matching details");
-    expect(profileFieldGroupTitle("age_range")).toBe("Matching details");
+    expect(profileFieldGroupTitle("current_country_since")).toBe("Matching details");
+    expect(profileFieldGroupTitle("religion")).toBe("Only if the role needs it");
+    expect(profileFieldGroupTitle("gender")).toBe("About you");
+    expect(profileFieldGroupTitle("age_range")).toBeUndefined();
+    expect(profileFieldGroupTitle("race")).toBeUndefined();
     expect(profileFieldGroupTitle("willing_overtime")).toBe("Role requirements");
     expect(profileFieldGroupTitle("driving_licence")).toBe("Role requirements");
   });

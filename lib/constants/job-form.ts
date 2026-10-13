@@ -1,4 +1,6 @@
 import { FRAMEWORK_MATCHING_LANGUAGE } from "@/lib/constants/branding";
+import { AVAILABILITY_OPTIONS } from "@/lib/constants/candidate-profile-options";
+import { MATCH_CITY_OPTIONS, MATCH_COUNTRY_OPTIONS } from "@/lib/constants/match-locations";
 
 export const JOB_FORM_NO_FILTER_VALUE = "No preference" as const;
 
@@ -76,7 +78,7 @@ export const JOB_ELIMINATION_FIELDS = [
     name: "required_availability",
     label: "Required availability",
     placeholder: "Select availability",
-    options: ["Immediate", "1 week", "2 weeks", "1 month", "Other", JOB_FORM_NO_FILTER_VALUE],
+    options: [...AVAILABILITY_OPTIONS, JOB_FORM_NO_FILTER_VALUE],
   },
   {
     name: "required_age",
@@ -112,12 +114,6 @@ export const JOB_ELIMINATION_FIELDS = [
     options: ["Male", "Female", "Other", "Prefer not to say", JOB_FORM_NO_FILTER_VALUE],
   },
   {
-    name: "required_race",
-    label: "Race filter (if legally required)",
-    placeholder: "Select race",
-    options: ["Chinese", "Malay", "Indian", "Eurasian", "Caucasian", "African", "Hispanic", "Others", JOB_FORM_NO_FILTER_VALUE],
-  },
-  {
     name: "required_religion",
     label: "Religion filter (if legally required)",
     placeholder: "Select religion",
@@ -127,19 +123,19 @@ export const JOB_ELIMINATION_FIELDS = [
     name: "required_birth_country",
     label: "Required birth country",
     placeholder: "Select birth country",
-    options: ["Singapore", "Malaysia", "China", "India", "Indonesia", "Philippines", "Thailand", "Vietnam", "Others", JOB_FORM_NO_FILTER_VALUE],
+    options: [...MATCH_COUNTRY_OPTIONS, JOB_FORM_NO_FILTER_VALUE],
   },
   {
     name: "required_current_country",
     label: "Required current country",
     placeholder: "Select current country",
-    options: ["Singapore", "Malaysia", "China", "India", "Indonesia", "Philippines", "Thailand", "Vietnam", "Others", JOB_FORM_NO_FILTER_VALUE],
+    options: [...MATCH_COUNTRY_OPTIONS, JOB_FORM_NO_FILTER_VALUE],
   },
   {
     name: "required_current_city",
     label: "Required current city",
     placeholder: "Select current city",
-    options: ["Singapore", "Kuala Lumpur", "Penang", "Johor Bahru", "Jakarta", "Bangkok", "Manila", "Ho Chi Minh", "Others", JOB_FORM_NO_FILTER_VALUE],
+    options: [...MATCH_CITY_OPTIONS, JOB_FORM_NO_FILTER_VALUE],
   },
   {
     name: "required_months_in_current_country",
@@ -214,7 +210,7 @@ export const JOB_BACKGROUND_QUESTIONS = [
   },
   {
     name: "faq_accessibility_arrangements_required",
-    label: "Are specific workplace accessibility arrangements required?",
+    label: "Does this role need specific workplace accessibility arrangements?",
   },
 ] as const;
 
@@ -262,8 +258,8 @@ export const CANDIDATE_ROLE_REQUIREMENT_QUESTIONS = [
   },
   {
     name: "accessibility_arrangements_required",
-    shortLabel: "Accessibility arrangements",
-    label: "Do you require specific workplace accessibility arrangements?",
+    shortLabel: "Needs accessibility arrangements",
+    label: "Do you need specific workplace accessibility arrangements?",
   },
 ] as const;
 
@@ -304,11 +300,6 @@ function eliminationOptionsWithoutNoPreference(
  */
 export const CANDIDATE_MATCHING_ATTRIBUTE_FIELDS = [
   {
-    name: "age_range",
-    label: "Age range",
-    options: eliminationOptionsWithoutNoPreference("required_age"),
-  },
-  {
     name: "employment_eligibility_visa",
     label: "Work pass / eligibility",
     options: eliminationOptionsWithoutNoPreference("required_employment_eligibility_visa"),
@@ -329,11 +320,6 @@ export const CANDIDATE_MATCHING_ATTRIBUTE_FIELDS = [
     options: eliminationOptionsWithoutNoPreference("required_gender"),
   },
   {
-    name: "race",
-    label: "Race",
-    options: eliminationOptionsWithoutNoPreference("required_race"),
-  },
-  {
     name: "religion",
     label: "Religion",
     options: eliminationOptionsWithoutNoPreference("required_religion"),
@@ -342,11 +328,6 @@ export const CANDIDATE_MATCHING_ATTRIBUTE_FIELDS = [
     name: "birth_country",
     label: "Birth country",
     options: eliminationOptionsWithoutNoPreference("required_birth_country"),
-  },
-  {
-    name: "months_in_current_country",
-    label: "Time in current country",
-    options: eliminationOptionsWithoutNoPreference("required_months_in_current_country"),
   },
   {
     name: "dialect",
@@ -374,10 +355,14 @@ export const CANDIDATE_MATCHING_ATTRIBUTE_FIELD_KEYS: Set<string> = new Set(
   CANDIDATE_MATCHING_ATTRIBUTE_FIELDS.map((field) => field.name)
 );
 
+/** Date answers stored in custom_fields and turned into filter bands at match time. */
+export const CANDIDATE_MATCH_DATE_FIELD_KEYS = ["current_country_since"] as const;
+
 /** Built-in candidate fields that persist via `custom_fields` instead of profile columns. */
 export const CANDIDATE_CUSTOM_STORED_FIELD_KEYS: Set<string> = new Set([
   ...CANDIDATE_ROLE_REQUIREMENT_FIELD_KEYS,
   ...CANDIDATE_MATCHING_ATTRIBUTE_FIELD_KEYS,
+  ...CANDIDATE_MATCH_DATE_FIELD_KEYS,
 ]);
 
 export type PreferredFieldConfig = {

@@ -239,7 +239,15 @@ async function probeNeedsFormFieldMigration(supabase: SupabaseWriteClient): Prom
     .eq("form_group", "profile")
     .eq("is_custom", false)
     .eq("is_active", true)
-    .in("field_key", ["current_job_title", "years_of_experience", "highest_education", "skills"])
+    .in("field_key", [
+      "current_job_title",
+      "years_of_experience",
+      "highest_education",
+      "skills",
+      "age_range",
+      "race",
+      "months_in_current_country",
+    ])
     .limit(1);
   if ((retiredInputs?.length ?? 0) > 0) return true;
 
@@ -323,6 +331,9 @@ async function runFormFieldMigrations(supabase: SupabaseWriteClient) {
         "years_of_experience",
         "highest_education",
         "skills",
+        "age_range",
+        "race",
+        "months_in_current_country",
       ]),
     supabase
       .from("form_fields")

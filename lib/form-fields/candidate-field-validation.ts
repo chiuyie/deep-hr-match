@@ -27,6 +27,7 @@ import {
 import {
   serializeTimelineForForm,
   validateDateOfBirth,
+  normalizeDateOfBirthInput,
   validateDesiredJobTitlesList,
   validateEducationHistoryList,
   validateHomeAddress,
@@ -316,6 +317,38 @@ function validateGenericText(
   return { ok: true, value };
 }
 
+function validateCurrentCountrySince(
+  raw: string,
+  label: string,
+  required: boolean
+): FieldValidationResult {
+  const value = trimInput(raw);
+  const empty = requiredEmpty(value, label, required);
+  if (empty) return { ok: false, message: empty };
+  if (!value) return { ok: true, value: "" };
+
+  const iso = normalizeDateOfBirthInput(value);
+  if (!iso) {
+    return { ok: false, message: `${label} must be a valid date.` };
+  }
+
+  const [year, month, day] = iso.split("-").map(Number);
+  const start = new Date(year!, month! - 1, day);
+  if (Number.isNaN(start.getTime()) || start.getFullYear() !== year || start.getMonth() !== month! - 1) {
+    return { ok: false, message: `${label} must be a valid date.` };
+  }
+
+  const today = new Date();
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (start.getTime() > todayDate.getTime()) {
+    return { ok: false, message: `${label} cannot be in the future.` };
+  }
+  if (year! < 1900) {
+    return { ok: false, message: `${label} looks invalid.` };
+  }
+  return { ok: true, value: iso };
+}
+
 export type ValidateFieldContext = {
   /** Other field values for cross-field rules (e.g. country + city). */
   values?: Record<string, unknown>;
@@ -463,6 +496,11 @@ export function validateCandidateField(
     }
     case "date_of_birth": {
       const result = validateDateOfBirth(raw, { required, label });
+      if (result.ok === false) return { ok: false, message: result.message };
+      return result;
+    }
+    case "current_country_since": {
+      const result = validateCurrentCountrySince(asString, label, required);
       if (result.ok === false) return { ok: false, message: result.message };
       return result;
     }

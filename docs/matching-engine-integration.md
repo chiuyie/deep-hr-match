@@ -33,9 +33,9 @@ The external engine is responsible for:
                └─────────────────────────────────────────┘
 ```
 
-### Phase 1 (current)
+### Current inline engine
 
-If `MATCHING_ENGINE_URL` is **not** set, this app runs the inline **placeholder** engine (`lib/matching/engine.ts`) for local dev and demos.
+If `MATCHING_ENGINE_URL` is **not** set, this app runs `lib/matching/engine.ts`. That run filters candidates first, then scores only the 7^7 matching language. The rules are in [Matching logic](./matching-engine.md).
 
 ### Phase 2+ (planned)
 

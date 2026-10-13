@@ -21,6 +21,7 @@ type ProfileValues = Record<string, unknown>;
 export type ProfileFieldSection = {
   title: string;
   description?: string;
+  collapsed?: boolean;
   fields: FormFieldDefinition[];
 };
 
@@ -35,7 +36,7 @@ function getDefaultValue(field: FormFieldDefinition, values: ProfileValues): str
   if (Array.isArray(raw)) return JSON.stringify(raw);
   if (typeof raw === "boolean") return raw ? "Yes" : "No";
   if (raw === null || raw === undefined) return "";
-  if (field.field_key === "date_of_birth") {
+  if (field.field_key === "date_of_birth" || field.field_key === "current_country_since") {
     const match = String(raw).trim().match(/^(\d{4}-\d{2}-\d{2})/);
     return match?.[1] ?? "";
   }
@@ -331,26 +332,46 @@ export function DynamicProfileFields({
 
     return (
       <div className={cn("space-y-8", className)}>
-        {sections.map((section) => (
-          <section
-            key={section.title}
-            className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5"
-          >
+        {sections.map((section) => {
+          const grid =
+            variant === "candidate" ? (
+              <CandidateFieldsGrid fields={section.fields} values={values} />
+            ) : (
+              <EmployerFieldsGrid fields={section.fields} values={values} />
+            );
+          const heading = (
             <div className="mb-4">
               <h3 className="text-sm font-semibold text-foreground">{section.title}</h3>
               {section.description ? (
                 <p className="mt-1 text-sm text-muted-foreground">{section.description}</p>
               ) : null}
             </div>
-            <div className="space-y-4">
-              {variant === "candidate" ? (
-                <CandidateFieldsGrid fields={section.fields} values={values} />
-              ) : (
-                <EmployerFieldsGrid fields={section.fields} values={values} />
-              )}
-            </div>
-          </section>
-        ))}
+          );
+
+          if (section.collapsed) {
+            return (
+              <details
+                key={section.title}
+                className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5"
+              >
+                <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  {heading}
+                </summary>
+                <div className="space-y-4">{grid}</div>
+              </details>
+            );
+          }
+
+          return (
+            <section
+              key={section.title}
+              className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5"
+            >
+              {heading}
+              <div className="space-y-4">{grid}</div>
+            </section>
+          );
+        })}
       </div>
     );
   }

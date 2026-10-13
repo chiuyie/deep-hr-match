@@ -14,7 +14,7 @@ This folder contains technical reference for developers and collaborators. For q
 | [Job Lifecycle](./job-lifecycle.md) | Posted job rules, match snapshots, refresh, unlocks |
 | [Matching Engine Integration](./matching-engine-integration.md) | External matching service + shared DB contract |
 | [Storage](./storage.md) | Supabase Storage buckets, paths, signed URLs |
-| [Matching Engine](./matching-engine.md) | Phase 1 placeholder, trigger, snapshot helpers |
+| [Matching Engine](./matching-engine.md) | Filters, then 7^7 score, snapshot |
 | [7^7 Matching Language](./matrix-matching-language.md) | Form structure, word matching rules, seeding |
 | [Payments](./payments.md) | Stripe Checkout, webhooks, unlock flow |
 | [Deployment](./deployment.md) | Environment variables, Supabase, Vercel, migrations |

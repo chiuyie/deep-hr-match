@@ -365,6 +365,7 @@ interface JobFaqFieldProps {
   name: string;
   value?: boolean;
   icon?: ReactNode;
+  hint?: string;
   highlightIncomplete?: boolean;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
@@ -374,6 +375,7 @@ export function JobFaqField({
   name,
   value,
   icon,
+  hint,
   highlightIncomplete = false,
   onChange,
 }: JobFaqFieldProps) {
@@ -430,6 +432,7 @@ export function JobFaqField({
           ))}
         </div>
       </div>
+      {hint ? <p className="mt-2 text-xs leading-relaxed text-slate-500">{hint}</p> : null}
     </div>
   );
 }
