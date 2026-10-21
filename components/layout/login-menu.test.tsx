@@ -10,7 +10,7 @@ describe("LoginMenu", () => {
   it("renders a direct sign-in link", () => {
     render(<LoginMenu />);
 
-    const loginLink = screen.getByRole("link", { name: "Log In" });
+    const loginLink = screen.getByRole("link", { name: "Sign in" });
 
     expect(loginLink).toHaveAttribute("href", "/auth/sign-in");
   });

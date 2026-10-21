@@ -460,8 +460,8 @@ export function JobCreationFormSectionBody({
               ? "Please answer every requirement question with Yes or No before continuing."
               : (
                 <>
-                  Answer each question with <strong>Yes</strong> or <strong>No</strong> so matching can
-                  score candidates accurately.
+                  Answer each question with <strong>Yes</strong> or <strong>No</strong>. Yes removes
+                  candidates who did not answer Yes. No leaves that question out of filtering.
                 </>
               )}
           </p>

@@ -55,6 +55,18 @@ describe("job matching filters", () => {
     expect(
       candidateFailsJobFilter(job, { custom_fields: { nationality: "Malaysian" } })
     ).toBe("not_required_nationality");
+    expect(candidateFailsJobFilter(job, { custom_fields: {} })).toBe("not_required_nationality");
+  });
+
+  it("keeps gender Other as a real filter value", () => {
+    const job = { form_data: { required_gender: "Other" } };
+    expect(
+      candidatePassesJobFilters(job, { custom_fields: { gender: "Other" } })
+    ).toBe(true);
+    expect(
+      candidateFailsJobFilter(job, { custom_fields: { gender: "Male" } })
+    ).toBe("required_gender");
+    expect(candidateFailsJobFilter(job, { custom_fields: {} })).toBe("required_gender");
   });
 
   it("requires candidate availability to be as soon as or sooner than the job", () => {
@@ -108,6 +120,20 @@ describe("job matching filters", () => {
         languages: [{ language: "English", proficiency: "Fluent" }],
       })
     ).toBe("language_needs");
+  });
+
+  it("treats Mandarin and Mandarin Chinese as the same language", () => {
+    const job = { form_data: { language_needs: ["Mandarin Chinese"] } };
+    expect(
+      candidatePassesJobFilters(job, {
+        languages: ["Mandarin"],
+      })
+    ).toBe(true);
+    expect(
+      candidatePassesJobFilters(job, {
+        languages: [{ language: "Chinese", proficiency: "Fluent" }],
+      })
+    ).toBe(true);
   });
 
   it("reads languages stored as JSON strings (text[] seed shape)", () => {

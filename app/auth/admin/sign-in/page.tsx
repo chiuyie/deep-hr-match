@@ -18,12 +18,12 @@ const errorMessages: Record<string, { title: string; description: string }> = {
   "not-admin": {
     title: "Admin access required",
     description:
-      "This account does not have admin privileges. Use candidate or employer login instead, or ask an existing admin to promote your account.",
+      "This account does not have admin privileges. Use candidate or employer sign in instead, or ask an existing admin to promote your account.",
   },
   "use-admin-portal": {
     title: "Use this admin portal",
     description:
-      "That email belongs to a platform admin account. Sign in here, or switch to candidate / employer login with a different account.",
+      "That email belongs to a platform admin account. Sign in here, or switch to candidate / employer sign in with a different account.",
   },
 };
 
@@ -91,7 +91,7 @@ export default async function AdminSignInPage({
                 type="submit"
                 className="text-primary hover:underline dark:text-primary/80"
               >
-                Candidate or employer login
+                Candidate or employer sign in
               </button>
             </form>
           </CardContent>

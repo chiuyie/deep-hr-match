@@ -713,6 +713,7 @@ export function MatrixForm({
     </Card>
   ) : null;
 
+  const guideToMatchingStatus = Boolean(wizard?.continueHref) && !employerFacing;
   const completionCard = formComplete ? (
     <Card className="rounded-[1.75rem] border-emerald-200 bg-emerald-50/80 shadow-sm dark:border-emerald-800 dark:bg-emerald-950/30">
       <CardContent className="space-y-5 p-6">
@@ -730,12 +731,16 @@ export function MatrixForm({
             </h3>
             <p className="text-sm text-emerald-900/80 dark:text-emerald-200/90">
               {showSubmittedState
-                ? "You can review with Back if you want to change anything, then continue."
-                : hideFooterActions
-                  ? "Review with Back if needed. Your answers stay with this form until you save."
-                  : employerFacing
-                    ? "Review with Back if needed, then submit to continue matching."
-                    : "Review with Back if needed, or submit your responses to continue."}
+                ? guideToMatchingStatus
+                  ? "Your answers are saved. Check your matching status to see what’s left before you go live."
+                  : "You can review with Back if you want to change anything, then continue."
+                : guideToMatchingStatus
+                  ? "All 7 factors are done. Submit them, then check your matching status."
+                  : hideFooterActions
+                    ? "Review with Back if needed. Your answers stay with this form until you save."
+                    : employerFacing
+                      ? "Review with Back if needed, then submit to continue matching."
+                      : "Review with Back if needed, or submit your responses to continue."}
             </p>
           </div>
         </div>
@@ -765,9 +770,19 @@ export function MatrixForm({
           {showSubmittedState && wizard?.continueHref ? (
             <Button type="button" className="rounded-xl" asChild>
               <Link href={wizard.continueHref}>
-                {wizard.continueLabel || "Continue"}
+                {wizard.continueLabel || "Check matching status"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
+            </Button>
+          ) : guideToMatchingStatus ? (
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={saving}
+              onClick={() => handleSave(true)}
+            >
+              {saving ? "Submitting..." : wizard?.continueLabel || "Check matching status"}
+              {!saving ? <ArrowRight className="ml-2 h-4 w-4" /> : null}
             </Button>
           ) : hideFooterActions ? null : (
             <Button

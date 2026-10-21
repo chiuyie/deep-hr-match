@@ -1,19 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PublicNav } from "@/components/layout/public-nav";
-import { PublicFooter } from "@/components/layout/public-footer";
+import { AuthPageShell, authFieldClassName } from "@/components/auth/auth-page-shell";
+import { PasswordField } from "@/components/auth/password-field";
 import { SupabaseSetupNotice } from "@/components/auth/supabase-setup-notice";
 import { WrongRoleSignInNotice } from "@/components/auth/wrong-role-sign-in-notice";
 import { AuthPortalRoleSwitch } from "@/components/auth/auth-portal-role-switch";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { signIn, signOutToPortalSignIn } from "@/lib/auth/actions";
 import { getCurrentUser, getDashboardPath } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { cn } from "@/lib/utils";
 
 const errorMessages: Record<string, { title: string; description: string }> = {
   "use-admin-portal": {
@@ -54,7 +52,7 @@ export default async function SignInPage({
     const user = await getCurrentUser();
     if (user) {
       if (user.role === "admin") {
-        // Stay on this page so admins can switch to candidate/employer login
+        // Stay on this page so admins can switch to candidate/employer sign-in
         // instead of bouncing back to the admin portal in a loop.
         signedInAdmin = true;
       } else if (!portalRole || user.role === portalRole) {
@@ -63,58 +61,38 @@ export default async function SignInPage({
     }
   }
 
+  const title =
+    showWrongRoleNotice && accountLabel
+      ? `Continue as ${accountLabel}`
+      : signedInAdmin
+        ? "Switch account type"
+        : roleLabel
+          ? `Sign in as ${roleLabel}`
+          : "Sign in";
+  const description =
+    showWrongRoleNotice && accountLabel
+      ? `Your sign-in details are correct. This email is registered as a ${accountLabel} account.`
+      : signedInAdmin
+        ? "You’re signed in as a platform admin. Continue there, or sign out to use a candidate or employer account."
+        : portalRole
+          ? `Use the email and password for your ${roleLabel.toLowerCase()} account.`
+          : "Choose candidate or employer. Each email belongs to one account type.";
+
   return (
-    <div className="flex min-h-screen flex-col bg-white dark:bg-slate-950">
-      <PublicNav />
-      <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <Card
-          className={cn(
-            "w-full border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900",
-            portalRole && !showWrongRoleNotice && !signedInAdmin ? "max-w-md" : "max-w-lg"
-          )}
-        >
-          <CardHeader>
-            {showWrongRoleNotice && accountLabel ? (
-              <>
-                <CardTitle>Continue as {accountLabel}</CardTitle>
-                <CardDescription>
-                  Your login details are correct. This email is registered as a {accountLabel}{" "}
-                  account.
-                </CardDescription>
-              </>
-            ) : signedInAdmin ? (
-              <>
-                <CardTitle>Switch account type</CardTitle>
-                <CardDescription>
-                  You&apos;re currently signed in as a platform admin. Sign out to log in as a
-                  candidate or employer, or continue to the admin dashboard.
-                </CardDescription>
-              </>
-            ) : (
-              <>
-                <CardTitle>{roleLabel ? `Log in as ${roleLabel}` : "Log in"}</CardTitle>
-                <CardDescription>
-                  {portalRole
-                    ? `Use your ${roleLabel.toLowerCase()} account email and password.`
-                    : "Select Candidate or Employer to continue."}
-                </CardDescription>
-              </>
-            )}
-          </CardHeader>
-          <CardContent>
+    <AuthPageShell title={title} description={description}>
             {!supabaseReady && <SupabaseSetupNotice />}
 
             {showWrongRoleNotice ? (
               <WrongRoleSignInNotice triedRole={portalRole} accountRole={accountRole} />
             ) : signedInAdmin ? (
               <div className="space-y-4">
-                <Button className="w-full rounded-lg" asChild>
+                <Button className="h-11 w-full rounded-xl text-base" asChild>
                   <Link href="/admin">Go to admin dashboard</Link>
                 </Button>
                 <form action={signOutToPortalSignIn} className="space-y-3">
                   {portalRole ? <input type="hidden" name="role" value={portalRole} /> : null}
-                  <Button type="submit" variant="outline" className="w-full rounded-lg">
-                    Sign out and use candidate / employer login
+                  <Button type="submit" variant="outline" className="h-11 w-full rounded-xl">
+                    Sign out and use another account
                   </Button>
                 </form>
                 <p className="text-center text-sm text-muted-foreground">
@@ -133,13 +111,12 @@ export default async function SignInPage({
                 />
 
                 {!portalRole ? (
-                  <div className="mt-6 space-y-2 text-center text-sm text-muted-foreground">
+                  <div className="mt-5 space-y-2 text-center text-sm text-muted-foreground">
                     <p>
-                      Not sure?{" "}
+                      New here?{" "}
                       <Link href="/auth/sign-up" className="text-primary hover:underline">
                         Create an account
-                      </Link>{" "}
-                      and pick Candidate or Employer there.
+                      </Link>
                     </p>
                     <p>
                       Platform admin?{" "}
@@ -179,29 +156,25 @@ export default async function SignInPage({
                             id="email"
                             name="email"
                             type="email"
+                            autoComplete="email"
                             required
                             aria-invalid={showInvalidCredentials}
                             aria-describedby={showInvalidCredentials ? "sign-in-error" : undefined}
+                            className={authFieldClassName}
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="password">Password</Label>
-                          <Input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            aria-invalid={showInvalidCredentials}
-                            aria-describedby={showInvalidCredentials ? "sign-in-error" : undefined}
-                          />
-                          {showInvalidCredentials && (
-                            <p id="sign-in-error" className="text-sm text-destructive">
-                              Email or password doesn&apos;t match. Try again.
-                            </p>
-                          )}
-                        </div>
-                        <Button type="submit" className="w-full rounded-lg">
-                          Log in as {roleLabel}
+                        <PasswordField
+                          autoComplete="current-password"
+                          invalid={showInvalidCredentials}
+                          describedBy="sign-in-error"
+                          error={
+                            showInvalidCredentials
+                              ? "Email or password doesn't match. Try again."
+                              : undefined
+                          }
+                        />
+                        <Button type="submit" className="h-11 w-full rounded-xl text-base">
+                          Sign in as {roleLabel}
                         </Button>
                       </fieldset>
                     </form>
@@ -228,10 +201,6 @@ export default async function SignInPage({
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
-      </div>
-      <PublicFooter />
-    </div>
+    </AuthPageShell>
   );
 }

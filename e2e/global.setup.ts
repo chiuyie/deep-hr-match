@@ -49,7 +49,7 @@ setup("authenticate employer and prepare unlock job", async ({ page }) => {
   await page.goto("/auth/sign-in?role=employer");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: /log in as/i }).click();
+  await page.getByRole("button", { name: /sign in as/i }).click();
 
   await expect(page).toHaveURL(/\/employer(\/|$)/, { timeout: 30_000 });
   await page.context().storageState({ path: authFile });

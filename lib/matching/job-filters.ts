@@ -9,6 +9,7 @@ import {
   canonicalizeMatchLocation,
 } from "@/lib/constants/match-locations";
 import type { CandidateLanguageEntry } from "@/lib/constants/profile-tags";
+import { canonicalizeLanguage } from "@/lib/form-fields/profile-tags";
 import { ageRangeFromDateOfBirth } from "@/lib/matching/age-range";
 import { timeInCountryBand } from "@/lib/matching/time-in-country";
 
@@ -31,9 +32,7 @@ export type CandidateFilterSource = {
 };
 
 const INACTIVE_FILTER_VALUES = new Set(
-  ["", JOB_FORM_NO_FILTER_VALUE, "other", "n/a", "na", "none"].map((value) =>
-    value.toLowerCase()
-  )
+  ["", JOB_FORM_NO_FILTER_VALUE, "n/a", "na", "none"].map((value) => value.toLowerCase())
 );
 
 /**
@@ -230,9 +229,14 @@ function requiredLanguages(formData: Record<string, unknown>): string[] {
   return [];
 }
 
+function languageMatchKey(value: string): string {
+  const canonical = canonicalizeLanguage(value);
+  return normalize(canonical ?? value);
+}
+
 function candidateHasLanguage(candidate: CandidateFilterSource, required: string): boolean {
-  const need = normalize(required);
-  return candidateLanguages(candidate).some((language) => language === need);
+  const need = languageMatchKey(required);
+  return candidateLanguages(candidate).some((language) => languageMatchKey(language) === need);
 }
 
 function meetsAvailability(jobValue: unknown, candidateValue: unknown): boolean {
@@ -274,7 +278,7 @@ export function candidateFailsJobFilter(
     const candidateValue = readCandidateFilterValue(candidate, field.name);
 
     if (field.name === "not_required_nationality") {
-      if (!isInactiveJobFilter(candidateValue) && valuesEqual(jobValue, candidateValue)) {
+      if (isInactiveJobFilter(candidateValue) || valuesEqual(jobValue, candidateValue)) {
         return field.name;
       }
       continue;

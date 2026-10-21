@@ -50,28 +50,25 @@ export function AuthPortalRoleSwitch({
 
   if (!activeRole) {
     return (
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
-          Choose how you use Deep HR Match
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3">
           {portals.map(({ role, label, description, icon: Icon }) => (
             <Link
               key={role}
               href={buildAuthHref(basePath, role, preserveQuery)}
-              className="group flex flex-col rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-primary/50"
+              className="group flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/20 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-primary/50"
             >
-              <span className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-primary shadow-sm ring-1 ring-slate-200 group-hover:ring-primary/30 dark:bg-slate-900 dark:ring-slate-600">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-primary shadow-sm ring-1 ring-slate-200 group-hover:ring-primary/30 dark:bg-slate-900 dark:ring-slate-600">
                 <Icon className="h-4 w-4" aria-hidden />
               </span>
-              <span className="font-semibold text-slate-900 dark:text-slate-50">{label}</span>
-              <span className="mt-1 text-xs leading-snug text-muted-foreground">{description}</span>
-              <span className="mt-3 text-xs font-medium text-primary">
-                Continue to {verb} →
+              <span className="min-w-0">
+                <span className="block font-semibold text-slate-900 dark:text-slate-50">{label}</span>
+                <span className="mt-0.5 block text-sm leading-snug text-muted-foreground">{description}</span>
+                <span className="mt-2 block text-xs font-medium text-primary">
+                  Continue to {verb}
+                </span>
               </span>
             </Link>
           ))}
-        </div>
       </div>
     );
   }
@@ -91,7 +88,7 @@ export function AuthPortalRoleSwitch({
             role="tab"
             aria-selected={selected}
             className={cn(
-              "flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              "flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors",
               selected
                 ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-50"
                 : "text-muted-foreground hover:text-slate-800 dark:hover:text-slate-200"

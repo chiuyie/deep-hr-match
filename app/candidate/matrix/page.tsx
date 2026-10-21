@@ -7,11 +7,7 @@ import { MATRIX_CANDIDATE_MAX_FACTOR_WORD_SELECTIONS } from "@/lib/matching/matr
 import { saveCandidateMatrixAnswers } from "@/lib/candidate/actions";
 import { filterSharedMatrixCategories } from "@/lib/matching/matrix-form";
 import { loadPrimaryMatrixCategoryTree } from "@/lib/matching/matrix-queries";
-import {
-  fetchCandidateOnboardingState,
-  getOnboardingPath,
-  getOnboardingStep,
-} from "@/lib/candidate/onboarding";
+import { fetchCandidateOnboardingState } from "@/lib/candidate/onboarding";
 import { CheckCircle2 } from "lucide-react";
 
 export default async function CandidateMatrixPage({
@@ -42,14 +38,9 @@ export default async function CandidateMatrixPage({
     matrix_column: a.matrix_column ?? undefined,
   }));
 
-  const onboardingStep = getOnboardingStep(onboarding);
   const alreadySubmitted = onboarding.hasMatrix;
-  const continueHref =
-    onboardingStep === "done" ? "/candidate/status" : getOnboardingPath(onboardingStep);
-  const continueLabel =
-    onboardingStep === "done" || onboardingStep === "matrix"
-      ? "Continue to matching status"
-      : "Continue";
+  const continueHref = "/candidate/status";
+  const continueLabel = "Check matching status";
 
   return (
       <div className="space-y-4">
