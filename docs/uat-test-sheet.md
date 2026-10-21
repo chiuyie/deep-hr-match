@@ -6,7 +6,7 @@
 
 ## Rules for this pass
 
-**Payments.** Use mock unlocks. `PAYMENTS_MODE` defaults to `mock`. Choosing a candidate records a paid unlock of **S$49** and shows name, contact, and CV. No card and no PayNow charge. Switch to `PAYMENTS_MODE=stripe` with test keys only when the pass is specifically about Checkout.
+**Payments.** The app running on this machine is in **Stripe test mode**. Unlock opens Stripe Checkout and charges nothing until a test card is paid and the webhook marks the payment paid. Test card: `4242 4242 4242 4242`. The webhook listener is `npm run stripe:listen`. Mock mode (`PAYMENTS_MODE=mock`) skips Checkout and records the same **S$49** unlock immediately. Use mock only for a no-charge smoke pass. Use the Stripe test path for the payment pass.
 
 **Email.** Demo accounts ending in `@deephrmatch.test` are created already confirmed, so they can sign in immediately. A brand-new sign-up follows the Supabase Auth “Confirm email” setting. If that setting is on, open the confirmation email before the first sign-in. If it is off, sign-in works as soon as the account exists.
 
