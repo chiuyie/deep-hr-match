@@ -15,7 +15,7 @@ Deep HR Match connects candidates and employers in two steps.
 1. **Filters decide who can appear** on a job’s match list.
 2. **The 7^7 matching language decides the score and the rank** among the people who passed those filters.
 
-Posting a job and generating matches are free. Seeing a candidate’s name, contact details, and CV costs **S$49** per candidate.
+Posting a job and generating matches are free. Seeing a candidate’s name, contact details, and CV costs **S$10** per candidate.
 
 There are three portals: candidate, employer, and admin. A person signs in to the portal that matches their account.
 
@@ -136,12 +136,12 @@ The employer sees an anonymous list: a score, a rank, and the 7^7 comparison. Na
 
 ### 4.5 Unlock
 
-The employer selects one or more people from the list and pays **S$49 each**.
+The employer selects one or more people from the list and pays **S$10 each**.
 
 | Environment | What happens |
 |-------------|----------------|
 | Live payments | Stripe Checkout. PayNow and card, in Singapore dollars. |
-| Test / UAT | The unlock can complete without a real charge, and the same S$49 is still recorded. |
+| Test / UAT | The unlock can complete without a real charge, and the same S$10 is still recorded. |
 
 After payment, that employer can see the full profile and CV for that candidate on that job. The unlock stays even if a later refresh drops the person from the top 25.
 
@@ -153,7 +153,7 @@ Closing stops new match runs. The last snapshot remains readable. Unlocks alread
 
 ## 5. How to read a match score
 
-The number is the share of 7^7 answers that are the same, weighted equally across the factors both sides answered. It is a percentage from 0 to 100.
+The number is the share of 7^7 answers that are the same, weighted across the factors both sides answered. Skills - Function carries a slightly higher weight than each of the other six factors. It is a percentage from 0 to 100.
 
 | Score | Label on the report |
 |-------|---------------------|
@@ -202,7 +202,7 @@ Changing that framework changes the questions future people answer. Existing sav
 | Accessibility is not a filter | The employer question describes the role. It does not mean the candidate must say they need arrangements. |
 | Country and city share one list, and anything else is Others | Employer and candidate have to be compared on the same words. |
 | Age comes from date of birth | Candidates should not be asked for an age band as well as a date of birth. |
-| Unlock is S$49 and survives a refresh | Payment is for access to that person on that job, not for a place in the current top 25. |
+| Unlock is S$10 and survives a refresh | Payment is for access to that person on that job, not for a place in the current top 25. |
 
 ---
 

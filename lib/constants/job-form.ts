@@ -569,7 +569,7 @@ export const JOB_PREFERRED_CATEGORY_GUIDANCE: Record<
   },
   "Ideal education": {
     shortTitle: "Education",
-    intro: "Education subjects, majors, or ranking tiers—for ranking only, not elimination.",
+    intro: "Education subjects, majors, or ranking tiers—for ranking only, not exclusion.",
   },
   "Ideal personal interests": {
     shortTitle: "Personal interests",

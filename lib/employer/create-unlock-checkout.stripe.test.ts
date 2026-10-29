@@ -162,7 +162,7 @@ describe("createUnlockCheckout stripe path", () => {
     );
     const lineItem = checkoutSessionsCreate.mock.calls[0][0].line_items[0];
     expect(lineItem.price_data.currency).toBe("sgd");
-    expect(lineItem.price_data.unit_amount).toBe(4900);
+    expect(lineItem.price_data.unit_amount).toBe(1000);
     expect(redirect).toHaveBeenCalledWith("https://checkout.stripe.com/c/pay/cs_test_123");
     expect(fulfillUnlockPayment).not.toHaveBeenCalled();
   });

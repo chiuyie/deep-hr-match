@@ -46,7 +46,7 @@ Implemented in `lib/matching/matrix-score.ts` (same app repo):
 1. Answers are compared per **factor column** (`matrix_column` 1–7), not by `question_id` alone
 2. Within a column, exact same `option_id` at the same `question_id` → match
 3. Each comparable column gets a 0–100 column score
-4. **Platform default weights:** equal across the 7 factors (`1/7` each, renormalized over columns both sides answered)
+4. **Platform default weights:** Skills - Function (column 5) is `0.16`; each of the other six factors is `0.14`. Weights are renormalized over columns both sides answered.
 5. **Matrix / overall score** = weighted average of column scores
 
 Employer-custom weights are out of scope for now. Profile / skills / experience / education sub-scores stay unset until those signals are scored.

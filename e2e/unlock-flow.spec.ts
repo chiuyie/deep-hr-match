@@ -49,7 +49,7 @@ test.describe("employer unlock match flow", () => {
       }
     }
 
-    // Mock: "Unlock 1 candidate (mock)" · Stripe UI: "Unlock 1 — S$49.00"
+    // Mock: "Unlock 1 candidate (mock)" · Stripe UI: "Unlock 1 — S$10.00"
     const unlockButton = page.getByRole("button", { name: /^Unlock \d+/i });
     await expect(unlockButton).toBeVisible();
     await unlockButton.click();

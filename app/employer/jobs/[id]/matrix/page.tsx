@@ -72,12 +72,19 @@ export default async function JobMatrixPage({
         onSave={onSave}
         targetLabel={`Job ${FRAMEWORK_MATCHING_LANGUAGE}`}
         headerIcon={<Grid3X3 className="h-6 w-6" />}
+        hideFooterActions={job.status !== "draft"}
         wizard={{
           badgeLabel: `${FRAMEWORK} · Role profile`,
           subtitle:
-            "Pick one best-fit word per factor. Matching ranks candidates against this role profile.",
+            job.status === "draft"
+              ? "Pick one best-fit word per factor. Matching ranks candidates against this role profile."
+              : "This role profile is locked on the posted job. Create a new job to change it.",
           instructionText:
             "Choose the one word that best describes the ideal candidate for this factor.",
+          alreadySubmitted: job.status !== "draft",
+          continueHref:
+            job.status === "draft" ? undefined : `/employer/jobs/${id}/matching`,
+          continueLabel: job.status === "draft" ? undefined : "View matching",
         }}
       />
     </>

@@ -20,12 +20,12 @@ PAYMENTS_MODE=mock    # default if unset
 |--------|------|
 | Job posting | Free |
 | Matching generation / refresh | Free (top-25 snapshot) |
-| Unlock candidate profile | **S$49.00 SGD** per candidate (recorded even in mock mode) |
+| Unlock candidate profile | **S$10.00 SGD** per candidate (recorded even in mock mode) |
 
 Constants in `lib/matching/engine.ts`:
 
 ```typescript
-UNLOCK_PRICE_CENTS = 4900
+UNLOCK_PRICE_CENTS = 1000
 UNLOCK_CURRENCY = "sgd"
 UNLOCK_PAYMENT_METHOD_TYPES = ["paynow", "card"]
 ```
@@ -84,7 +84,7 @@ Redirect to /employer/jobs/{jobId}/unlocked?session_id=...
 5. Create Stripe Checkout Session:
    - `mode: "payment"`
    - `payment_method_types: ["paynow", "card"]`
-   - `currency` / `unit_amount`: SGD S$49.00 per candidate
+   - `currency` / `unit_amount`: SGD S$10.00 per candidate
    - `success_url`: `/employer/jobs/{jobId}/unlocked?session_id={CHECKOUT_SESSION_ID}`
    - `cancel_url`: `/employer/jobs/{jobId}/matching`
    - `metadata`: `payment_id`, `employer_id`, `job_id`, `candidate_ids` (comma-separated)

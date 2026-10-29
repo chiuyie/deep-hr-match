@@ -12,7 +12,7 @@ export type MatrixAnswerPick = {
 
 export type ColumnScoreBreakdown = {
   column: number;
-  /** Platform default equal weight (1 / 7). */
+  /** Platform weight for this factor (sums to 1 across all seven). */
   weight: number;
   matchedCount: number;
   totalCount: number;
@@ -28,13 +28,28 @@ export type MatrixMatchResult = {
   columnScores: ColumnScoreBreakdown[];
 };
 
-/** Equal weight per matching factor (Col 1–7). Sum = 1. */
-export const PLATFORM_EQUAL_COLUMN_WEIGHT =
-  1 / MATRIX_FACTOR_COUNT;
+/**
+ * Factor column for Skills - Function (1-indexed).
+ * Matches the Level 1 walk order used in the product matrix.
+ */
+export const MATRIX_SKILLS_FUNCTION_COLUMN = 5;
+
+/** Slightly higher share for Skills - Function than each other factor. */
+export const MATRIX_SKILLS_FUNCTION_WEIGHT = 0.16;
+
+/** Weight for each of the other six factors. Six of these + skills weight = 1. */
+export const PLATFORM_BASE_COLUMN_WEIGHT =
+  (1 - MATRIX_SKILLS_FUNCTION_WEIGHT) / (MATRIX_FACTOR_COUNT - 1);
+
+/** @deprecated Prefer PLATFORM_BASE_COLUMN_WEIGHT — kept as an alias for older imports. */
+export const PLATFORM_EQUAL_COLUMN_WEIGHT = PLATFORM_BASE_COLUMN_WEIGHT;
 
 export const PLATFORM_MATRIX_COLUMN_WEIGHTS: ReadonlyArray<number> = Array.from(
   { length: MATRIX_FACTOR_COUNT },
-  () => PLATFORM_EQUAL_COLUMN_WEIGHT
+  (_, index) =>
+    index + 1 === MATRIX_SKILLS_FUNCTION_COLUMN
+      ? MATRIX_SKILLS_FUNCTION_WEIGHT
+      : PLATFORM_BASE_COLUMN_WEIGHT
 );
 
 function cellKey(questionId: string, column: number): string {
@@ -106,8 +121,9 @@ function scoreLegacyByQuestion(
  * Platform-default 7^7 score:
  * - Compare job vs candidate picks per factor column (matrix_column 1–7)
  * - Within a column, exact same option_id at the same question_id = match
- * - Each comparable column is weighted equally (1/7 of the platform scheme;
- *   among scored columns, weights are renormalized so they still sum to 1)
+ * - Skills - Function (column 5) carries a slightly higher weight; the other
+ *   six share the remainder equally. Among scored columns, weights are
+ *   renormalized so they still sum to 1
  * - Overall matrix score = weighted average of column scores × 100, rounded
  */
 export function scoreMatrixMatch(
@@ -144,7 +160,7 @@ export function scoreMatrixMatch(
     }
 
     const columnScore = (columnMatched / comparableKeys.length) * 100;
-    const weight = PLATFORM_EQUAL_COLUMN_WEIGHT;
+    const weight = PLATFORM_MATRIX_COLUMN_WEIGHTS[column - 1] ?? PLATFORM_BASE_COLUMN_WEIGHT;
 
     columnScores.push({
       column,
@@ -165,7 +181,7 @@ export function scoreMatrixMatch(
   }
 
   // Renormalize so missing columns do not silently dilute the score;
-  // comparable factors still share equal relative weight.
+  // comparable factors keep their relative platform weights.
   const matrixScore = Math.round(weightedSum / weightTotal);
 
   return { matrixScore, matchedCount, totalCount, columnScores };

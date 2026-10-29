@@ -130,8 +130,8 @@ Only candidates who passed every active filter are scored. The job's `job_matrix
 | What is compared | The same factor column (`matrix_column` 1–7) and the same question |
 | What counts as a match | The same `option_id` |
 | Column score | Share of comparable picks in that column that match, as 0–100 |
-| Overall score | Equal weight across columns that both sides answered, then rounded |
-| Missing column | Left out and the remaining columns are reweighted equally. It does not add a zero |
+| Overall score | Weighted average across columns that both sides answered, then rounded. Skills - Function is 16%; each other factor is 14% |
+| Missing column | Left out and the remaining columns keep their relative weights. It does not add a zero |
 | No comparable answers | Score is 0 |
 
 `overall_score` and `matrix_score` are that same number. `profile_score`, `skills_score`, `experience_score`, and `education_score` are stored as null. They are not calculated.
@@ -176,6 +176,6 @@ Refreshing deletes `match_results` for that job and writes a new top 25. Someone
 
 ```typescript
 export const MATCH_DISPLAY_LIMIT = 25;
-export const UNLOCK_PRICE_CENTS = 4900; // S$49.00
+export const UNLOCK_PRICE_CENTS = 1000; // S$10.00
 export const UNLOCK_CURRENCY = "sgd";
 ```

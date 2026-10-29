@@ -6,7 +6,7 @@
 
 ## Rules for this pass
 
-**Payments.** The app running on this machine is in **Stripe test mode**. Unlock opens Stripe Checkout and charges nothing until a test card is paid and the webhook marks the payment paid. Test card: `4242 4242 4242 4242`. The webhook listener is `npm run stripe:listen`. Mock mode (`PAYMENTS_MODE=mock`) skips Checkout and records the same **S$49** unlock immediately. Use mock only for a no-charge smoke pass. Use the Stripe test path for the payment pass.
+**Payments.** The app running on this machine is in **Stripe test mode**. Unlock opens Stripe Checkout and charges nothing until a test card is paid and the webhook marks the payment paid. Test card: `4242 4242 4242 4242`. The webhook listener is `npm run stripe:listen`. Mock mode (`PAYMENTS_MODE=mock`) skips Checkout and records the same **S$10** unlock immediately. Use mock only for a no-charge smoke pass. Use the Stripe test path for the payment pass.
 
 **Email.** Demo accounts ending in `@deephrmatch.test` are created already confirmed, so they can sign in immediately. A brand-new sign-up follows the Supabase Auth “Confirm email” setting. If that setting is on, open the confirmation email before the first sign-in. If it is off, sign-in works as soon as the account exists.
 
@@ -39,7 +39,7 @@ Demo password after `npm run reseed-complete-demo-data` or `npm run seed-dummy-u
 - [ ] Create or open a job, set at least one filter, and complete the 7^7 answers.
 - [ ] Generate matches. The list is anonymous and at most 25 people.
 - [ ] A candidate who fails a filter, or leaves that filter blank, is absent.
-- [ ] Unlock one candidate. Mock mode shows name, contact, and CV and records S$49 with no charge.
+- [ ] Unlock one candidate. Mock mode shows name, contact, and CV and records S$10 with no charge.
 
 ## Admin
 

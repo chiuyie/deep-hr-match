@@ -56,7 +56,7 @@ FormData → parseJobFormState() → jobSchema validation
 
 ### Unlock checkout
 
-1. Insert `payments` (`status: pending`, `amount = 4900 × candidate count`)
+1. Insert `payments` (`status: pending`, `amount = 1000 × candidate count`)
 2. Create Stripe Checkout with metadata: `payment_id`, `employer_id`, `job_id`, `candidate_ids`
 3. Redirect to Stripe URL
 4. On success → webhook creates `unlocks` — see [Payments](./payments.md)

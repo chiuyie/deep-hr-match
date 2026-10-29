@@ -358,6 +358,13 @@ export async function saveJobMatrixAnswers(
 
   if (!job) return { error: "Job not found" };
 
+  if (job.status !== "draft") {
+    return {
+      error:
+        "Posted jobs cannot change matching answers. Create a new job if the role profile should change.",
+    };
+  }
+
   if (submit) {
     const { data: categories } = await supabase
       .from("matrix_categories")

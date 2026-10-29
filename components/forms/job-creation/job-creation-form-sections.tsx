@@ -394,10 +394,10 @@ export function JobCreationFormSectionBody({
           hideHeader
         >
           <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            <p className="font-semibold">Elimination filters</p>
+            <p className="font-semibold">Exclusion filters</p>
             <p className="mt-1 text-amber-900/90">
               Candidates who do not match a filter you set will not appear in your results. Use{" "}
-              <strong>{JOB_FORM_NO_FILTER_VALUE}</strong> when a criterion should not eliminate anyone. Only
+              <strong>{JOB_FORM_NO_FILTER_VALUE}</strong> when a criterion should not exclude anyone. Only
               set sensitive filters (e.g. age, gender) where you have a lawful hiring reason.
             </p>
           </div>

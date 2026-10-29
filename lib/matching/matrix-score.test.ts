@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  PLATFORM_EQUAL_COLUMN_WEIGHT,
+  MATRIX_SKILLS_FUNCTION_COLUMN,
+  MATRIX_SKILLS_FUNCTION_WEIGHT,
+  PLATFORM_BASE_COLUMN_WEIGHT,
   PLATFORM_MATRIX_COLUMN_WEIGHTS,
   scoreMatrixMatch,
   type MatrixAnswerPick,
@@ -14,12 +16,17 @@ function pick(
   return { question_id, option_id, matrix_column };
 }
 
-describe("platform equal column weights", () => {
-  it("uses equal 1/7 weights across seven factors", () => {
+describe("platform column weights", () => {
+  it("gives Skills - Function a slightly higher weight than each other factor", () => {
     expect(PLATFORM_MATRIX_COLUMN_WEIGHTS).toHaveLength(7);
-    expect(PLATFORM_EQUAL_COLUMN_WEIGHT).toBeCloseTo(1 / 7);
+    expect(PLATFORM_MATRIX_COLUMN_WEIGHTS[MATRIX_SKILLS_FUNCTION_COLUMN - 1]).toBe(
+      MATRIX_SKILLS_FUNCTION_WEIGHT
+    );
+    expect(MATRIX_SKILLS_FUNCTION_WEIGHT).toBeGreaterThan(PLATFORM_BASE_COLUMN_WEIGHT);
     expect(
-      PLATFORM_MATRIX_COLUMN_WEIGHTS.every((w) => w === PLATFORM_EQUAL_COLUMN_WEIGHT)
+      PLATFORM_MATRIX_COLUMN_WEIGHTS.filter(
+        (_, index) => index + 1 !== MATRIX_SKILLS_FUNCTION_COLUMN
+      ).every((weight) => weight === PLATFORM_BASE_COLUMN_WEIGHT)
     ).toBe(true);
     expect(PLATFORM_MATRIX_COLUMN_WEIGHTS.reduce((a, b) => a + b, 0)).toBeCloseTo(1);
   });
@@ -91,8 +98,8 @@ describe("scoreMatrixMatch — legacy (no matrix_column)", () => {
   });
 });
 
-describe("scoreMatrixMatch — column-aware equal weights", () => {
-  it("scores each factor column separately and averages with equal weights", () => {
+describe("scoreMatrixMatch — column-aware weights", () => {
+  it("scores each factor column separately and averages with platform weights", () => {
     const job = [pick("q1", "a", 1), pick("q2", "b", 2)];
     const candidate = [pick("q1", "a", 1), pick("q2", "x", 2)];
 
@@ -103,19 +110,40 @@ describe("scoreMatrixMatch — column-aware equal weights", () => {
     expect(result.columnScores).toEqual([
       {
         column: 1,
-        weight: PLATFORM_EQUAL_COLUMN_WEIGHT,
+        weight: PLATFORM_BASE_COLUMN_WEIGHT,
         matchedCount: 1,
         totalCount: 1,
         columnScore: 100,
       },
       {
         column: 2,
-        weight: PLATFORM_EQUAL_COLUMN_WEIGHT,
+        weight: PLATFORM_BASE_COLUMN_WEIGHT,
         matchedCount: 0,
         totalCount: 1,
         columnScore: 0,
       },
     ]);
+  });
+
+  it("penalizes a Skills - Function mismatch more than another single-factor mismatch", () => {
+    const allMatch = Array.from({ length: 7 }, (_, i) =>
+      pick("root", `word-${i + 1}`, i + 1)
+    );
+    const missFirst = allMatch.map((row, index) =>
+      index === 0 ? pick("root", "different", 1) : row
+    );
+    const missSkills = allMatch.map((row, index) =>
+      index === MATRIX_SKILLS_FUNCTION_COLUMN - 1
+        ? pick("root", "different", MATRIX_SKILLS_FUNCTION_COLUMN)
+        : row
+    );
+
+    const missFirstScore = scoreMatrixMatch(allMatch, missFirst).matrixScore;
+    const missSkillsScore = scoreMatrixMatch(allMatch, missSkills).matrixScore;
+
+    expect(missFirstScore).toBe(86);
+    expect(missSkillsScore).toBe(84);
+    expect(missSkillsScore).toBeLessThan(missFirstScore);
   });
 
   it("does not collapse the same question_id across different columns", () => {
